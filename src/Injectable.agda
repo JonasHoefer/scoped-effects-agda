@@ -105,8 +105,7 @@ module NonDet where
   solutions : {F : Container} {A : Set} → Free (nondet ⊕ F) A → Free F (List A)
   solutions (pure x) = pure (x ∷ [])
   solutions (impure (inj₁ failˢ   , pf)) = pure []
-  -- let is needed for termination checking
-  solutions (impure (inj₁ choiceˢ , pf)) = let l = solutions (pf true) ; r = solutions (pf false) in _++_ <$> l <*> r
+  solutions (impure (inj₁ choiceˢ , pf)) = _++_ <$> solutions (pf true) <*> solutions (pf false)
   solutions (impure (inj₂ s       , pf)) = impure (s , solutions ∘ pf)
 
   fail : {A : Set} {F : Container} → ⦃ nondet ⊂ F ⦄ → Free F A
