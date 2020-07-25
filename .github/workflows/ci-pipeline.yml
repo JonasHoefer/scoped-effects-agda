@@ -21,7 +21,7 @@ on:
     - '.github/workflows/ci-pipeline.yml'
   push:
     branches:
-    - 'master'
+    - 'main'
     paths:
     - 'src/**'
     - 'example/**'
@@ -42,7 +42,7 @@ jobs:
       uses: actions/checkout@v2
     - name: Check Agda Code
       run: |
-      echo "module Everything where" > Everything.agda
+        echo "module Everything where" > Everything.agda
         for f in $(find . -name "*.agda")
         do
           if [ "$f" = "./Everything.agda" ]; then
