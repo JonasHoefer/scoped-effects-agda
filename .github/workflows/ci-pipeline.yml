@@ -1,0 +1,53 @@
+
+# Workflow for checking all Agda files in the repository.
+
+name: CI Pipeline
+
+# The CI pipeline runs whenever a pull request that modifies a file in 
+# the src or example directory or the pipelines config itself is opened,
+# synchronized (i.e., updated due to a new push to the branch that is
+# tracked by the pull request) or reopened. If just the README or
+# documentation changes, the pipeline does not have to run.
+#
+# When such a pull request is merged the resulting `push` event on the master
+# branch triggers another run of the CI pipeline. This is necessary because
+# there could be changes to the master branch that are not compatible with the
+# pull request but don't prevent fast-forward merging.
+on:
+  pull_request:
+    paths:
+    - 'src/**'
+    - 'example/**'
+    - '.github/workflows/ci-pipeline.yml'
+  push:
+    branches:
+    - 'master'
+    paths:
+    - 'src/**'
+    - 'example/**'
+    - '.github/workflows/ci-pipeline.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    container: jlimperg/agda-stdlib:${{ matrix.agda }}_${{ matrix.agda_stdlib }}
+    strategy:
+      matrix:
+        agda: ["2.6.1"]
+        agda_stdlib: ["1.3"]
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Check Agda Code
+      run: |
+      echo "module Everything where" > Everything.agda
+        for f in $(find . -name "*.agda")
+        do
+          if [ "$f" = "./Everything.agda" ]; then
+            continue
+          fi
+          echo "import$( grep -Po "(?<=module)\s+[a-zA-Z\.0-9]+\s+(?=where)" $f )" >> Everything.agda
+        done
+        agda -i "." --library-file /root/.agda/libraries Everything.agda
