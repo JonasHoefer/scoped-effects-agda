@@ -1,12 +1,14 @@
 module Free where
 
+open import Size         using (Size; ↑_)
+
 open import Data.Product using (_,_)
 open import Function     using (_∘_)
 open import Container    using (Container; ⟦_⟧)
 
-data Free (C : Container) (A : Set) : Set where
-  pure : A → Free C A
-  impure : ⟦ C ⟧ (Free C A) → Free C A
+data Free (C : Container) (A : Set) : {Size} → Set where
+  pure : ∀ {i : Size} → A → Free C A {i}
+  impure : ∀ {i : Size} → ⟦ C ⟧ (Free C A {i}) → Free C A {↑ i}
 
 infixl 1 _>>=_
 _>>=_ : {A B : Set} {C : Container} → Free C A → (A → Free C B) → Free C B

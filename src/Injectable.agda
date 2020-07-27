@@ -3,6 +3,7 @@
 module Injectable where
 
 open import Function     using (_∘_)
+open import Size         using (Size; ↑_)
 
 open import Data.Maybe   using (Maybe; just; nothing)
 open import Data.Product using (_,_)
@@ -33,6 +34,6 @@ instance
 inject : {F G : Container} {A : Set} → ⦃ F ⊂ G ⦄ → ⟦ F ⟧ (Free G A) → Free G A
 inject = impure ∘ inj
 
-project : {F G : Container} {A : Set} → ⦃ F ⊂ G ⦄ → Free G A → Maybe (⟦ F ⟧ (Free G A))
+project : {F G : Container} {A : Set} {i : Size} → ⦃ F ⊂ G ⦄ → Free G A {↑ i} → Maybe (⟦ F ⟧ (Free G A {i}))
 project (pure   _) = nothing
 project (impure x) = prj x

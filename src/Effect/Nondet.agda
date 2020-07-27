@@ -1,4 +1,4 @@
-module Effect.NonDet where
+module Effect.Nondet where
 
 open import Function     using (_∘_)
 

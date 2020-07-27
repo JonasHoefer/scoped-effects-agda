@@ -3,6 +3,7 @@
 module Effect.Reader where
 
 open import Function     using (_∘_; _$_)
+open import Size         using (Size; ↑_)
 
 open import Data.Maybe   using (Maybe; just; nothing)
 open import Data.Product using (_,_)
@@ -24,8 +25,7 @@ runReader γ (impure (inj₂ s  , pf)) = impure (s , runReader γ ∘ pf)
 ask : {F : Container} {Γ : Set} → ⦃ reader Γ ⊂ F ⦄ → Free F Γ
 ask = inject (tt , pure)
 
-{-# TERMINATING #-}
-local : {F : Container} {Γ A : Set} → ⦃ reader Γ ⊂ F ⦄ → (Γ → Γ) → Free F A → Free F A
+local : {i : Size} {F : Container} {Γ A : Set} → ⦃ reader Γ ⊂ F ⦄ → (Γ → Γ) → Free F A {i} → Free F A
 local f (pure x)          = inject (tt , (λ γ → pure x))
 local f c@(impure _) with project c
 ... | nothing        = c
