@@ -1,4 +1,4 @@
-# Scoped Effects in Agda
+# Scoped Effects in Agda ![CI Pipeline](https://github.com/JonasHoefer/scoped-effects-agda/workflows/CI%20Pipeline/badge.svg)
 
 ## Bibliography
 
