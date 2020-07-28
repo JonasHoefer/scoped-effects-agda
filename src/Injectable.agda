@@ -37,3 +37,7 @@ inject = impure ∘ inj
 project : {F G : Container} {A : Set} {i : Size} → ⦃ F ⊂ G ⦄ → Free G A {↑ i} → Maybe (⟦ F ⟧ (Free G A {i}))
 project (pure   _) = nothing
 project (impure x) = prj x
+
+upcast : {i : Size} {F G : Container} {A : Set} → Free G A {i} → Free (F ⊕ G) A {i}
+upcast (pure x) = pure x
+upcast (impure (s , pf)) = impure ((inj₂ s) , upcast ∘ pf)
