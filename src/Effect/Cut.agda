@@ -37,5 +37,5 @@ call p = go p fail
 cutfail : {F : Container} {A : Set} → ⦃ cut ⊂ F ⦄ → Free F A
 cutfail = inject (cutfail′ , λ())
 
-cuts : {F : Container} {A : Set} → ⦃ cut ⊂ F ⦄ → ⦃ nondet ⊂ F ⦄ → Free F ⊤
+cuts : {F : Container} → ⦃ cut ⊂ F ⦄ → ⦃ nondet ⊂ F ⦄ → Free F ⊤
 cuts = pure tt ⁇ cutfail

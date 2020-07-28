@@ -26,7 +26,7 @@ ask : {F : Container} {Γ : Set} → ⦃ reader Γ ⊂ F ⦄ → Free F Γ
 ask = inject (tt , pure)
 
 local : {i : Size} {F : Container} {Γ A : Set} → ⦃ reader Γ ⊂ F ⦄ → (Γ → Γ) → Free F A {i} → Free F A
-local f (pure x)          = inject (tt , (λ γ → pure x))
+local f (pure x)     = inject (tt , (λ γ → pure x))
 local f c@(impure _) with project c
 ... | nothing        = c
 ... | just (tt , pf) = inject (tt , λ γ → local f $ pf (f γ))
