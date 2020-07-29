@@ -12,7 +12,7 @@ open import Data.Product  using (_,_)
 open import Data.Sum      using (inj₁; inj₂)
 
 open import Container     using (Container; _▷_; _⊕_)
-open import Free          using (Free; pure; impure; _<$>_; _<*>_)
+open import Free          using (Free; pure; impure; _<$>_; _<*>_; _>>=_; _>>_)
 open import Injectable    using (_⊂_; inject; project)
 
 open import Effect.Nondet using (nondet; fail; _⁇_; choiceˢ; failˢ)
@@ -39,3 +39,6 @@ cutfail = inject (cutfail′ , λ())
 
 cuts : {F : Container} → ⦃ cut ⊂ F ⦄ → ⦃ nondet ⊂ F ⦄ → Free F ⊤
 cuts = pure tt ⁇ cutfail
+
+once : {F : Container} {A : Set} → ⦃ nondet ⊂ F ⦄ → Free (cut ⊕ F) A → Free F A
+once p = call (do x ← p ; cuts ; pure x)
