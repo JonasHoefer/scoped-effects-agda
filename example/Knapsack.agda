@@ -10,7 +10,7 @@ open import Data.Bool     using (Bool; true; false; if_then_else_)
 open import Data.List     using (List; _∷_; [])
 
 open import Container     using (Container)
-open import Free          using (Free; pure; _>>=_; _>>_)
+open import Free
 open import Injectable    using (_⊂_)
 
 open import Effect.Cut    using (once)
@@ -35,12 +35,13 @@ zero   < _     = true
 suc₀ x < one   = false
 suc₀ x < suc y = x < y
 
-knapsack :{F : Container} → {i : Size} → ⦃ nondet ⊂ F ⦄ → ℕ₀ i → List ℕ → Free F (List ℕ)
+knapsack : {F : Container} {i : Size} → ⦃ nondet ⊂ F ⦄ → ℕ₀ i → List ℕ → Free F (List ℕ)
 knapsack zero       vs = pure []
 knapsack w@(suc₀ _) vs = do
-  v ← select vs
-  vs′ ← if w < v then fail else knapsack (w ∸ v) vs
-  pure (v ∷ vs′)
+    v ← select vs
+    vs′ ← if w < v then fail else knapsack (w ∸ v) vs
+    pure (v ∷ vs′)
+  where open RawMonad freeMonad hiding (pure)
 
 knapsackExample : {F : Container} → ⦃ nondet ⊂ F ⦄ → Free F (List ℕ)
 knapsackExample = knapsack (suc₀ $ suc₀ $ suc₀ $ zero) (one ∷ suc one ∷ [])

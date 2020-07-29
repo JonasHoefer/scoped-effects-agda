@@ -11,7 +11,7 @@ open import Data.Product  using (_,_)
 open import Data.Sum      using (_⊎_; inj₁; inj₂)
 
 open import Container     using (Container; _▷_; _⊕_)
-open import Free          using (Free; pure; impure; _<$>_; _<*>_; _>>=_; _>>_)
+open import Free
 open import Injectable    using (_⊂_; inject; project; upcast)
 
 open import Effect.Exc    using (exc; runExc)
@@ -36,20 +36,23 @@ module _ {F : Container} {E : Set} ⦃ _ : catch E ⊂ F ⦄ where
 
 _catchE_ : ∀ {F A E} → ⦃ catch E ⊂ F ⦄ → Free F A → (E → Free F A) → Free F A
 p catchE h = begin (do x ← p ; end ; pure x) h
+  where open RawMonad freeMonad using (_>>=_; _>>_)
 
 ecatch : ∀ {F A E i} → Free (catch E ⊕ exc E ⊕ F) A {i} → Free (exc E ⊕ F) (Free (catch E ⊕ exc E ⊕ F) A {i})
 ecatch (pure x)    = pure (pure x)
 ecatch (BCatch pf) = upcast (runExc (ecatch (pf (inj₂ tt)))) >>= λ where
-  (inj₁ e) → ecatch (pf (inj₁ e))
-  (inj₂ k) → ecatch k
+    (inj₁ e) → ecatch (pf (inj₁ e))
+    (inj₂ k) → ecatch k
+  where open RawMonad freeMonad using (_>>=_)
 ecatch (ECatch pf) = pure (pf tt)
 ecatch (impure (inj₂ s , pf)) = impure (s , ecatch ∘ pf)
 
 bcatch : ∀ {F A E i} → Free (catch E ⊕ exc E ⊕ F) A {i} → Free (exc E ⊕ F) A
 bcatch (pure x)    = pure x
 bcatch (BCatch pf) = upcast (runExc (ecatch (pf (inj₂ tt)))) >>= λ where
-  (inj₁ e) → bcatch (pf (inj₁ e))
-  (inj₂ k) → bcatch k
+    (inj₁ e) → bcatch (pf (inj₁ e))
+    (inj₂ k) → bcatch k
+  where open RawMonad freeMonad using (_>>=_)
 bcatch (ECatch pf) = bcatch (pf tt)
 bcatch (impure (inj₂ s , pf)) = impure (s , bcatch ∘ pf)
 

@@ -6,7 +6,7 @@ open import Size          using (Size; ↑_)
 open import Data.Bool     using (Bool; true; false; if_then_else_)
 open import Data.Char     using (Char; _==_; toℕ)
 open import Data.Empty    using (⊥)
-open import Data.List     using (List; []; _∷_; _++_; map; foldr)
+open import Data.List     using (List; []; _∷_; _++_; foldr)
 open import Data.Maybe    using (Maybe; just; nothing)
 open import Data.Nat      using (ℕ; _∸_)
 open import Data.Product  using (_,_)
@@ -14,7 +14,7 @@ open import Data.Sum      using (inj₁; inj₂)
 open import Data.Unit     using (⊤; tt)
 
 open import Container     using (Container; _▷_; _⊕_)
-open import Free          using (Free; pure; impure; _<$>_; _<*>_)
+open import Free
 open import Injectable    using (_⊂_; inject; project)
 
 open import Effect.Nondet using (nondet; _⁇_; fail)
@@ -41,8 +41,8 @@ module _ {F : Container} ⦃ _ : symbol ⊂ F ⦄ where
 
   digitᵖ : ⦃ nondet ⊂ F ⦄ → Free F Char
   digitᵖ = foldr _⁇_ fail -- shortest solutions with the current std lib ...
-    (map symbolᴾ ('9' ∷ '8' ∷ '7' ∷ '6' ∷ '5' ∷ '4' ∷ '3' ∷ '2' ∷ '1' ∷ '0' ∷ []))
+    (Data.List.map symbolᴾ ('9' ∷ '8' ∷ '7' ∷ '6' ∷ '5' ∷ '4' ∷ '3' ∷ '2' ∷ '1' ∷ '0' ∷ []))
 
   -- TODO: `some` and `many`
   numberᴾ : ⦃ nondet ⊂ F ⦄ → Free F ℕ
-  numberᴾ = (λ c → toℕ c ∸ toℕ '0') <$> digitᵖ
+  numberᴾ = map (λ c → toℕ c ∸ toℕ '0') digitᵖ

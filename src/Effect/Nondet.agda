@@ -10,7 +10,7 @@ open import Data.Product using (_,_)
 open import Data.Sum     using (inj₁; inj₂)
 
 open import Container    using (Container; _▷_; _⊕_)
-open import Free         using (Free; pure; impure; _<$>_; _<*>_)
+open import Free
 open import Injectable   using (_⊂_; inject; project)
 
 data Shape : Set where
@@ -31,16 +31,16 @@ nondet = Shape ▷ pos
 solutions : {F : Container} {A : Set} → Free (nondet ⊕ F) A → Free F (List A)
 solutions (pure x)    = pure (x ∷ [])
 solutions (Fail pf)   = pure []
-solutions (Choice pf) = _++_ <$> solutions (pf true) <*> solutions (pf false)
+solutions (Choice pf) = _++_ <$> solutions (pf true) ⊛ solutions (pf false)
+  where open RawMonad freeMonad using (_<$>_; _⊛_)
 solutions (impure (inj₂ s , pf)) = impure (s , solutions ∘ pf)
 
-module _ {F : Container} {A : Set} ⦃ _ : nondet ⊂ F ⦄ where
-  fail : Free F A
-  fail = inject (failˢ , λ())
+fail : {F : Container} {A : Set} → ⦃ nondet ⊂ F ⦄ → Free F A
+fail = inject (failˢ , λ())
 
-  _⁇_ : Free F A → Free F A → Free F A
-  p ⁇ q = inject (choiceˢ , λ{ false → p ; true → q})
+_⁇_ : {F : Container} {A : Set} → ⦃ nondet ⊂ F ⦄ → Free F A → Free F A → Free F A
+p ⁇ q = inject (choiceˢ , λ{ false → p ; true → q})
 
-  select : List A → Free F A
-  select []       = fail
-  select (x ∷ xs) = pure x ⁇ select xs
+select : {F : Container} {A : Set} → ⦃ nondet ⊂ F ⦄ → List A → Free F A
+select []       = fail
+select (x ∷ xs) = pure x ⁇ select xs

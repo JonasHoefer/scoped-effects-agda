@@ -11,7 +11,7 @@ open import Data.Product  using (_,_)
 open import Data.Sum      using (_⊎_; inj₁; inj₂)
 
 open import Container     using (Container; _▷_; _⊕_)
-open import Free          using (Free; pure; impure; _<$>_; _<*>_; _>>=_; _>>_)
+open import Free
 open import Injectable    using (_⊂_; inject; project; upcast)
 
 data Shape (E : Set) : Set where
