@@ -6,9 +6,12 @@ module Main where
 import Free
 import Injectable
 
+import Effect.Nondet
 import Effect.State
 import Effect.Void
 import Effect.HigherOrder.HExc
+
+import Prelude hiding (fail)
 
 decr :: (HState Int :<: sig, HExc () :<: sig) => Free sig ()
 decr = get >>= \x -> if x > (0::Int) then put (pred x) else throw ()
@@ -22,18 +25,18 @@ globalUpdate = (run . runExc . runState 2) tripleDecr
 localUpdate :: (Int, Either () ())
 localUpdate = (run . runState 2 . runExc) tripleDecr
 
-main :: IO ()
-main = print globalUpdate >> print localUpdate
+knapsack :: (HNondet :<: f) => Integer -> [Integer] -> Free f [Integer]
+knapsack w vs | w == 0 = return []
+              | w < 0  = fail
+              | w > 0  = do v <- select vs
+                            vs' <- knapsack (w - v) vs
+                            return (v : vs')
+runKnapsack :: [[Integer]]
+runKnapsack = run . runNondet $ knapsack 3 [3, 2, 1]
 
--- knapsack :: (Nondet :<: f, Functor f) => Integer -> [Integer] -> Free f [Integer]
--- knapsack w vs | w == 0 = return []
---               | w < 0  = fail
---               | w > 0  = do v <- select vs
---                             vs' <- knapsack (w - v) vs
---                             return (v : vs')
---
--- runKnapsack :: IO ()
--- runKnapsack = print . run . runNondet . once $ knapsack 3 [3, 2, 1]
+main :: IO ()
+main = print globalUpdate >> print localUpdate >> print runKnapsack
+
 --
 -- -- simple Grammar
 -- expr :: (Nondet :<: f, Symbol :<: f, Functor f) => Free f Int

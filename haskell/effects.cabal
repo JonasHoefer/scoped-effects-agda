@@ -21,10 +21,10 @@ executable effects
   main-is:             Main.hs
   other-modules:       Effect.HigherOrder.HExc
                      , Effect.HigherOrder.Lift
+                     , Effect.Nondet
                      , Effect.State
                        -- Effect.Call
                        -- Effect.Cut
-                       -- Effect.Nondet
                        -- Effect.Symbol
                      , Effect.Void
                      , Free
