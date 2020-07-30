@@ -1,3 +1,4 @@
+{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeOperators #-}
@@ -5,40 +6,56 @@
 
 module Injectable ((:+:), pattern Other, (:<:), inject, project, upcast) where
 
-import Free (Free(Pure, Impure))
+import           Free (Free(Pure, Impure))
+import           Syntax
 
+--------------------------------------------------------------------------------
+-- Functor Coproduct                                                          --
+--------------------------------------------------------------------------------
 infixr :+:
-data (f :+: g) a = Inl (f a) | Inr (g a)
+
+data (f :+:  g) (m :: * -> *) a = Inl (f m a)
+                                | Inr (g m a)
 
 pattern Other s = Impure (Inr s)
 
-instance (Functor f, Functor g) => Functor (f :+: g) where
-  fmap f (Inl fa) = Inl $ fmap f fa
-  fmap f (Inr ga) = Inr $ fmap f ga
+instance (HFunctor f, HFunctor g) => HFunctor (f :+: g) where
+  hmap t (Inl op) = Inl (hmap t op)
+  hmap t (Inr op) = Inr (hmap t op)
 
-class sub :<: sup where
-  inj :: sub a -> sup a
-  prj :: sup a -> Maybe (sub a)
+instance (Syntax f, Syntax g) => Syntax (f :+: g) where
+  emap f (Inl op) = Inl (emap f op)
+  emap f (Inr op) = Inr (emap f op)
 
-instance {-# OVERLAPPABLE #-} (Functor f, Functor g) => f :<: (f :+: g) where
+  weave s hdl (Inl op) = Inl (weave s hdl op)
+  weave s hdl (Inr op) = Inr (weave s hdl op)
+
+--------------------------------------------------------------------------------
+-- Injectable                                                                 --
+--------------------------------------------------------------------------------
+class (Syntax sub, Syntax sup) => sub :<:  sup where
+  inj :: sub m a -> sup m a
+  prj :: sup m a -> Maybe (sub m a)
+
+instance {-# OVERLAPPABLE #-}(Syntax f, Syntax g) => f :<: (f :+: g) where
   inj = Inl
 
   prj (Inl a) = Just a
-  prj _       = Nothing
+  prj _ = Nothing
 
-instance {-# OVERLAPPABLE #-} (Functor h, f :<: g) => f :<: (h :+: g) where
+instance {-# OVERLAPPABLE #-}(Syntax h, f :<: g) => f :<: (h :+: g) where
   inj = Inr . inj
 
   prj (Inr ga) = prj ga
-  prj _        = Nothing
+  prj _ = Nothing
 
-inject :: (f :<: g) => f (Free g a) -> Free g a
+inject :: (f :<: g) => f (Free g) a -> Free g a
 inject = Impure . inj
 
-project :: (f :<: g) => Free g a -> Maybe (f (Free g a))
+project :: (f :<: g) => Free g a -> Maybe (f (Free g) a)
 project (Impure x) = prj x
-project _          = Nothing
+project _ = Nothing
 
-upcast :: (Functor f, Functor g) => Free g a -> Free (f :+: g) a
-upcast (Pure x)   = return x
-upcast (Impure g) = Impure (Inr $ upcast <$> g)
+upcast :: (Syntax f, Syntax g) => Free g a -> Free (f :+: g) a
+upcast (Pure x) = return x
+upcast (Impure g) = Impure (Inr $ hmap upcast g)

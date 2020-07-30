@@ -19,13 +19,17 @@ extra-source-files:  CHANGELOG.md
 
 executable effects
   main-is:             Main.hs
-  other-modules:       Effect.Call
-                       Effect.Cut
-                       Effect.Nondet
-                       Effect.Symbol
-                       Effect.Void
-                       Free
-                       Injectable
+  other-modules:       Effect.HigherOrder.HExc
+                     , Effect.HigherOrder.Lift
+                     , Effect.State
+                       -- Effect.Call
+                       -- Effect.Cut
+                       -- Effect.Nondet
+                       -- Effect.Symbol
+                     , Effect.Void
+                     , Free
+                     , Injectable
+                     , Syntax
   -- other-extensions:
   build-depends:       base >=4.12 && <4.13
   hs-source-dirs:      src

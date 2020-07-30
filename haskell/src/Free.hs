@@ -1,18 +1,21 @@
-{-# LANGUAGE DeriveFunctor #-}
-
 module Free where
 
-import Control.Monad (ap)
+import           Control.Monad (ap)
+import           Syntax
 
-data Free f a = Pure a | Impure (f (Free f a)) deriving (Functor)
+data Free h a = Pure a
+              | Impure (h (Free h) a)
 
-instance (Functor f) => Applicative (Free f) where
+instance (Syntax h) => Functor (Free h) where
+  fmap f = (>>= pure . f)
+
+instance (Syntax h) => Applicative (Free h) where
   pure = return
 
   (<*>) = ap
 
-instance (Functor f) => Monad (Free f) where
+instance (Syntax h) => Monad (Free h) where
   return = Pure
 
-  Pure x    >>= k = k x
-  Impure fa >>= k = Impure ((>>= k) <$> fa)
+  Pure x >>= k = k x
+  Impure ha >>= k = Impure (emap (>>= k) ha)

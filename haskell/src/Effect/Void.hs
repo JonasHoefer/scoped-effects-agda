@@ -1,15 +1,16 @@
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE DeriveFunctor #-}
-{-# LANGUAGE ViewPatterns #-}
 
 module Effect.Void where
 
-import Free
-import Injectable
+import           Free
+import           Injectable
+import           Effect.HigherOrder.Lift
 
-data Void a deriving (Functor)
+data Void a
+  deriving (Functor)
 
-run :: Free Void a -> a
-run (Pure x)   = x
+type HVoid = Lift Void
+
+run :: Free HVoid a -> a
+run (Pure x) = x
