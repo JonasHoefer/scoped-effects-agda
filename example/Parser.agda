@@ -11,7 +11,7 @@ open import Data.Nat      using (ℕ; _+_; _*_)
 open import Data.String   using (toList)
 
 open import Container     using (Container)
-open import Free          using (Free; pure; _>>=_; _>>_)
+open import Free          using (Free; pure) renaming (bind to _>>=_)
 open import Injectable    using (_⊂_)
 
 open import Effect.Call   using (call; call′; runCut)
@@ -19,6 +19,27 @@ open import Effect.Cut    using (cut; cuts)                      renaming (call 
 open import Effect.Nondet using (nondet; solutions; select; _⁇_)
 open import Effect.Void   using (run)
 open import Effect.Symbol using (parse; symbol; symbolᴾ; numberᴾ)
+
+-- TODO: codata version of Free
+-- record ∞Free (F : Container) (A : Set) : Set where
+--   coinductive
+--   field
+--     ♭ : ⟦ F ⟧ (∞Free F A) ⊎ Free F A
+--
+-- ♯_ : ∀ {F A} → Free F A → ∞Free F A
+-- ♯ p = record { ♭ = inj₂ p }
+--
+-- _¿_ : ∀ {F A} → ⦃ nondet ⊂ F ⦄ → ∞Free F A → ∞Free F A → ∞Free F A
+-- p ¿ q = record { ♭ = inj₁ (inj (choiceˢ , λ{ false → p ; true → q})) }
+--
+-- some : {F : Container} {A : Set} → ⦃ nondet ⊂ F ⦄ → Free F A → ∞Free F (List A)
+-- many : {F : Container} {A : Set} → ⦃ nondet ⊂ F ⦄ → Free F A → ∞Free F (List A)
+--
+-- some p = {!!}
+-- many p = (♯ pure []) ¿ some p
+
+_>>_ : ∀ {F A B} → Free F A → Free F B → Free F B
+mx >> my = mx >>= λ _ → my
 
 {-# TERMINATING #-}
 expr   : {F : Container} → ⦃ nondet ⊂ F ⦄ → ⦃ symbol ⊂ F ⦄ → Free F ℕ
