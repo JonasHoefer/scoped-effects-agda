@@ -3,7 +3,7 @@
 ## Bibliography
 
 - [Effect Handlers in Scope][paper/WuSH14]
-- [Modeling Call-Time Choice as Effect using Scoped Free Monads][thsis/Bunkenburg19]
+- [Modeling Call Time Choice as Effect using Scoped Free Monads][thesis/Bunkenburg19]
 
 [paper/WuSH14]:
   http://www.cs.ox.ac.uk/people/nicolas.wu/papers/Scope.pdf
