@@ -1,11 +1,11 @@
 module Tree where
 
-open import Data.List                                   using (List; _∷_; []; _++_)
-open import Data.Maybe                                  using (Maybe; just; nothing)
-open import Data.Nat                                    using (ℕ)
-open import Data.Nat.Properties                         using (<-strictTotalOrder)
+open import Data.List                              using (List; _∷_; []; _++_)
+open import Data.Maybe                             using (Maybe; just; nothing)
+open import Data.Nat                               using (ℕ)
+open import Data.Nat.Properties                    using (<-strictTotalOrder)
 
-open import Data.Tree.AVL.Map <-strictTotalOrder public using (Map; empty; insert; lookup)
+open import Data.AVL.Map <-strictTotalOrder public using (Map; empty; insert; lookup)
 
 data Tree (A : Set) : Set where
   leaf   : A → Tree A
