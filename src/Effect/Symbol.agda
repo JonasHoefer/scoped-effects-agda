@@ -15,7 +15,7 @@ open import Data.Unit     using (⊤; tt)
 
 open import Container     using (Container; _▷_; _⊕_)
 open import Free
-open import Injectable    using (_⊂_; inject; project)
+open import Injectable    using (_⊂_; inject; project; Other)
 
 open import Effect.Nondet using (nondet; _⁇_; fail)
 
@@ -26,7 +26,6 @@ symbol : Container
 symbol = Shape ▷ λ _ → ⊤
 
 pattern Symbol c pf = impure (inj₁ (symbolˢ c) , pf)
-pattern Other s pf = impure (inj₂ s , pf)
 
 parse : {F : Container} {A : Set} → ⦃ nondet ⊂ F ⦄ → List Char → Free (symbol ⊕ F) A → Free F A
 parse []       (pure x)      = pure x

@@ -20,6 +20,8 @@ record _⊂_ (F G : Container) : Set₁ where
    prj : {A : Set} → ⟦ G ⟧ A → Maybe (⟦ F ⟧ A)
 open _⊂_ ⦃ ... ⦄ public
 
+pattern Other s pf = impure (inj₂ s , pf)
+
 instance
   ⊂-⊕-left : {F G : Container} → F ⊂ (F ⊕ G)
   _⊂_.inj ⊂-⊕-left = injˡ

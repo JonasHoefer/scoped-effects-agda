@@ -5,41 +5,47 @@ open import Function     using (_∘_)
 open import Data.Bool    using (Bool; true; false)
 open import Data.Empty   using (⊥)
 open import Data.List    using (List; []; _∷_; _++_)
+open import Data.Nat     using (ℕ)
 open import Data.Maybe   using (Maybe; just; nothing)
 open import Data.Product using (_,_)
 open import Data.Sum     using (inj₁; inj₂)
 
+open import Tree
+
 open import Container    using (Container; _▷_; _⊕_)
 open import Free
-open import Injectable   using (_⊂_; inject; project)
+open import Injectable   using (_⊂_; inject; project; Other)
 
 data Shape : Set where
   failˢ   : Shape
-  choiceˢ : Shape
+  choiceˢ : Maybe ℕ → Shape
 
 pos : Shape → Set
-pos failˢ   = ⊥
-pos choiceˢ = Bool
+pos failˢ       = ⊥
+pos (choiceˢ _) = Bool
 
-pattern Fail pf = impure (inj₁ failˢ , pf)
-pattern Choice pf = impure (inj₁ choiceˢ , pf)
+pattern Fail pf       = impure (inj₁ failˢ , pf)
+pattern Choice mId pf = impure (inj₁ (choiceˢ mId) , pf)
 
 -- non determinism effect
 nondet : Container
 nondet = Shape ▷ pos
 
-solutions : {F : Container} {A : Set} → Free (nondet ⊕ F) A → Free F (List A)
-solutions (pure x)    = pure (x ∷ [])
-solutions (Fail pf)   = pure []
-solutions (Choice pf) = _++_ <$> solutions (pf true) ⊛ solutions (pf false)
+runNondet : {F : Container} {A : Set} → Free (nondet ⊕ F) A → Free F (Tree A)
+runNondet (pure x) = pure (leaf x)
+runNondet (Fail pf) = pure failed
+runNondet (Choice n pf) = choice n <$> runNondet (pf true) ⊛ runNondet (pf false)
   where open RawMonad freeMonad using (_<$>_; _⊛_)
-solutions (impure (inj₂ s , pf)) = impure (s , solutions ∘ pf)
+runNondet (Other s pf) = impure (s , runNondet ∘ pf)
+
+solutions : {F : Container} {A : Set} → Free (nondet ⊕ F) A → Free F (List A)
+solutions = map (dfs empty) ∘ runNondet
 
 fail : {F : Container} {A : Set} → ⦃ nondet ⊂ F ⦄ → Free F A
 fail = inject (failˢ , λ())
 
 _⁇_ : {F : Container} {A : Set} → ⦃ nondet ⊂ F ⦄ → Free F A → Free F A → Free F A
-p ⁇ q = inject (choiceˢ , λ{ false → p ; true → q})
+p ⁇ q = inject (choiceˢ nothing , λ{ false → p ; true → q})
 
 select : {F : Container} {A : Set} → ⦃ nondet ⊂ F ⦄ → List A → Free F A
 select []       = fail

@@ -6,6 +6,8 @@ script_dir=$(dirname "$script")
 root_dir=$(dirname "$script_dir")
 cd "$root_dir"
 
+set -e
 for f in $(find . -name "*.agda")
-  do agda "$f"
+do
+  agda "$f"
 done

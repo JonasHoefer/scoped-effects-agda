@@ -30,9 +30,9 @@ call p = go p fail
     go (pure x)                      q = pure x ⁇ q
     go (impure (inj₁ cutfail′ , pf)) q = fail
     go f@(impure (inj₂ s , pf))      q with project {nondet} f
-    ... | just (choiceˢ , pf′) = go (pf′ false) (go (pf′ true) q)
-    ... | just (failˢ   , pf′) = q
-    ... | nothing              = impure (s , λ p → go (pf p) q )
+    ... | just (choiceˢ _ , pf′) = go (pf′ false) (go (pf′ true) q)
+    ... | just (failˢ     , pf′) = q
+    ... | nothing                = impure (s , λ p → go (pf p) q )
 
 cutfail : {F : Container} {A : Set} → ⦃ cut ⊂ F ⦄ → Free F A
 cutfail = inject (cutfail′ , λ())
