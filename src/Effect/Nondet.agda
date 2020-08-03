@@ -28,25 +28,25 @@ pattern Fail pf       = impure (inj₁ failˢ , pf)
 pattern Choice mId pf = impure (inj₁ (choiceˢ mId) , pf)
 
 -- non determinism effect
-nondet : Container
-nondet = Shape ▷ pos
+Nondet : Container
+Nondet = Shape ▷ pos
 
-runNondet : {F : Container} {A : Set} → Free (nondet ⊕ F) A → Free F (Tree A)
+runNondet : {F : Container} {A : Set} → Free (Nondet ⊕ F) A → Free F (Tree A)
 runNondet (pure x) = pure (leaf x)
 runNondet (Fail pf) = pure failed
 runNondet (Choice n pf) = choice n <$> runNondet (pf true) ⊛ runNondet (pf false)
   where open RawMonad freeMonad using (_<$>_; _⊛_)
 runNondet (Other s pf) = impure (s , runNondet ∘ pf)
 
-solutions : {F : Container} {A : Set} → Free (nondet ⊕ F) A → Free F (List A)
+solutions : {F : Container} {A : Set} → Free (Nondet ⊕ F) A → Free F (List A)
 solutions = map (dfs empty) ∘ runNondet
 
-fail : {F : Container} {A : Set} → ⦃ nondet ⊂ F ⦄ → Free F A
+fail : {F : Container} {A : Set} → ⦃ Nondet ⊂ F ⦄ → Free F A
 fail = inject (failˢ , λ())
 
-_⁇_ : {F : Container} {A : Set} → ⦃ nondet ⊂ F ⦄ → Free F A → Free F A → Free F A
+_⁇_ : {F : Container} {A : Set} → ⦃ Nondet ⊂ F ⦄ → Free F A → Free F A → Free F A
 p ⁇ q = inject (choiceˢ nothing , λ{ false → p ; true → q})
 
-select : {F : Container} {A : Set} → ⦃ nondet ⊂ F ⦄ → List A → Free F A
+select : {F : Container} {A : Set} → ⦃ Nondet ⊂ F ⦄ → List A → Free F A
 select []       = fail
 select (x ∷ xs) = pure x ⁇ select xs

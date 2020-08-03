@@ -6,8 +6,8 @@ open import Container  using (Container; _▷_)
 open import Free       using (Free; pure)
 
 -- The empty effect.
-void : Container
-void = ⊥ ▷ λ()
+Void : Container
+Void = ⊥ ▷ λ()
 
-run : {A : Set} → Free void A → A
+run : {A : Set} → Free Void A → A
 run (pure x) = x

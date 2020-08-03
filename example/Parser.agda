@@ -2,27 +2,27 @@
 
 module Parser where
 
-open import Function      using (_$_)
-open import Size          using (Size; ↑_)
+open import Function                              using (_$_)
+open import Size                                  using (Size; ↑_)
 
-open import Data.Char     using (Char)
-open import Data.List     using (List; _∷_; [])
-open import Data.Nat      using (ℕ; _+_; _*_)
-open import Data.String   using (toList)
+open import Data.Char                             using (Char)
+open import Data.List                             using (List; _∷_; [])
+open import Data.Nat                              using (ℕ; _+_; _*_)
+open import Data.String                           using (toList)
 
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
-open import Container     using (Container)
+open import Container                             using (Container)
 open import Free
-open import Injectable    using (_⊂_)
+open import Injectable                            using (_⊂_)
 
-open import Effect.Call   using (call; call′; runCut)
-open import Effect.Cut    using (cut; cuts)                      renaming (call to callᶜ)
-open import Effect.Nondet using (nondet; solutions; select; _⁇_)
-open import Effect.Void   using (run)
-open import Effect.Symbol using (parse; symbol; symbolᴾ; numberᴾ)
+open import Effect.Call                           using (Call; call; runCut)
+open import Effect.Cut                            using (Cut; cut)                       renaming (call to callᶜ)
+open import Effect.Nondet                         using (Nondet; solutions; select; _⁇_)
+open import Effect.Void                           using (run)
+open import Effect.Symbol                         using (Symbol; parse; symbolᴾ; numberᴾ)
 
-module Unscoped {F : Container} ⦃ _ : nondet ⊂ F ⦄ ⦃ _ : symbol ⊂ F ⦄ where
+module Unscoped {F : Container} ⦃ _ : Nondet ⊂ F ⦄ ⦃ _ : Symbol ⊂ F ⦄ where
   open RawMonad (freeMonad {F})
 
   {-# TERMINATING #-}
@@ -39,19 +39,19 @@ parse+* = refl
 
 module UnscopedError where
   {-# TERMINATING #-}
-  exprᶜ : {F : Container} → ⦃ nondet ⊂ F ⦄ → ⦃  symbol ⊂ F ⦄ → Free F ℕ
-  helper : {G : Container} → ⦃ nondet ⊂ G ⦄ → ⦃ symbol ⊂ G ⦄ → ℕ → Free G ℕ
+  exprᶜ : {F : Container} → ⦃ Nondet ⊂ F ⦄ → ⦃ Symbol ⊂ F ⦄ → Free F ℕ
+  helper : {G : Container} → ⦃ Nondet ⊂ G ⦄ → ⦃ Symbol ⊂ G ⦄ → ℕ → Free G ℕ
 
   exprᶜ = do i ← Unscoped.term ; helper i
     where open RawMonad freeMonad
 
-  helper i = callᶜ ((do symbolᴾ '+' ; cuts ; j ← exprᶜ ; return (i + j)) ⁇ return i)
+  helper i = callᶜ ((do symbolᴾ '+' ; cut ; j ← exprᶜ ; return (i + j)) ⁇ return i)
     where open RawMonad freeMonad
 
 parse-digit-wrong : [] ≡ (run $ solutions $ parse UnscopedError.exprᶜ $ toList "1")
 parse-digit-wrong = refl
 
-module Scoped {F : Container} ⦃ _ : nondet ⊂ F ⦄ ⦃ _ : symbol ⊂ F ⦄ ⦃ _ : call ⊂ F ⦄ ⦃ _ : cut ⊂ F ⦄ where
+module Scoped {F : Container} ⦃ _ : Nondet ⊂ F ⦄ ⦃ _ : Symbol ⊂ F ⦄ ⦃ _ : Call ⊂ F ⦄ ⦃ _ : Cut ⊂ F ⦄ where
   open RawMonad (freeMonad {F})
 
   {-# TERMINATING #-}
@@ -61,7 +61,7 @@ module Scoped {F : Container} ⦃ _ : nondet ⊂ F ⦄ ⦃ _ : symbol ⊂ F ⦄ 
 
   exprˢ = do
     i ← termˢ
-    call′ ((do symbolᴾ '+' ; cuts ; j ← exprˢ ; return (i + j)) ⁇ return i)
+    call ((do symbolᴾ '+' ; cut ; j ← exprˢ ; return (i + j)) ⁇ return i)
   termˢ   = (do i ← factorˢ ; symbolᴾ '*' ; j ← termˢ ; return (i * j)) ⁇ factorˢ
   factorˢ = numberᴾ ⁇ (do symbolᴾ '(' ; i ← exprˢ ; symbolᴾ ')' ; return i)
 

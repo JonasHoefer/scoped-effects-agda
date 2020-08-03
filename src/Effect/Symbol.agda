@@ -17,31 +17,31 @@ open import Container     using (Container; _▷_; _⊕_)
 open import Free
 open import Injectable    using (_⊂_; inject; project; Other)
 
-open import Effect.Nondet using (nondet; _⁇_; fail)
+open import Effect.Nondet using (Nondet; _⁇_; fail)
 
 data Shape : Set where
   symbolˢ : Char → Shape
 
-symbol : Container
-symbol = Shape ▷ λ _ → ⊤
+Symbol : Container
+Symbol = Shape ▷ λ _ → ⊤
 
-pattern Symbol c pf = impure (inj₁ (symbolˢ c) , pf)
+pattern Symbolˢ c pf = impure (inj₁ (symbolˢ c) , pf)
 
-parse : {F : Container} {A : Set} → ⦃ nondet ⊂ F ⦄ → Free (symbol ⊕ F) A → List Char → Free F A
-parse (pure x)      []       = pure x
-parse (pure _)      (x ∷ xs) = fail
-parse (Symbol c pf) []       = fail
-parse (Symbol c pf) (x ∷ xs) = if x == c then parse (pf tt) xs else fail
-parse (Other s pf)  xs       = impure (s , flip parse xs ∘ pf)
+parse : {F : Container} {A : Set} → ⦃ Nondet ⊂ F ⦄ → Free (Symbol ⊕ F) A → List Char → Free F A
+parse (pure x)       []       = pure x
+parse (pure _)       (x ∷ xs) = fail
+parse (Symbolˢ c pf) []       = fail
+parse (Symbolˢ c pf) (x ∷ xs) = if x == c then parse (pf tt) xs else fail
+parse (Other s pf)   xs       = impure (s , flip parse xs ∘ pf)
 
-module _ {F : Container} ⦃ _ : symbol ⊂ F ⦄ where
+module _ {F : Container} ⦃ _ : Symbol ⊂ F ⦄ where
   symbolᴾ : Char → Free F Char
   symbolᴾ c = inject (symbolˢ c , λ tt → pure c)
 
-  digitᵖ : ⦃ nondet ⊂ F ⦄ → Free F Char
+  digitᵖ : ⦃ Nondet ⊂ F ⦄ → Free F Char
   digitᵖ = foldr _⁇_ fail -- shortest solutions with the current std lib ...
     (Data.List.map symbolᴾ ('9' ∷ '8' ∷ '7' ∷ '6' ∷ '5' ∷ '4' ∷ '3' ∷ '2' ∷ '1' ∷ '0' ∷ []))
 
   -- TODO: `some` and `many`
-  numberᴾ : ⦃ nondet ⊂ F ⦄ → Free F ℕ
+  numberᴾ : ⦃ Nondet ⊂ F ⦄ → Free F ℕ
   numberᴾ = map (λ c → toℕ c ∸ toℕ '0') digitᵖ

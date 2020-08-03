@@ -10,10 +10,10 @@ open import Container     using (Container)
 open import Free
 open import Injectable    using (_⊂_)
 
-open import Effect.Reader using (reader; runReader; local; ask)
+open import Effect.Reader using (Reader; runReader; local; ask)
 open import Effect.Void   using (run)
 
-localComp : {F : Container} → ⦃ reader ℕ ⊂ F ⦄ → Free F ℕ
+localComp : {F : Container} → ⦃ Reader ℕ ⊂ F ⦄ → Free F ℕ
 localComp = local (1 +_) $ do
     x ← ask
     y ← local (1 +_) ask

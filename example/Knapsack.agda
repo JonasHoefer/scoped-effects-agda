@@ -14,7 +14,7 @@ open import Free
 open import Injectable    using (_⊂_)
 
 open import Effect.Cut    using (once)
-open import Effect.Nondet using (nondet; solutions; select; fail)
+open import Effect.Nondet using (Nondet; solutions; select; fail)
 open import Effect.Void   using (run)
 
 data ℕ₀ : Size → Set where
@@ -35,7 +35,7 @@ zero   < _     = true
 suc₀ x < one   = false
 suc₀ x < suc y = x < y
 
-knapsack : {F : Container} {i : Size} → ⦃ nondet ⊂ F ⦄ → ℕ₀ i → List ℕ → Free F (List ℕ)
+knapsack : {F : Container} {i : Size} → ⦃ Nondet ⊂ F ⦄ → ℕ₀ i → List ℕ → Free F (List ℕ)
 knapsack zero       vs = pure []
 knapsack w@(suc₀ _) vs = do
     v ← select vs
@@ -43,7 +43,7 @@ knapsack w@(suc₀ _) vs = do
     pure (v ∷ vs′)
   where open RawMonad freeMonad hiding (pure)
 
-knapsackExample : {F : Container} → ⦃ nondet ⊂ F ⦄ → Free F (List ℕ)
+knapsackExample : {F : Container} → ⦃ Nondet ⊂ F ⦄ → Free F (List ℕ)
 knapsackExample = knapsack (suc₀ $ suc₀ $ suc₀ $ zero) (one ∷ suc one ∷ [])
 
 runKnapsack : List (List ℕ)

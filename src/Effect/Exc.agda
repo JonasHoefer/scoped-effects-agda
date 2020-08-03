@@ -19,13 +19,13 @@ data Shape (E : Set) : Set where
 
 pattern Throw e pf = impure (inj₁ (throwˢ e) , pf)
 
-exc : Set → Container
-exc E = Shape E ▷ λ _ → ⊥
+Exc : Set → Container
+Exc E = Shape E ▷ λ _ → ⊥
 
-runExc : ∀ {F A E} → Free (exc E ⊕ F) A → Free F (E ⊎ A)
+runExc : ∀ {F A E} → Free (Exc E ⊕ F) A → Free F (E ⊎ A)
 runExc (pure x)               = pure (inj₂ x)
 runExc (Throw e pf)           = pure (inj₁ e)
 runExc (impure (inj₂ s , pf)) = impure (s , runExc ∘ pf)
 
-throw : ∀ {A E F} → ⦃ exc E ⊂ F ⦄ → E → Free F A
+throw : ∀ {A E F} → ⦃ Exc E ⊂ F ⦄ → E → Free F A
 throw e = inject (throwˢ e , λ())

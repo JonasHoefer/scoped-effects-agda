@@ -11,10 +11,10 @@ open import Container     using (Container)
 open import Free
 open import Injectable    using (_⊂_)
 
-open import Effect.State  using (state; runState; get; put)
+open import Effect.State  using (State; runState; get; put)
 open import Effect.Void   using (run)
 
-tick : {F : Container} → ⦃ state ℕ ⊂ F ⦄ → Free F ⊤
+tick : {F : Container} → ⦃ State ℕ ⊂ F ⦄ → Free F ⊤
 tick = get >>= λ n → put (n + 1)
   where open RawMonad freeMonad using (_>>=_)
 

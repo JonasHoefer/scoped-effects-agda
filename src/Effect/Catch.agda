@@ -14,7 +14,7 @@ open import Container     using (Container; _▷_; _⊕_)
 open import Free
 open import Injectable    using (_⊂_; inject; project; upcast)
 
-open import Effect.Exc    using (exc; runExc)
+open import Effect.Exc    using (Exc; runExc)
 
 data Shape (E : Set) : Set where
   bcatchˢ : Shape E
@@ -24,21 +24,22 @@ pattern BCatch pf = impure (inj₁ bcatchˢ , pf)
 pattern ECatch pf = impure (inj₁ ecatchˢ , pf)
 
 -- E ⊎ ⊤ continuation for exception handling and the next computiation
-catch : Set → Container
-catch E = Shape E ▷ λ{ bcatchˢ → E ⊎ ⊤ ; ecatchˢ → ⊤}
+Catch : Set → Container
+Catch E = Shape E ▷ λ{ bcatchˢ → E ⊎ ⊤ ; ecatchˢ → ⊤}
 
-module _ {F : Container} {E : Set} ⦃ _ : catch E ⊂ F ⦄ where
+module _ {F : Container} {E : Set} ⦃ _ : Catch E ⊂ F ⦄ where
   begin : {A : Set} → Free F A → (E → Free F A) → Free F A
   begin p h = inject (bcatchˢ , λ { (inj₁ e) → h e ; (inj₂ tt) → p})
 
   end : Free F ⊤
   end = inject (ecatchˢ , λ _ → pure tt)
 
-_catchE_ : ∀ {F A E} → ⦃ catch E ⊂ F ⦄ → Free F A → (E → Free F A) → Free F A
-p catchE h = begin (do x ← p ; end ; pure x) h
+infix 0 _catch_
+_catch_ : ∀ {F A E} → ⦃ Catch E ⊂ F ⦄ → Free F A → (E → Free F A) → Free F A
+p catch h = begin (do x ← p ; end ; pure x) h
   where open RawMonad freeMonad using (_>>=_; _>>_)
 
-ecatch : ∀ {F A E i} → Free (catch E ⊕ exc E ⊕ F) A {i} → Free (exc E ⊕ F) (Free (catch E ⊕ exc E ⊕ F) A {i})
+ecatch : ∀ {F A E i} → Free (Catch E ⊕ Exc E ⊕ F) A {i} → Free (Exc E ⊕ F) (Free (Catch E ⊕ Exc E ⊕ F) A {i})
 ecatch (pure x)    = pure (pure x)
 ecatch (BCatch pf) = upcast (runExc (ecatch (pf (inj₂ tt)))) >>= λ where
     (inj₁ e) → ecatch (pf (inj₁ e))
@@ -47,7 +48,7 @@ ecatch (BCatch pf) = upcast (runExc (ecatch (pf (inj₂ tt)))) >>= λ where
 ecatch (ECatch pf) = pure (pf tt)
 ecatch (impure (inj₂ s , pf)) = impure (s , ecatch ∘ pf)
 
-bcatch : ∀ {F A E i} → Free (catch E ⊕ exc E ⊕ F) A {i} → Free (exc E ⊕ F) A
+bcatch : ∀ {F A E i} → Free (Catch E ⊕ Exc E ⊕ F) A {i} → Free (Exc E ⊕ F) A
 bcatch (pure x)    = pure x
 bcatch (BCatch pf) = upcast (runExc (ecatch (pf (inj₂ tt)))) >>= λ where
     (inj₁ e) → bcatch (pf (inj₁ e))
@@ -56,5 +57,5 @@ bcatch (BCatch pf) = upcast (runExc (ecatch (pf (inj₂ tt)))) >>= λ where
 bcatch (ECatch pf) = bcatch (pf tt)
 bcatch (impure (inj₂ s , pf)) = impure (s , bcatch ∘ pf)
 
-runCatch : ∀ {F A E} → Free (catch E ⊕ exc E ⊕ F) A → Free F (E ⊎ A)
+runCatch : ∀ {F A E} → Free (Catch E ⊕ Exc E ⊕ F) A → Free F (E ⊎ A)
 runCatch = runExc ∘ bcatch
