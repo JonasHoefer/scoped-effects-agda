@@ -1,6 +1,6 @@
 module Effect.Symbol where
 
-open import Function      using (_∘_)
+open import Function      using (_∘_; flip)
 open import Size          using (Size; ↑_)
 
 open import Data.Bool     using (Bool; true; false; if_then_else_)
@@ -27,12 +27,12 @@ symbol = Shape ▷ λ _ → ⊤
 
 pattern Symbol c pf = impure (inj₁ (symbolˢ c) , pf)
 
-parse : {F : Container} {A : Set} → ⦃ nondet ⊂ F ⦄ → List Char → Free (symbol ⊕ F) A → Free F A
-parse []       (pure x)      = pure x
-parse (x ∷ xs) (pure _)      = fail
-parse []       (Symbol c pf) = fail
-parse (x ∷ xs) (Symbol c pf) = if x == c then parse xs (pf tt) else fail
-parse xs       (Other s pf)  = impure (s , parse xs ∘ pf)
+parse : {F : Container} {A : Set} → ⦃ nondet ⊂ F ⦄ → Free (symbol ⊕ F) A → List Char → Free F A
+parse (pure x)      []       = pure x
+parse (pure _)      (x ∷ xs) = fail
+parse (Symbol c pf) []       = fail
+parse (Symbol c pf) (x ∷ xs) = if x == c then parse (pf tt) xs else fail
+parse (Other s pf)  xs       = impure (s , flip parse xs ∘ pf)
 
 module _ {F : Container} ⦃ _ : symbol ⊂ F ⦄ where
   symbolᴾ : Char → Free F Char

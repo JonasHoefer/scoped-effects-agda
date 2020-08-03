@@ -10,8 +10,10 @@ open import Data.List     using (List; _∷_; [])
 open import Data.Nat      using (ℕ; _+_; _*_)
 open import Data.String   using (toList)
 
+open import Relation.Binary.PropositionalEquality using (_≡_; refl)
+
 open import Container     using (Container)
-open import Free          using (Free; pure) renaming (bind to _>>=_)
+open import Free
 open import Injectable    using (_⊂_)
 
 open import Effect.Call   using (call; call′; runCut)
@@ -20,57 +22,48 @@ open import Effect.Nondet using (nondet; solutions; select; _⁇_)
 open import Effect.Void   using (run)
 open import Effect.Symbol using (parse; symbol; symbolᴾ; numberᴾ)
 
--- TODO: codata version of Free
--- record ∞Free (F : Container) (A : Set) : Set where
---   coinductive
---   field
---     ♭ : ⟦ F ⟧ (∞Free F A) ⊎ Free F A
---
--- ♯_ : ∀ {F A} → Free F A → ∞Free F A
--- ♯ p = record { ♭ = inj₂ p }
---
--- _¿_ : ∀ {F A} → ⦃ nondet ⊂ F ⦄ → ∞Free F A → ∞Free F A → ∞Free F A
--- p ¿ q = record { ♭ = inj₁ (inj (choiceˢ , λ{ false → p ; true → q})) }
---
--- some : {F : Container} {A : Set} → ⦃ nondet ⊂ F ⦄ → Free F A → ∞Free F (List A)
--- many : {F : Container} {A : Set} → ⦃ nondet ⊂ F ⦄ → Free F A → ∞Free F (List A)
---
--- some p = {!!}
--- many p = (♯ pure []) ¿ some p
+module Unscoped {F : Container} ⦃ _ : nondet ⊂ F ⦄ ⦃ _ : symbol ⊂ F ⦄ where
+  open RawMonad (freeMonad {F})
 
-_>>_ : ∀ {F A B} → Free F A → Free F B → Free F B
-mx >> my = mx >>= λ _ → my
+  {-# TERMINATING #-}
+  expr   : Free F ℕ
+  term   : Free F ℕ
+  factor : Free F ℕ
 
-{-# TERMINATING #-}
-expr   : {F : Container} → ⦃ nondet ⊂ F ⦄ → ⦃ symbol ⊂ F ⦄ → Free F ℕ
-term   : {F : Container} → ⦃ nondet ⊂ F ⦄ → ⦃ symbol ⊂ F ⦄ → Free F ℕ
-factor : {F : Container} → ⦃ nondet ⊂ F ⦄ → ⦃ symbol ⊂ F ⦄ → Free F ℕ
+  expr   = (do i ← term ; symbolᴾ '+' ; j ← expr ; return (i + j)) ⁇ term
+  term   = (do i ← factor ; symbolᴾ '*' ; j ← term ; return (i * j)) ⁇ factor
+  factor = numberᴾ ⁇ (do symbolᴾ '(' ; i ← expr ; symbolᴾ ')' ; return i)
 
-expr   = (do i ← term ; symbolᴾ '+' ; j ← expr ; pure (i + j)) ⁇ term
-term   = (do i ← factor ; symbolᴾ '*' ; j ← term ; pure (i * j)) ⁇ factor
-factor = numberᴾ ⁇ (do symbolᴾ '(' ; i ← expr ; symbolᴾ ')' ; pure i)
+parse+* : 15 ∷ [] ≡ (run $ solutions $ parse Unscoped.expr $ toList "1+4*3+2")
+parse+* = refl
 
-exprᶜ : {F : Container} → ⦃ nondet ⊂ F ⦄ → ⦃ symbol ⊂ F ⦄ → Free F ℕ
-exprᶜ = do
-  i ← term
-  callᶜ ((do symbolᴾ '+' ; cuts ; j ← expr ; pure (i + j)) ⁇ pure i)
+module UnscopedError where
+  {-# TERMINATING #-}
+  exprᶜ : {F : Container} → ⦃ nondet ⊂ F ⦄ → ⦃  symbol ⊂ F ⦄ → Free F ℕ
+  helper : {G : Container} → ⦃ nondet ⊂ G ⦄ → ⦃ symbol ⊂ G ⦄ → ℕ → Free G ℕ
 
-parse+* : List ℕ
-parse+* = run $ solutions $ parse (toList "1+2*3") expr
+  exprᶜ = do i ← Unscoped.term ; helper i
+    where open RawMonad freeMonad
 
-parse-digit-wrong : List ℕ
-parse-digit-wrong = run $ solutions $ parse (toList "1") exprᶜ
+  helper i = callᶜ ((do symbolᴾ '+' ; cuts ; j ← exprᶜ ; return (i + j)) ⁇ return i)
+    where open RawMonad freeMonad
 
-{-# TERMINATING #-}
-exprˢ   : {F : Container} → ⦃ nondet ⊂ F ⦄ → ⦃ symbol ⊂ F ⦄ → ⦃ call ⊂ F ⦄ → ⦃ cut ⊂ F ⦄ → Free F ℕ
-termˢ   : {F : Container} → ⦃ nondet ⊂ F ⦄ → ⦃ symbol ⊂ F ⦄ → ⦃ call ⊂ F ⦄ → ⦃ cut ⊂ F ⦄ → Free F ℕ
-factorˢ : {F : Container} → ⦃ nondet ⊂ F ⦄ → ⦃ symbol ⊂ F ⦄ → ⦃ call ⊂ F ⦄ → ⦃ cut ⊂ F ⦄ → Free F ℕ
+parse-digit-wrong : [] ≡ (run $ solutions $ parse UnscopedError.exprᶜ $ toList "1")
+parse-digit-wrong = refl
 
-exprˢ = do
-  i ← termˢ
-  call′ ((do symbolᴾ '+' ; cuts ; j ← exprˢ ; pure (i + j)) ⁇ pure i)
-termˢ   = (do i ← factorˢ ; symbolᴾ '*' ; j ← termˢ ; pure (i * j)) ⁇ factorˢ
-factorˢ = numberᴾ ⁇ (do symbolᴾ '(' ; i ← exprˢ ; symbolᴾ ')' ; pure i)
+module Scoped {F : Container} ⦃ _ : nondet ⊂ F ⦄ ⦃ _ : symbol ⊂ F ⦄ ⦃ _ : call ⊂ F ⦄ ⦃ _ : cut ⊂ F ⦄ where
+  open RawMonad (freeMonad {F})
 
-parse-digit-correct : List ℕ
-parse-digit-correct = run $ solutions $ runCut $ parse (toList "1") exprˢ
+  {-# TERMINATING #-}
+  exprˢ   : Free F ℕ
+  termˢ   : Free F ℕ
+  factorˢ : Free F ℕ
+
+  exprˢ = do
+    i ← termˢ
+    call′ ((do symbolᴾ '+' ; cuts ; j ← exprˢ ; return (i + j)) ⁇ return i)
+  termˢ   = (do i ← factorˢ ; symbolᴾ '*' ; j ← termˢ ; return (i * j)) ⁇ factorˢ
+  factorˢ = numberᴾ ⁇ (do symbolᴾ '(' ; i ← exprˢ ; symbolᴾ ')' ; return i)
+
+parse-digit-correct : 1 ∷ [] ≡ (run $ solutions $ runCut $ parse Scoped.exprˢ $ toList "1")
+parse-digit-correct = refl
