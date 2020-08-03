@@ -48,6 +48,6 @@ jobs:
           if [ "$f" = "./Everything.agda" ]; then
             continue
           fi
-          echo "import$( grep -Po "(?<=module)\s+[a-zA-Z\.0-9]+\s+(?=where)" $f )" >> Everything.agda
+          echo "import$( grep -m 1 -Po "(?<=module)\s+[a-zA-Z\.0-9]+\s+(?=where)" $f )" >> Everything.agda
         done
         agda -i "." --library-file /root/.agda/libraries Everything.agda
