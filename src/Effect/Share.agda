@@ -2,6 +2,7 @@ module Effect.Share where
 
 open import Function      using (_$_; _∘_; id)
 
+open import Data.Bool     using (Bool)
 open import Data.Maybe    using (Maybe; nothing; just)
 open import Data.Nat      using (ℕ; suc; _*_; _+_)
 open import Data.Product  using (_,_)
@@ -38,6 +39,9 @@ instance
   ℕ-normalform : ∀ {N} → Normalform N ℕ ℕ
   Normalform.nf ℕ-normalform = id
 
+  bool-normalform : ∀ {N} → Normalform N Bool Bool
+  Normalform.nf bool-normalform = id
+
 ---------------
 -- Shareable --
 ---------------
@@ -51,6 +55,8 @@ instance
   ℕ-shareable : ∀ {M} → ⦃ Share ⊂ M ⦄ → ⦃ State ℕ ⊂ M ⦄ → Shareable M ℕ
   Shareable.shareArgs ℕ-shareable = pure
 
+  bool-shareable : ∀ {M} → ⦃ Share ⊂ M ⦄ → ⦃ State ℕ ⊂ M ⦄ → Shareable M Bool
+  Shareable.shareArgs bool-shareable = pure
 -------------
 -- Handler --
 -------------

@@ -44,6 +44,7 @@ solutions = map (dfs empty) ∘ runNondet
 fail : {F : Container} {A : Set} → ⦃ Nondet ⊂ F ⦄ → Free F A
 fail = inject (failˢ , λ())
 
+infixr 0 _⁇_
 _⁇_ : {F : Container} {A : Set} → ⦃ Nondet ⊂ F ⦄ → Free F A → Free F A → Free F A
 p ⁇ q = inject (choiceˢ nothing , λ{ false → p ; true → q})
 
