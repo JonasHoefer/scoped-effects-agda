@@ -1,4 +1,4 @@
-module Tree where
+module Data.Tree where
 
 open import Data.List                               using (List; _∷_; []; _++_)
 open import Data.Maybe                              using (Maybe; just; nothing)

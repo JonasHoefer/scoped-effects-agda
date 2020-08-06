@@ -12,8 +12,6 @@ open import Data.List                             using (List; _∷_; [])
 open import Data.MList                            using (Listᴹ; _∷ᴹ_; []ᴹ; cons; nil; _++_)
 open import Data.Product                          using (_×_; _,_)
 
-open import Tree                                  hiding (insert)
-
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 open import Relation.Nullary.Decidable            using (⌊_⌋)
 

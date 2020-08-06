@@ -9,8 +9,7 @@ open import Data.Nat     using (ℕ)
 open import Data.Maybe   using (Maybe; just; nothing)
 open import Data.Product using (_×_; _,_)
 open import Data.Sum     using (inj₁; inj₂)
-
-open import Tree
+open import Data.Tree
 
 open import Container    using (Container; _▷_; _⊕_)
 open import Free
