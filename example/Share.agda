@@ -16,7 +16,7 @@ open import Injectable                            using (_⊂_)
 
 open import Effect.Nondet                         using (Nondet; solutions; select; _⁇_)
 open import Effect.State                          using (State; evalState)
-open import Effect.Share                          using (Share; share; bshare; nf)
+open import Effect.Share                          using (Share; share; runCTC; nf)
 open import Effect.Void                           using (run)
 
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
@@ -28,7 +28,7 @@ addM : ∀ {F : Container} → Free F ℕ → Free F ℕ → Free F ℕ
 addM x y = (_+_) <$> x ⊛ y
   where open RawMonad freeMonad
 
-module _ {F : Container} ⦃ _ : State ℕ ⊂ F ⦄ ⦃ _ : Share ⊂ F ⦄ ⦃ _ : Nondet ⊂ F ⦄ where
+module _ {F : Container} ⦃ _ : State (ℕ × ℕ) ⊂ F ⦄ ⦃ _ : Share ⊂ F ⦄ ⦃ _ : Nondet ⊂ F ⦄ where
   open RawMonad (freeMonad {F})
 
   -- | Shares the result of a non deterministic computation.
@@ -59,20 +59,20 @@ module _ {F : Container} ⦃ _ : State ℕ ⊂ F ⦄ ⦃ _ : Share ⊂ F ⦄ ⦃
     x ← share coin
     sum (x ∷ᴹ x ∷ᴹ []ᴹ)
 
-coin*2-test : 2 ∷ 0 ∷ [] ≡ (run $ solutions $ bshare $ evalState 0 $ nf coin*2)
+coin*2-test : 2 ∷ 0 ∷ [] ≡ runCTC coin*2
 coin*2-test = refl
 
-nested-sharing-test : 4 ∷ 0 ∷ [] ≡ (run $ solutions $ bshare $ evalState 0 nested-sharing)
+nested-sharing-test : 4 ∷ 0 ∷ [] ≡ runCTC nested-sharing
 nested-sharing-test = refl
 
-add-shared-coin-clash-test : 3 ∷ 2 ∷ 1 ∷ 0 ∷ [] ≡ (run $ solutions $ bshare $ evalState 0 add-shared-coin-clash)
+add-shared-coin-clash-test : 3 ∷ 2 ∷ 1 ∷ 0 ∷ [] ≡ runCTC add-shared-coin-clash
 add-shared-coin-clash-test = refl
 
-share-list-test : (1 ∷ 1 ∷ []) ∷ (0 ∷ 0 ∷ []) ∷ [] ≡ (run $ solutions $ bshare $ evalState 0 $ nf share-list)
+share-list-test : (1 ∷ 1 ∷ []) ∷ (0 ∷ 0 ∷ []) ∷ [] ≡ runCTC share-list
 share-list-test = refl
 
-share-list-elems-test : 2 ∷ 0 ∷ [] ≡ (run $ solutions $ bshare $ evalState 0 $ nf share-list-elems)
+share-list-elems-test : 2 ∷ 0 ∷ [] ≡ runCTC share-list-elems
 share-list-elems-test = refl
 
-shared-list-elem-test : 2 ∷ 0 ∷ [] ≡ (run $ solutions $ bshare $ evalState 0 $ nf shared-list-elem)
+shared-list-elem-test : 2 ∷ 0 ∷ [] ≡ runCTC shared-list-elem
 shared-list-elem-test = refl

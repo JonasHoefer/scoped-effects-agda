@@ -7,7 +7,7 @@ open import Data.Empty   using (⊥)
 open import Data.List    using (List; []; _∷_; _++_)
 open import Data.Nat     using (ℕ)
 open import Data.Maybe   using (Maybe; just; nothing)
-open import Data.Product using (_,_)
+open import Data.Product using (_×_; _,_)
 open import Data.Sum     using (inj₁; inj₂)
 
 open import Tree
@@ -18,7 +18,7 @@ open import Injectable   using (_⊂_; inject; project; Other)
 
 data Shape : Set where
   failˢ   : Shape
-  choiceˢ : Maybe ℕ → Shape
+  choiceˢ : Maybe ((ℕ × ℕ) × ℕ) → Shape
 
 pos : Shape → Set
 pos failˢ       = ⊥

@@ -6,6 +6,7 @@ open import Size          using (Size; ↑_)
 
 open import Data.List     using (List; _∷_; [])
 open import Data.Nat      using (ℕ; _+_)
+open import Data.Product  using (_×_; _,_)
 
 open import Container     using (Container)
 open import Free
@@ -48,7 +49,7 @@ instance
        (cons mx mxs) → _∷_ <$> nf mx ⊛ nf mxs
      where open RawMonad freeMonad hiding (pure)
 
-  Listᴹ-shareable : ∀ {M A i} → ⦃ Shareable M A ⦄ → ⦃ Share ⊂ M ⦄ → ⦃ State ℕ ⊂ M ⦄ → Shareable M (Listᴹ M A {i})
+  Listᴹ-shareable : ∀ {M A i} → ⦃ Shareable M A ⦄ → ⦃ Share ⊂ M ⦄ → ⦃ State (ℕ × ℕ) ⊂ M ⦄ → Shareable M (Listᴹ M A {i})
   Shareable.shareArgs Listᴹ-shareable nil           = []ᴹ
-  Shareable.shareArgs Listᴹ-shareable (cons mx mxs) = cons <$> share mx ⊛ share mxs
+  Shareable.shareArgs Listᴹ-shareable (cons mx mxs) = share mx >>= λ my → share mxs >>= λ mys →  my ∷ᴹ mys -- cons <$> share mx ⊛ share mxs
     where open RawMonad freeMonad
