@@ -330,3 +330,8 @@ cabal.project.local
 cabal.project.local~
 .HTF/
 .ghc.environment.*
+
+
+## Literate Agda
+thesis/latex/thesis.ptb
+thesis/latex/thesis.tex

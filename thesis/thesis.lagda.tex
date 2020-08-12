@@ -1,0 +1,147 @@
+\documentclass[10pt,a4paper,twoside]{report}
+
+\usepackage[english]{babel}
+\usepackage[a4paper,width=150mm,top=25mm,bottom=25mm]{geometry}
+
+\usepackage{fontspec}
+\usepackage[]{unicode-math}
+\setmathfont{latinmodern-math.otf}
+\setsansfont{Latin Modern Sans}
+% \setmainfont{Latin Modern Roman}
+% \setmonofont{FiraCode}
+
+\usepackage{newunicodechar}
+\newunicodechar{ℕ}{\ensuremath{\mathnormal{\mathbb{N}}}}
+\newunicodechar{∷}{\ensuremath{\mathnormal{::}}}
+\newunicodechar{⊔}{\ensuremath{\mathnormal{\sqcup}}}
+\newunicodechar{∀}{\ensuremath{\mathnormal{\forall}}}
+\newunicodechar{ˢ}{\textsuperscript{s}}
+
+\usepackage{hyperref}
+\usepackage[links]{agda}
+
+\usepackage{graphicx}
+\graphicspath{{images/}}
+
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}%
+\fancyhead[LO,RE]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.0pt}
+
+% Chapter pages
+\fancypagestyle{plain}{%
+  \fancyhf{}%
+  \fancyhead[LO,RE]{\thepage}
+  \renewcommand{\headrulewidth}{0.0pt}%
+  \renewcommand{\footrulewidth}{0.0pt}%
+}
+
+\usepackage{minted}
+
+\usepackage[style=alphabetic,backend=biber]{biblatex}
+\addbibresource{thesis.bib}
+
+\title{
+  {\huge\textbf{Implementing a library for scoped algebraic effects in Agda}}\\
+  {\large HTWK Leipzig}
+}
+\author{
+  {Jonas Höfer}\\
+  {Informatik}\\
+  {69555}
+}
+\date{Juli 2020}
+
+\begin{document}
+\maketitle
+\begin{abstract}
+\end{abstract}
+
+\tableofcontents
+
+\chapter{Introduction}
+\section{Goals}
+
+\chapter{Preliminaries}
+\section{Agda}
+
+Agda is a functional language with dependent types.
+The current version, originally known as Agda2, was originally developed by Ulf
+Norell \cite{norell:thesis}
+
+\begin{code}
+data ℕ : Set where
+  zero  : ℕ
+  suc   : ℕ → ℕ
+\end{code}
+\begin{code}[hide]
+{-# BUILTIN NATURAL ℕ #-}
+\end{code}
+
+\subsection{Dependent Types}
+\begin{code}
+data Vec (A : Set) : ℕ → Set where
+  _∷_  : {n : ℕ} → A → Vec A n → Vec A (suc n)
+  []   : Vec A 0
+\end{code}
+
+\subsection{Propositions as Types}
+
+
+\subsection{Strict Positivity}
+
+\subsubsection{Container}
+
+\subsection{Termination Checking}
+
+\subsubsection{Well Founded Induction / Sized Types}
+
+\begin{code}
+open import Agda.Builtin.Size public
+  renaming ( SizeU to SizeUniv )  --  sort SizeUniv
+  using    ( Size                 --  Size   : SizeUniv
+           ; Size<_               --  Size<_ : Size → SizeUniv
+           ; ↑_                   --  ↑_     : Size → Size
+           ; _⊔ˢ_                 --  _⊔ˢ_   : Size → Size → Size
+           ; ∞ )                  --  ∞      : Size
+
+data List (A : Set) : Set where
+  _∷_  : A → List A → List A
+  []   : List A
+
+map-list : {A B : Set} → (A → B) → (List A → List B)
+map-list f (x ∷ xs)  = f x ∷ map-list f xs
+map-list f []        = []
+
+data Rose (A : Set) : Size → Set where
+  rose : ∀ {i} → A → List (Rose A i) → Rose A (↑ i)
+
+map-rose : {A B : Set} {i : Size} → (A → B) → (Rose A i → Rose B i)
+map-rose f (rose x xs) = rose (f x) (map-list (map-rose f) xs)
+\end{code}
+
+\section{Curry and Call-Time-Choice}
+let x = coin in x + x
+
+\chapter{Algebraic Effects}
+\section{Free Monads}
+
+\section{Handler}
+
+\subsection{Nondet}
+\subsection{State}
+
+\section{Scoped Effects}
+\subsection{Cut}
+
+\section{Call-Time-Choice as Effect}
+\chapter{Higher Order}
+
+\chapter{Conclusion}
+\section{Summary}
+
+\printbibliography
+
+\end{document}
