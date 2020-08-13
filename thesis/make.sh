@@ -1,4 +1,5 @@
-#!/bin/sh
+#!/bin/bash
+set -e
 agda --latex thesis.lagda.tex
 cd latex
 biber thesis

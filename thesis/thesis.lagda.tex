@@ -68,8 +68,10 @@
 \section{Agda}
 
 Agda is a functional language with dependent types.
-The current version, originally known as Agda2, was originally developed by Ulf
-Norell \cite{norell:thesis}
+The current version\footnote{\url{https://github.com/agda/agda}} was originally
+developed by Ulf Norell \cite{norell:thesis}.
+Due to its type system Agda can be used as a programming language and as a proof
+assistant.
 
 \begin{code}
 data ℕ : Set where
@@ -81,22 +83,86 @@ data ℕ : Set where
 \end{code}
 
 \subsection{Dependent Types}
+
+Dependent types are types which depend on values.
+Types can have both other types and values as arguments.
+Arguments on the left-hand side of the colon are called parameters and are the
+same for all constructors of an algebraic data type.
+Arguments on the right-hand side of the colon are called indices an can differ
+for each constructor.
+
+Consider the following definition of a vector.
+The data type depends on a type \AgdaDatatype{A} and a value, a natural number.
+
 \begin{code}
 data Vec (A : Set) : ℕ → Set where
   _∷_  : {n : ℕ} → A → Vec A n → Vec A (suc n)
   []   : Vec A 0
 \end{code}
 
+The \AgdaInductiveConstructor{[]} constructor allows us to create an empty
+vector of any type, but forces the index to be zero.
+The \AgdaInductiveConstructor{\_∷\_} constructor appends an element to the front
+of a vector of the same type, increasing the index in the process.
+Only these two constructors can be used to construct vectors.
+Therefore the index is always equal to the amount of elements stored in the
+vector.
+
+By encoding more information about the data in its type we can  [TODO: static
+dynamic semantics / promote to type error / ...].
+The following definition of \AgdaFunction{head} avoids error handling or
+partiality by excluding the empty vector as a valid argument.
+
+\begin{code}
+head : ∀ {A n} → Vec A (suc n) → A
+head (x ∷ _) = x
+\end{code}
+
+When pattern matching on the argument of \AgdaFunction{head} there is no case
+for \AgdaInductiveConstructor{[]}.
+The argument has type \AgdaDatatype{Vec A (suc n)} and
+\AgdaInductiveConstructor{[]} has type \AgdaDatatype{Vec A 0}.
+Those to types cannot be unified, because \AgdaInductiveConstructor{suc} and
+\AgdaInductiveConstructor{zero} are different constructors of \AgdaDatatype{ℕ}.
+Therefore the \AgdaInductiveConstructor{\_∷\_} case does not apply.
+
 \subsection{Propositions as Types}
 
+\cite{DBLP:journals/cacm/Wadler15}
 
 \subsection{Strict Positivity}
+
+
 
 \subsubsection{Container}
 
 \subsection{Termination Checking}
 
-\subsubsection{Well Founded Induction and Sized Types}
+The definition of non-terminating functions entails logical inconsistency.
+Agda therefore only allows the definition terminating functions.
+Due to the Undecidability of the halting problem Agda uses a heuristic termination checker.
+The termination checker proofs termination by observing structural recursion.
+Consider the following definitions of \AgdaDatatype{List} and \AgdaFunction{map}.
+
+\begin{code}
+data List (A : Set) : Set where
+  _∷_  : A → List A → List A
+  []   : List A
+
+map : {A B : Set} → (A → B) → (List A → List B)
+map f (x ∷ xs)  = f x ∷ map f xs
+map f []        = []
+\end{code}
+
+The \AgdaInductiveConstructor{[]} case does not contain a recursive calls.
+In the \AgdaInductiveConstructor{\_∷\_} case the recursive call to
+\AgdaFunction{map} occurs on a structural smaller argument i.e.
+\AgdaArgument{xs} is a subterm of the argument
+\AgdaArgument{x}\;\AgdaInductiveConstructor{∷}\;\AgdaArgument{xs}.
+Because elements of \AgdaDatatype{List A} are finite the function
+\AgdaFunction{map} terminates for every argument.
+
+\subsubsection{Sized Types}
 
 \begin{code}
 open import Agda.Builtin.Size public
@@ -107,19 +173,11 @@ open import Agda.Builtin.Size public
            ; _⊔ˢ_                 --  _⊔ˢ_   : Size → Size → Size
            ; ∞ )                  --  ∞      : Size
 
-data List (A : Set) : Set where
-  _∷_  : A → List A → List A
-  []   : List A
-
-map-list : {A B : Set} → (A → B) → (List A → List B)
-map-list f (x ∷ xs)  = f x ∷ map-list f xs
-map-list f []        = []
-
 data Rose (A : Set) : Size → Set where
   rose : ∀ {i} → A → List (Rose A i) → Rose A (↑ i)
 
 map-rose : {A B : Set} {i : Size} → (A → B) → (Rose A i → Rose B i)
-map-rose f (rose x xs) = rose (f x) (map-list (map-rose f) xs)
+map-rose f (rose x xs) = rose (f x) (map (map-rose f) xs)
 \end{code}
 
 \section{Curry and Call-Time-Choice}
