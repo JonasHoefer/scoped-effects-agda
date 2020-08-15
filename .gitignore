@@ -335,3 +335,4 @@ cabal.project.local~
 ## Literate Agda
 thesis/latex/thesis.ptb
 thesis/latex/thesis.tex
+thesis/latex/*.tex

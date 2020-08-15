@@ -5,20 +5,52 @@
 
 \usepackage{fontspec}
 \usepackage[]{unicode-math}
-\setmathfont{latinmodern-math.otf}
+\usepackage{wasysym}
+\setmathfont{Latin Modern Math}
+\setmathfont[range={\lBrace,\rBrace}]{XITSMath} % fallback for these two glyphe
 \setsansfont{Latin Modern Sans}
 % \setmainfont{Latin Modern Roman}
-% \setmonofont{FiraCode}
+% \setmonofont{Fira Code}
 
 \usepackage{newunicodechar}
 \newunicodechar{ℕ}{\ensuremath{\mathnormal{\mathbb{N}}}}
 \newunicodechar{∷}{\ensuremath{\mathnormal{::}}}
 \newunicodechar{⊔}{\ensuremath{\mathnormal{\sqcup}}}
 \newunicodechar{∀}{\ensuremath{\mathnormal{\forall}}}
+\newunicodechar{ℓ}{\ensuremath{\mathnormal{\ell}}}
+\newunicodechar{▷}{\ensuremath{\mathnormal{\rhd}}}
+\newunicodechar{∈}{\ensuremath{\mathnormal{\in}}}
+\newunicodechar{⦃}{\ensuremath{\mathnormal{\lBrace}}}
+\newunicodechar{⦄}{\ensuremath{\mathnormal{\rBrace}}}
+\newunicodechar{≅}{\ensuremath{\mathnormal{\cong}}}
+\newunicodechar{⊕}{\ensuremath{\mathnormal{\oplus}}}
+\newunicodechar{⊎}{\ensuremath{\mathnormal{\uplus}}}
+\newunicodechar{λ}{\ensuremath{\mathnormal{\lambda}}}
+\newunicodechar{∘}{\ensuremath{\mathnormal{\circ}}}
+\newunicodechar{≡}{\ensuremath{\mathnormal{\equiv}}}
 \newunicodechar{ˢ}{\textsuperscript{s}}
+\newunicodechar{ˡ}{\textsuperscript{l}}
+\newunicodechar{ʳ}{\textsuperscript{r}}
+\newunicodechar{₁}{\textsubscript{1}}
+\newunicodechar{₂}{\textsubscript{2}}
 
 \usepackage{hyperref}
 \usepackage[links]{agda}
+
+\DeclareRobustCommand{\AgdaFormat}[2]{%
+  \ifthenelse{\equal{#1}{>>=}}
+  {\ensuremath{\mathbin{>\!\!\!>\mkern-6.7mu=}}}
+  {\ifthenelse{\equal{#1}{\AgdaUnderscore{}>>=}}
+  {\ensuremath{\AgdaUnderscore{}\mathbin{>\!\!\!>\mkern-6.7mu=}}}
+  {\ifthenelse{\equal{#1}{>>=\AgdaUnderscore{}}}
+  {\ensuremath{\mathbin{>\!\!\!>\mkern-6.7mu=}\AgdaUnderscore{}}}
+  {\ifthenelse{\equal{#1}{\AgdaUnderscore{}>>=\AgdaUnderscore{}}}
+  {\ensuremath{\AgdaUnderscore{}\mathbin{>\!\!\!>\mkern-6.7mu=}\AgdaUnderscore{}}}
+  {\ifthenelse{\equal{#1}{>>}}
+  {\ensuremath{\mathbin{>\!\!\!>}}}
+  {\ifthenelse{\equal{#1}{\AgdaUnderscore{}>>\AgdaUnderscore{}}}
+  {\AgdaUnderscore{}\ensuremath{\mathbin{>\!\!\!>}}\AgdaUnderscore{}}
+  {#2}}}}}}}
 
 \usepackage{graphicx}
 \graphicspath{{images/}}
@@ -184,17 +216,8 @@ map-rose f (rose x xs) = rose (f x) (map (map-rose f) xs)
 let x = coin in x + x
 
 \chapter{Algebraic Effects}
-\section{Free Monads}
+\input{FirstOrder}
 
-\section{Handler}
-
-\subsection{Nondet}
-\subsection{State}
-
-\section{Scoped Effects}
-\subsection{Cut}
-
-\section{Call-Time-Choice as Effect}
 \chapter{Higher Order}
 
 \chapter{Conclusion}

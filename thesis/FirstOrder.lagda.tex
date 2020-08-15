@@ -1,0 +1,222 @@
+\begin{code}[hide]
+module FirstOrder where
+
+open import Level using (Level; suc; zero; _⊔_)
+open import Function using (_∘_; id)
+open import Size using (Size; ↑_)
+
+open import Data.List using (List; []; _∷_)
+open import Data.Product using (Σ-syntax; _,_)
+open import Data.Sum using (_⊎_; [_,_])
+
+open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong)
+
+postulate
+  extensionality : ∀ {ℓ ℓ′ : Level} {A : Set ℓ} {B : A → Set ℓ′} {f g : (x : A) → B x}
+      → (∀ (x : A) → f x ≡ g x) → f ≡ g
+\end{code}
+
+Algebraic effects are computational effects, which can be described using an
+algebraic theory.
+
+Section \ref{fo-definition} gives a concrete definition for algebraic effects.
+Section \ref{fo-free-monads} describes the implementation using free monads in
+Agda.
+
+\section{Definition}
+\label{fo-definition}
+
+Needed? A la Bauer? Adapts nicely to containers, but I'm not sure how well it
+works wth scoped syntax and the HO approach
+
+\section{Free Monads}
+\label{fo-free-monads}
+
+The syntax of an algebraic effect is described using the free monad.
+
+\begin{code}
+record Container : Set₁ where
+  constructor _▷_
+  field
+    Shape : Set
+    Pos : Shape → Set
+
+⟦_⟧ : {ℓ : Level} → Container → Set ℓ → Set ℓ
+⟦ S ▷ P ⟧ A = Σ[ s ∈ S ] (P s → A)
+\end{code}
+In the approach described by Wu et la. the functor coproduct is modelled
+as the data type \texttt{data (f :+: g) a = Inl (f a) | Inr (g a)}, which is a
+\texttt{Functor} in \texttt{a}.
+
+In Agda functors are represented as containers, a concrete data type not a type
+class.
+The coproduct of two containers $F$ and $G$ is the container whose
+\AgdaFunction{shape} is the disjoint union of $F$ and $G$s shapes and whose
+position function \AgdaFunction{pos} is the coproduct mediator of $F$ and $G$s
+position functions.
+The functor represented by the coproduct of two containers is isomorphic to the
+functor coproduct of their representations.
+
+\begin{code}[hide]
+infixr 1 _⊕_
+\end{code}
+\begin{code}
+_⊕_ : Container → Container → Container
+(Shape₁ ▷ Pos₁) ⊕ (Shape₂ ▷ Pos₂) = (Shape₁ ⊎ Shape₂) ▷ [ Pos₁ , Pos₂ ]
+-- ⟦ F ⊕ G ⟧ A ≅ (⟦ F ⟧ + ⟦ G ⟧) A         Should i proof this?
+\end{code}
+Later each container will represent the syntax (the operations) of an effect.
+To combine syntax of effects Wu et al. use a ``Data types {\`{a}} la
+carte''\cite{DBLP:journals/jfp/Swierstra08} approach.
+The type class \texttt{:<:} marks a functor as an option in a coproduct.
+\texttt{:<:} can be used to inject values into or maybe extract values from a
+coproduct.
+The two instances for \texttt{:<:} overlap and use \texttt{:+:}.
+Since the result of \AgdaFunction{\_⊕\_} is another container, not just a
+value of a simple data type, instance resolution using \AgdaFunction{\_⊕\_} is
+not as straight forward as in Haskell and in some cases extremely slow.
+
+Therefore this implementation of the free monad uses an approach similar to the
+Idris effect library \cite{DBLP:conf/icfp/Brady13}.
+The free monad is not parameterised over a single container, but a list
+\AgdaArgument{ops} of containers representing an $n$-ary coproduct.
+Whenever the functor would be  used, an arbitrary container \AgdaArgument{op}
+together with a proof
+\AgdaArgument{op}\AgdaSpace{}\AgdaDatatype{∈}\AgdaSpace{}\AgdaArgument{ops} is
+used.
+
+\begin{code}
+infix 4 _∈_
+data _∈_ {ℓ : Level} {A : Set ℓ} (x : A) : List A → Set ℓ where
+  instance
+    here : ∀ {xs} → x ∈ x ∷ xs
+    there : ∀ {y xs} → ⦃ x ∈ xs ⦄ → x ∈ y ∷ xs
+\end{code}
+The type
+\AgdaArgument{x}\AgdaSpace{}\AgdaDatatype{∈}\AgdaSpace{}\AgdaArgument{xs}
+represents the proposition that \AgdaArgument{x} is an element of
+\AgdaArgument{xs}.
+The two constructors can be read as rules of inference.
+One can always construct a proof that \AgdaArgument{x} is in a list with
+\AgdaArgument{x} in its head and given a proof that
+\AgdaArgument{x}\AgdaSpace{}\AgdaDatatype{∈}\AgdaSpace{}\AgdaArgument{xs}
+one can construct a proof that \AgdaArgument{x} is also in the extended list
+\AgdaArgument{y}\AgdaSpace{}\AgdaInductiveConstructor{∷}\AgdaSpace{}\AgdaArgument{xs}.
+
+The two instances still overlap resulting in $\mathcal{O}(c^n)$ instance
+resolution.
+Using Agdas internal instance resolution can be avoided by using a tactic to
+infer \AgdaDatatype{\_∈\_} arguments.
+For simplicity the following code will still use instance arguments.
+This version can easily be adapted to one using macros, by replacing the
+instance arguments with correctly annotated hidden ones.
+
+\begin{code}
+data Free {ℓ : Level} (ops : List Container) (A : Set ℓ) : {Size} → Set (ℓ ⊔ suc zero) where
+  pure : ∀ {i} → A → Free ops A {i}
+  impure : ∀ {i op} → ⦃ op ∈ ops ⦄ → ⟦ op ⟧ (Free ops A {i}) → Free ops A {↑ i}
+\end{code}
+[GENERAL EXPLANATION]
+
+[EXPLANATION FOR LEVEL]
+
+The free monad is indexed over an argument of Type \AgdaDatatype{Size}.
+\AgdaInductiveConstructor{pure} values have an arbitrary size.
+When constructing an \AgdaInductiveConstructor{impure} value the new value is
+strictly larger than the ones produced by the containers position function.
+The size annotation therefore corresponds to the height of the tree described by
+the free monad.
+Using the annotation it's possible to proof that functions preserve the size of
+a value or that complex recursive functions terminate.
+Consider the following definition of \AgdaFunction{fmap} for the free
+monad\footnote{in the following code $A$, $B$ and $C$ are arbitrary types from
+  arbitrary type universes}.
+
+\begin{code}[hide]
+variable
+  ℓᵃ ℓᵇ ℓᶜ : Level
+  A : Set ℓᵃ
+  B : Set ℓᵇ
+  C : Set ℓᶜ
+
+infixl 1 _>>=_ _>>_
+infixl 4 _<$>_
+\end{code}
+\begin{code}
+fmap _<$>_ : {F : List Container} {i : Size} → (A → B) → Free F A {i} → Free F B {i}
+f <$> pure x           = pure (f x)
+f <$> impure (s , pf)  = impure (s , (f <$>_) ∘ pf)
+
+fmap = _<$>_
+\end{code}
+\AgdaFunction{fmap} applies the given function \AgdaArgument{f} to the values
+stored in the \AgdaInductiveConstructor{pure} leafs.
+The height of the tree is left unchanged.
+This fact is wittnessed by the same index \AgdaArgument{i} on the argument and
+return type.
+
+In contrast to \AgdaFunction{fmap}, \AgdaFunction{bind} does not preserve the
+size.
+\AgdaFunction{bind} replaces every \AgdaInductiveConstructor{pure} leaf with a
+subtree, which is generated from the stored value.
+The resulting tree is therefore at least as high as the given one.
+Because there is no $+$ for sized types the only correct size estimate for the
+returned value is ``unbounded''.
+The return type is not explicitly indexed, because the compiler correctly
+inferes \AgdaInductiveConstructor{∞}.
+
+\begin{code}
+_>>=_ : ∀ {ops i} → Free ops A {i} → (A → Free ops B) → Free ops B
+pure x           >>= k = k x
+impure (s , pf)  >>= k = impure (s , (_>>= k) ∘ pf)
+
+_>>_ : ∀ {ops i} → Free ops A {i} → Free ops B → Free ops B
+ma >> mb = ma >>= λ _ → mb
+\end{code}
+
+\subsection{Properties}
+
+This definition of the free monad is a functor because it satisfies the two
+functor laws.
+Both properties are proven by structural induction over the free monad.
+Notice that to proof the equality of the position functions, in the induction
+step, the axiom of extensionality is invoked.
+
+\begin{code}[number=fmap-id]
+fmap-id : ∀ {ops} → (p : Free ops A) → fmap id p ≡ p
+fmap-id (pure x)           = refl
+fmap-id (impure (s , pf))  = cong (impure ∘ (s ,_)) (extensionality (fmap-id ∘ pf))
+\end{code}
+\begin{code}[number=fmap-comp]
+fmap-∘ : ∀ {ops} (f : B → C) (g : A → B) (p : Free ops A) →
+         fmap (f ∘ g) p ≡ (fmap f ∘ fmap g) p
+fmap-∘ f g (pure x)           = refl
+fmap-∘ f g (impure (s , pf))  = cong (impure ∘ (s ,_)) (extensionality (fmap-∘ f g ∘ pf))
+\end{code}
+This definition of the free monad also satisfies the three monad laws.
+
+\begin{code}[number=bind-ident-left]
+bind-identˡ : ∀ {ops} (f : A → Free ops B) (x : A) → (pure x >>= f) ≡ f x
+bind-identˡ f x = refl
+\end{code}
+\begin{code}[number=bind-ident-right]
+bind-identʳ : ∀ {ops} (x : Free ops A) → (x >>= pure) ≡ x
+bind-identʳ (pure x)           = refl
+bind-identʳ (impure (s , pf))  = cong (impure ∘ (s ,_)) (extensionality (bind-identʳ ∘ pf))
+\end{code}
+\begin{code}[number=bind-assoc]
+bind-assoc : ∀ {ops} (f : A → Free ops B) (g : B → Free ops C) (p : Free ops A) →
+             ((p >>= f) >>= g) ≡ (p >>= (λ x → f x >>= g))
+bind-assoc f g (pure x)           = refl
+bind-assoc f g (impure (s , pf))  = cong (impure ∘ (s ,_)) (extensionality (bind-assoc f g ∘ pf))
+\end{code}
+
+\section{Handler}
+
+\subsection{Nondet}
+\subsection{State}
+
+\section{Scoped Effects}
+\subsection{Cut}
+
+\section{Call-Time-Choice as Effect}
