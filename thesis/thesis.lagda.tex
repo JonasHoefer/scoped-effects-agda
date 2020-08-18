@@ -26,11 +26,16 @@
 \newunicodechar{⊕}{\ensuremath{\mathnormal{\oplus}}}
 \newunicodechar{⊎}{\ensuremath{\mathnormal{\uplus}}}
 \newunicodechar{λ}{\ensuremath{\mathnormal{\lambda}}}
+\newunicodechar{κ}{\ensuremath{\mathnormal{\kappa}}}
+\newunicodechar{⊛}{\ensuremath{\mathnormal{\circledast}}}
 \newunicodechar{∘}{\ensuremath{\mathnormal{\circ}}}
 \newunicodechar{≡}{\ensuremath{\mathnormal{\equiv}}}
+\newunicodechar{⁇}{\ensuremath{\mathnormal{?\!?}}}
+\newunicodechar{⊥}{\ensuremath{\mathnormal{\bot}}}
 \newunicodechar{ˢ}{\textsuperscript{s}}
 \newunicodechar{ˡ}{\textsuperscript{l}}
 \newunicodechar{ʳ}{\textsuperscript{r}}
+\newunicodechar{₀}{\textsubscript{0}}
 \newunicodechar{₁}{\textsubscript{1}}
 \newunicodechar{₂}{\textsubscript{2}}
 
@@ -99,38 +104,87 @@
 \chapter{Preliminaries}
 \section{Agda}
 
-Agda is a functional language with dependent types.
+Agda is a dependently typed functional programming language.
 The current version\footnote{\url{https://github.com/agda/agda}} was originally
-developed by Ulf Norell \cite{norell:thesis}.
+developed by Ulf Norell under the name Agda2 \cite{norell:thesis}.
 Due to its type system Agda can be used as a programming language and as a proof
 assistant.
+
+This section contains a short introduction to Agda, dependent types and the idea
+of ``Propositions as types'' under which Agda can be used for theorem proofing.
+
+Agdas syntax is similar to Haskells.
+Data types are declared with syntax similar to Haskells GADTs.
+Functions declarations and definitions are also similar to Haskell, except that
+Agda uses a single colon for the typing relation.
+In the following definition of \AgdaDatatype{ℕ}, \AgdaDatatype{Set} is the type
+of all (small) types.
 
 \begin{code}
 data ℕ : Set where
   zero  : ℕ
   suc   : ℕ → ℕ
+ 
+_+_ : ℕ → ℕ → ℕ
+zero   + m = m
+suc n  + m = suc (n + m)
 \end{code}
 \begin{code}[hide]
 {-# BUILTIN NATURAL ℕ #-}
 \end{code}
 
 \subsection{Dependent Types}
+The following type theoretic definitions are taken from the homotopy type theory
+book \cite{hottbook}.
+In type theory a type of types is called a universe.
+Universes are usually denoted $\mathcal{U}$.
+A function whose codomain is a universe is called a type family or dependent
+type.
+$$
+F : A \rightarrow \mathcal{U} \quad\text{where}\quad B(a) : \mathcal{U}
+\quad\text{for}\quad a : A
+$$
+To avoid Russell's paradox, i.e. there cannot exist a type of all types, a
+hierarchy of universes is introduced.
 
-Dependent types are types which depend on values.
-Types can have both other types and values as arguments.
-Arguments on the left-hand side of the colon are called parameters and are the
-same for all constructors of an algebraic data type.
-Arguments on the right-hand side of the colon are called indices an can differ
-for each constructor.
+\paragraph{Dependent Function Types ($\Pi$-Types)} are a generalization of
+function types.
+The codomain of a $\Pi$ type is not fixed, but values with the argument the
+function is applied to.
+The codomain is defined using a type family of the domain, which specifies the
+type of the result for each given argument.
+
+$$
+\Pi_{a : A} B(a) \quad \text{with}\quad B : A \rightarrow\mathcal{U}
+$$
+An element of the above type is a function which maps every $a : A$ to a $b :
+B(a)$.
+
+\paragraph{Dependent Sum Types ($\Sigma$-Types)} are a generalization of product
+types.
+The type of the second component of the product is not fixed, but varies with
+the value of the first.
+$$
+\Sigma_{a : A} B(a) \quad \text{with}\quad B : A \rightarrow\mathcal{U}
+$$
+
+\paragraph{In Agda}
 
 Consider the following definition of a vector.
-The data type depends on a type \AgdaDatatype{A} and a value, a natural number.
+The data type depends on a type \AgdaDatatype{A} and a value of type
+\AgdaDatatype{ℕ}.
+Therefore, it's a family of types indexed by \AgdaDatatype{ℕ}.
+Each $n : \mathbb{N}$ is mapped to the type \AgdaDatatype{Vec A n}.
 
 \begin{code}
 data Vec (A : Set) : ℕ → Set where
   _∷_  : {n : ℕ} → A → Vec A n → Vec A (suc n)
   []   : Vec A 0
 \end{code}
+Arguments on the left-hand side of the colon are called parameters and are the
+same for all constructors.
+Arguments on the right-hand side of the colon are called indices an can differ
+for each constructor.
 
 The \AgdaInductiveConstructor{[]} constructor allows us to create an empty
 vector of any type, but forces the index to be zero.
@@ -140,8 +194,8 @@ Only these two constructors can be used to construct vectors.
 Therefore the index is always equal to the amount of elements stored in the
 vector.
 
-By encoding more information about the data in its type we can  [TODO: static
-dynamic semantics / promote to type error / ...].
+By encoding more information about the data in its type we can add extra
+constraints to functions working with it.
 The following definition of \AgdaFunction{head} avoids error handling or
 partiality by excluding the empty vector as a valid argument.
 
@@ -149,22 +203,35 @@ partiality by excluding the empty vector as a valid argument.
 head : ∀ {A n} → Vec A (suc n) → A
 head (x ∷ _) = x
 \end{code}
-
 When pattern matching on the argument of \AgdaFunction{head} there is no case
 for \AgdaInductiveConstructor{[]}.
 The argument has type \AgdaDatatype{Vec A (suc n)} and
 \AgdaInductiveConstructor{[]} has type \AgdaDatatype{Vec A 0}.
 Those to types cannot be unified, because \AgdaInductiveConstructor{suc} and
 \AgdaInductiveConstructor{zero} are different constructors of \AgdaDatatype{ℕ}.
-Therefore the \AgdaInductiveConstructor{\_∷\_} case does not apply.
+Therefore, the \AgdaInductiveConstructor{[]} case does not apply.
+By constraining the type of the function we were able to avoid the case, which
+usually requires error handling or introduces partiality.
 
 \subsection{Propositions as Types}
 
-\cite{DBLP:journals/cacm/Wadler15}
+An more in depth explanation and an overview over the history of the idea can be
+found in Wadlers paper of the same name \cite{DBLP:journals/cacm/Wadler15}.
+
+\begin{center}
+  \begin{tabular}{ccc}
+    FOL & MLTT & Agda \\\hline
+    $\forall x \in A: P(x)$ & $\Pi_{x:A}P(x)$ & \mintinline{agda}{(x : A) → P x} \\
+    $\exists x \in A: P(x)$ & $\Sigma_{x:A} P(x)$ & \mintinline{agda}{Σ[ x ∈ A ] P x} mit \mintinline{agda}{_,_ : (x : A) → P x → Σ A P} \\
+    $P \wedge Q$ & $P \times Q$ & \mintinline{agda}{A × B} \\
+    $P \vee Q$ & $P + Q$ & \mintinline{agda}{A ⊎ B} \\
+    $P \Rightarrow Q$ & $P \rightarrow Q$ & \mintinline{agda}{A → B} \\
+    $\mathbf t$ & $\mathbf 1$ & \mintinline{agda}{tt : ⊤} \\
+    $\mathbf f$ & $\mathbf 0$ & \mintinline{agda}{⊥}
+  \end{tabular}
+\end{center}
 
 \subsection{Strict Positivity}
-
-
 
 \subsubsection{Container}
 

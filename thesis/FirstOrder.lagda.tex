@@ -2,12 +2,16 @@
 module FirstOrder where
 
 open import Level using (Level; suc; zero; _⊔_)
-open import Function using (_∘_; id)
+open import Function using (_∘_; id; _$_)
 open import Size using (Size; ↑_)
 
-open import Data.List using (List; []; _∷_)
-open import Data.Product using (Σ-syntax; _,_)
+open import Data.Bool using (Bool; true; false; if_then_else_)
+open import Data.Empty using (⊥)
+open import Data.List using (List; []; _∷_; _++_)
+open import Data.Nat using (ℕ; _+_)
+open import Data.Product using (Σ-syntax; _×_; _,_)
 open import Data.Sum using (_⊎_; [_,_])
+open import Data.Unit using (⊤; tt)
 
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong)
 
@@ -140,7 +144,7 @@ variable
   C : Set ℓᶜ
 
 infixl 1 _>>=_ _>>_
-infixl 4 _<$>_
+infixl 4 _<$>_ _⊛_
 \end{code}
 \begin{code}
 fmap _<$>_ : {F : List Container} {i : Size} → (A → B) → Free F A {i} → Free F B {i}
@@ -166,12 +170,19 @@ The return type is not explicitly indexed, because the compiler correctly
 inferes \AgdaInductiveConstructor{∞}.
 
 \begin{code}
-_>>=_ : ∀ {ops i} → Free ops A {i} → (A → Free ops B) → Free ops B
+_>>=_ : ∀ {ops} → Free ops A → (A → Free ops B) → Free ops B
 pure x           >>= k = k x
 impure (s , pf)  >>= k = impure (s , (_>>= k) ∘ pf)
 
-_>>_ : ∀ {ops i} → Free ops A {i} → Free ops B → Free ops B
+_>>_ : ∀ {ops} → Free ops A → Free ops B → Free ops B
 ma >> mb = ma >>= λ _ → mb
+\end{code}
+To complete our basic set of monadic functions we also define \AgdaFunction{ap}.
+
+\begin{code}
+_⊛_ : ∀ {ops} → Free ops (A → B) → Free ops A → Free ops B
+pure f          ⊛ ma = f <$> ma
+impure (s , pf) ⊛ ma = impure (s , (_⊛ ma) ∘ pf)
 \end{code}
 
 \subsection{Properties}
@@ -213,8 +224,214 @@ bind-assoc f g (impure (s , pf))  = cong (impure ∘ (s ,_)) (extensionality (bi
 
 \section{Handler}
 
+\begin{code}
+run : Free [] A → A
+run (pure x) = x
+
+\end{code}
+
 \subsection{Nondet}
+
+The nondeterminism effect has two operations \AgdaFunction{\_⁇\_} and
+\AgdaFunction{fail}.
+\AgdaFunction{\_⁇\_} introduces a nondeterministic choice between two execution
+paths and \AgdaFunction{fail} discards the current path.
+We therefore have a nullary and a binary operation, both without additional
+parameters.
+
+$$
+\Sigma_{\text{Nondet}} = \{ ?\!? : \mathbf{1} \rightsquigarrow \mathbf{2}, \mathrm{fail} : \mathbf{1} \rightsquigarrow \mathbf{0} \}
+$$
+Expressed as a container we have a shape with two constructors, one for each
+operation and both without parameters.
+
+\begin{code}
+data Nondetˢ : Set where ⁇ˢ failˢ : Nondetˢ
+\end{code}
+When constructing the container we assign the correct arities to each shape.
+
+\begin{code}
+Nondet : Container
+Nondet = Nondetˢ ▷ λ where
+  ⁇ˢ     → Bool
+  failˢ  → ⊥
+\end{code}
+We can now define smart constructors for each operation.
+These are not the generic operations, but helper functions based on them.
+The generic operations take no parameters an alaways use
+\AgdaInductiveConstructor{pure} as continutation.
+These versions of the operations already process the continuations parameter.
+
+\begin{code}
+_⁇_ : ∀ {ops} → ⦃ Nondet ∈ ops ⦄ → Free ops A → Free ops A → Free ops A
+p ⁇ q = impure (⁇ˢ , (if_then p else q))
+
+fail : ∀ {ops} → ⦃ Nondet ∈ ops ⦄ → Free ops A
+fail = impure (failˢ , λ())
+\end{code}
+With the syntax in place we can now move on to semantics and define a handler
+for the effect.
+By introducing \AgdaKeyword{pattern} declarations for each operations the
+handler can be simplified.
+Furthermore we introduce a \AgdaKeyword{pattern} for other operations, i.e.
+those who are not part of the currently handled signature.
+
+\begin{code}
+pattern Other s κ  = impure ⦃ there ⦄ (s , κ)
+pattern Fail κ  = impure ⦃ here ⦄ (failˢ , κ)
+pattern Choice κ  = impure ⦃ here ⦄ (⁇ˢ , κ)
+\end{code}
+\begin{AgdaAlign}
+  The handler interprets \AgdaDatatype{Nondet} syntax and removes it from the
+  program.
+  Therefore \AgdaDatatype{Nondet} is removed from the front of the effect stack
+  and the result is wrapped in a \AgdaDatatype{List}.
+  The \AgdaDatatype{List} contains the results of all successful execution
+  paths.
+  \begin{code}
+solutions : ∀ {ops} → Free (Nondet ∷ ops) A → Free ops (List A)
+  \end{code}
+  The \AgdaInductiveConstructor{pure} constructor represents a program without
+  effects.
+  The singleton list is returned, because no nondeterminism is used in a
+  \AgdaInductiveConstructor{pure} calculation.
+  \begin{code}
+solutions (pure x)     = pure (x ∷ [])
+  \end{code}
+  The \AgdaInductiveConstructor{fail} constructor represents an unsuccessful
+  calculation.
+  No result is returned.
+  \begin{code}
+solutions (Fail κ)     = pure []
+  \end{code}
+  In case of a \AgdaInductiveConstructor{Choice} both paths can produce an
+  arbitrary number of results.
+  We execute both programs recursively using \AgdaFunction{solutions} and
+  collect the results in a single \AgdaDatatype{List}.
+  \begin{code}
+solutions (Choice κ)   = _++_ <$> solutions (κ true) ⊛ solutions (κ false)
+  \end{code}
+  In case of syntax from another effect we just execute \AgdaFunction{solutions}
+  on every subtree by mapping the function over the container.
+  Note that the newly constructed value has a different type.
+  Since \AgdaDatatype{Nondet} syntax was removed from the tree the proof for
+  \AgdaDatatype{\_∈\_}, which is passed to \AgdaInductiveConstructor{impure}
+  changes.
+  \begin{code}
+solutions (Other s κ)  = impure (s , solutions ∘ κ)
+  \end{code}
+\end{AgdaAlign}
+
+
 \subsection{State}
+
+The state effect has two operations \AgdaFunction{get} and \AgdaFunction{put}.
+The whole effect is parameterized over the state type \AgdaArgument{s}.
+
+\AgdaFunction{get} simply returns the current state.
+The operation takes no additional parameters and has \AgdaArgument{s} positions.
+This can either be interpreted as \AgdaFunction{get} being an
+\AgdaArgument{s}-ary operation (one child for each possible state) or simply the
+parameter of the continuation being a value of type \AgdaArgument{s}.
+
+\AgdaFunction{put} updates the current state.
+The operation takes an additional parameter, the new state.
+The operation itself is unary i.e. there is no return value, therefore
+\AgdaInductiveConstructor{tt} is passed to the rest of the program.
+
+$$
+\Sigma_{State} = \{ \mathrm{get} : \mathbf{1} \rightsquigarrow s, \mathrm{put} :
+s \rightsquigarrow \mathbf{1} \}
+$$
+As before we will translate this definition in a corresponding container.
+
+\begin{code}
+data Stateˢ (S : Set) : Set where
+  getˢ : Stateˢ S
+  putˢ : S → Stateˢ S
+
+State : Set → Container
+State S = Stateˢ S ▷ λ where
+  getˢ      → S
+  (putˢ _)  → ⊤
+
+pattern Get κ  = impure ⦃ here ⦄ (getˢ , κ)
+pattern Put s κ  = impure ⦃ here ⦄ ((putˢ s) , κ)
+\end{code}
+To simplify working with the \AgdaDatatype{State} effect we add smart
+constructors.
+These correspond to the generic operations.
+
+\begin{code}
+get : ∀ {ops S} → ⦃ State S ∈ ops ⦄ → Free ops S
+get = impure (getˢ , pure)
+
+put : ∀ {ops S} → ⦃ State S ∈ ops ⦄ → S → Free ops ⊤
+put s = impure (putˢ s , pure)
+\end{code}
+Using these defintions for the syntax we can define the handler for
+\AgdaDatatype{State}.
+
+\begin{AgdaAlign}
+The effect handler for \AgdaDatatype{State} takes an initial state together
+with a program containing the effect syntax.
+The final state is returend in addition to the result.
+
+\begin{code}
+runState : ∀ {ops S} → S → Free (State S ∷ ops) A → Free ops (S × A)
+\end{code}
+A \AgdaInductiveConstructor{pure} calculation doesn't change the current state.
+Therefore, the initial is also the final state and returned in addition to the
+result of the caluclation.
+\begin{code}
+runState s₀ (pure x)     = pure (s₀ , x)
+\end{code}
+The continuation/position function for \AgdaFunction{get} takes the current
+state to the rest of the calculation.
+By applying \AgdaArgument{s₀} to \AgdaArgument{κ} we obtain the rest of the
+computation, which we can evaluate recursively.
+\begin{code}
+runState s₀ (Get κ)      = runState s₀ (κ s₀)
+\end{code}
+\AgdaFunction{put} updates the current state, therefore we pass the new state
+\AgdaArgument{s₁} to the recursive call of \AgdaFunction{runState}.
+\begin{code}
+runState _  (Put s₁ κ)   = runState s₁ (κ tt)
+\end{code}
+Similar to the handler for \AgdaDatatype{Nondet} we apply the handler to every
+subterm of non \AgdaFunction{State} operations.
+\begin{code}
+runState s₀ (Other s κ)  = impure (s , runState s₀ ∘ κ)
+\end{code}
+\end{AgdaAlign}
+
+\subsubsection{Example}
+
+Here is a simple example for a function using the \AgdaDatatype{State}
+effect.
+The function \AgdaFunction{tick} returns \AgdaInductiveConstructor{tt} and
+as side effect increases the state.
+
+\begin{code}
+tick : ∀ {ops} → ⦃ State ℕ ∈ ops ⦄ → Free ops ⊤
+tick = do i ← get ; put (1 + i)
+\end{code}
+Using the \AgdaFunction{runState} handler we can evaluate programs, which use
+the \AgdaDatatype{State} effect.
+
+\begin{center}
+\begin{code}[inline,hide]
+example₁ :
+\end{code}
+\begin{code}[inline]
+ (run $ runState 0 $ tick >> tick) ≡ (2 , tt)
+\end{code}
+\begin{code}[inline,hide]
+example₁ = refl
+\end{code}
+\end{center}
+
+\subsubsection{Properties}
 
 \section{Scoped Effects}
 \subsection{Cut}
