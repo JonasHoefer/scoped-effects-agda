@@ -8,7 +8,7 @@ open import Data.Product                            using (_×_)
 open import Data.Product.Relation.Binary.Lex.Strict using (×-strictTotalOrder)
 
 order = ×-strictTotalOrder (×-strictTotalOrder <-strictTotalOrder <-strictTotalOrder) <-strictTotalOrder
-open import Data.AVL.Map order public               using (Map; empty; insert; lookup)
+open import Data.Tree.AVL.Map order public          using (Map; empty; insert; lookup)
 
 data Tree (A : Set) : Set where
   leaf   : A → Tree A

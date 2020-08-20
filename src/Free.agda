@@ -1,47 +1,55 @@
 module Free where
 
-open import Function              using (_∘_; id)
-open import Size                  using (Size; ↑_; _⊔ˢ_; Size<_)
-open import Level                 using (Level)
+open import Function                              using (_∘_; id)
+open import Size                                  using (Size; ↑_; _⊔ˢ_; Size<_; ∞)
 
-open import Category.Monad public using (RawMonad; module RawMonad)
+open import Category.Functor                      using (RawFunctor; module RawFunctor)
+open import Category.Monad                        using (RawMonad; module RawMonad)
 
-open import Data.Product          using (_,_)
+open import Data.List                             using (List; []; _∷_; foldr)
+open import Data.Maybe                            using (Maybe; just; nothing)
+open import Data.Product                          using (_,_; _×_; proj₂)
+open import Data.Sum                              using (inj₂)
 
-open import Container             using (Container; ⟦_⟧)
+open import Container                             using (Container; ⟦_⟧; sum; inject; project)
 
-open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong)
+open import Tactic.Eff                            using (eff; _∈_; here; there) public
+open import Relation.Binary.PropositionalEquality using (refl) public
 
-data Free (C : Container) (A : Set) : {Size} → Set where
-  pure : ∀ {i : Size} → A → Free C A {i}
-  impure : ∀ {i : Size} → ⟦ C ⟧ (Free C A {i}) → Free C A {↑ i}
+data Free (ops : List Container) (A : Set) : {Size} → Set where
+  pure : {i : Size} → A → Free ops A {i}
+  impure : {i : Size} → ⟦ sum ops ⟧ (Free ops A {i}) → Free ops A {↑ i}
 
--- typchecks only for Size ∞
--- _+_ for sized types would allow us to express a better upper bound.
-bind : {A B : Set} {C : Container} → Free C A → (A → Free C B) → Free C B
-bind (pure x)          k = k x
-bind (impure (s , pf)) k = impure (s , λ z → bind (pf z) k)
+pattern Other s pf = impure (inj₂ s , pf)
 
-map : {A B : Set} {C : Container} {i : Size} → (A → B) → Free C A {i} → Free C B {i}
-map f (pure x)          = pure (f x)
-map f (impure (s , pf)) = impure (s , map f ∘ pf)
+op : ∀ {C ops A} {@(tactic eff) p : C ∈ ops} → ⟦ C ⟧ (Free ops A) → Free ops A
+op {p = p} = impure ∘ inject p
 
-module _ {C : Container} where
-  freeMonad : RawMonad (λ x → Free C x)
-  freeMonad = record
-    { return = pure
-    ; _>>=_  = bind
-    }
+prj : ∀ {C ops a i} {@(tactic eff) p : C ∈ ops} → Free ops a {↑ i} → Maybe (⟦ C ⟧ (Free ops a {i}))
+prj (pure x)           = nothing
+prj {p = p} (impure x) = project p x
 
--- postualting extensionality is consistent with agdas underlying theory
-postulate
-  ext : ∀ {ℓ ℓ′ : Level} {A : Set ℓ} {B : A → Set ℓ′} {f g : (x : A) → B x}
-    → (∀ (x : A) → f x ≡ g x) → f ≡ g
+upcast : ∀ {C ops A i} → Free ops A {i} → Free (C ∷ ops) A {i}
+upcast (pure x)          = pure x
+upcast (impure (s , pf)) = impure (inj₂ s , upcast ∘ pf)
 
-map-id : ∀ {A F i} → (mx : Free F A {i}) → map id mx ≡ mx
-map-id (pure x)   = refl
-map-id (impure (s , pf)) = cong (λ t → impure (s , t)) (ext λ p → map-id (pf p))
+run : {A : Set} → Free [] A → A
+run (pure x) = x
 
-map-∘ : ∀ {A B C F i} → (mx : Free F A {i}) → (f : B → C) → (g : A → B) → map (f ∘ g) mx ≡ map f (map g mx)
-map-∘ (pure x)          f g = refl
-map-∘ (impure (s , pf)) f g = cong (λ t → impure (s , t)) (ext λ p → map-∘ (pf p) f g)
+private
+  -- typchecks only for Size ∞
+  -- _+_ for sized types would allow us to express a better upper bound.
+  bind : ∀ {ops} {A : Set} {B : Set} → Free ops A → (A → Free ops B) → Free ops B
+  bind (pure x)          k = k x
+  bind (impure (s , pf)) k = impure (s , λ z → bind (pf z) k)
+
+  map : ∀ {i ops} {A : Set} {B : Set} → (A → B) → Free ops A {i} → Free ops B {i}
+  map f (pure x)          = pure (f x)
+  map f (impure (s , pf)) = impure (s , map f ∘ pf)
+
+monad : {ops : List Container} → RawMonad λ A → Free ops A
+monad = record { return = pure ; _>>=_ = bind }
+
+functor : {i : Size} {ops : List Container} → RawFunctor λ A → Free ops A {i}
+functor = record { _<$>_ = map }
+

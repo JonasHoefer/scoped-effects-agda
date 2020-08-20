@@ -2,23 +2,25 @@
 
 module Reader where
 
-open import Function      using (_$_)
+open import Function       using (_$_)
 
-open import Data.Nat      using (ℕ; _+_)
+open import Category.Monad using (RawMonad)
+open        RawMonad ⦃...⦄ using (_>>=_; _>>_; return)
 
-open import Container     using (Container)
+open import Data.List      using (List)
+open import Data.Nat       using (ℕ; _+_)
+
+open import Container      using (Container)
 open import Free
-open import Injectable    using (_⊂_)
+open import Free.Instances
 
 open import Effect.Reader using (Reader; runReader; local; ask)
-open import Effect.Void   using (run)
 
-localComp : {F : Container} → ⦃ Reader ℕ ⊂ F ⦄ → Free F ℕ
+localComp : {F : List Container} → {@(tactic eff) _ : Reader ℕ ∈ F} → Free F ℕ
 localComp = local (1 +_) $ do
     x ← ask
     y ← local (1 +_) ask
     pure $ x + y
-  where open RawMonad freeMonad using (_>>=_; _>>_)
 
 testReader : ℕ
 testReader = run $ runReader 1 $ do
@@ -26,4 +28,3 @@ testReader = run $ runReader 1 $ do
     y ← localComp
     z ← ask
     pure $ x + y + z
-  where open RawMonad freeMonad using (_>>=_; _>>_)

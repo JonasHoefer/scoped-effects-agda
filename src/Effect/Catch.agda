@@ -1,61 +1,64 @@
 module Effect.Catch where
 
-open import Function      using (_∘_)
-open import Size          using (Size; ↑_)
+open import Level          using (Level)
+open import Function       using (_∘_)
 
-open import Data.Bool     using (true; false)
-open import Data.Unit     using (⊤; tt)
-open import Data.Empty    using (⊥)
-open import Data.Maybe    using (Maybe; nothing; just)
-open import Data.Product  using (_,_)
-open import Data.Sum      using (_⊎_; inj₁; inj₂)
+open import Category.Monad using (RawMonad)
+open        RawMonad ⦃...⦄ using (_>>=_; _>>_; return)
 
-open import Container     using (Container; _▷_; _⊕_)
+open import Data.Bool      using (true; false)
+open import Data.Unit      using (⊤; tt)
+open import Data.Empty     using (⊥)
+open import Data.List      using (List; _∷_; [])
+open import Data.Maybe     using (Maybe; nothing; just)
+open import Data.Product   using (_,_)
+open import Data.Sum       using (_⊎_; inj₁; inj₂)
+
+open import Container      using (Container; _▷_; _⊕_)
 open import Free
-open import Injectable    using (_⊂_; inject; project; upcast)
+open import Free.Instances
+open import Effect.Exc     using (Exc; runExc)
 
-open import Effect.Exc    using (Exc; runExc)
+data Catchˢ : Set where
+  bcatchˢ ecatchˢ : Catchˢ
 
-data Shape (E : Set) : Set where
-  bcatchˢ : Shape E
-  ecatchˢ : Shape E
+Catch : Set → Container
+Catch E = Catchˢ ▷ λ { bcatchˢ → ⊤ ⊎ E ; ecatchˢ → ⊤ }
 
 pattern BCatch pf = impure (inj₁ bcatchˢ , pf)
 pattern ECatch pf = impure (inj₁ ecatchˢ , pf)
 
--- E ⊎ ⊤ continuation for exception handling and the next computiation
-Catch : Set → Container
-Catch E = Shape E ▷ λ{ bcatchˢ → E ⊎ ⊤ ; ecatchˢ → ⊤}
+private
+  variable
+    A E : Set
+    ops : List Container
 
-module _ {F : Container} {E : Set} ⦃ _ : Catch E ⊂ F ⦄ where
-  begin : {A : Set} → Free F A → (E → Free F A) → Free F A
-  begin p h = inject (bcatchˢ , λ { (inj₁ e) → h e ; (inj₂ tt) → p})
+begin : {@(tactic eff) _ : Catch E ∈ ops} → Free ops A → (E → Free ops A) → Free ops A
+begin p h = op (bcatchˢ , λ{(inj₁ tt) → p ; (inj₂ e) → h e})
 
-  end : Free F ⊤
-  end = inject (ecatchˢ , λ _ → pure tt)
+end : {@(tactic eff) _ : Catch E ∈ ops} → Free ops ⊤
+end = op (ecatchˢ , λ _ → pure tt)
 
 infix 0 _catch_
-_catch_ : ∀ {F A E} → ⦃ Catch E ⊂ F ⦄ → Free F A → (E → Free F A) → Free F A
-p catch h = begin (do x ← p ; end ; pure x) h
-  where open RawMonad freeMonad using (_>>=_; _>>_)
+_catch_ : {@(tactic eff) _ : Catch E ∈ ops} → Free ops A → (E → Free ops A) → Free ops A
+_catch_ p = begin (do x ← p ; end ; return x)
 
-ecatch : ∀ {F A E i} → Free (Catch E ⊕ Exc E ⊕ F) A {i} → Free (Exc E ⊕ F) (Free (Catch E ⊕ Exc E ⊕ F) A {i})
-ecatch (pure x)    = pure (pure x)
-ecatch (BCatch pf) = upcast (runExc (ecatch (pf (inj₂ tt)))) >>= λ where
-    (inj₁ e) → ecatch (pf (inj₁ e))
-    (inj₂ k) → ecatch k
-  where open RawMonad freeMonad using (_>>=_)
-ecatch (ECatch pf) = pure (pf tt)
-ecatch (impure (inj₂ s , pf)) = impure (s , ecatch ∘ pf)
+bcatch : ∀ {i} → Free (Catch E ∷ Exc E ∷ ops) A {i} → Free (Exc E ∷ ops) A
+ecatch : ∀ {i} → Free (Catch E ∷ Exc E ∷ ops) A {i} → Free (Exc E ∷ ops) (Free (Catch E ∷ Exc E ∷ ops) A {i})
 
-bcatch : ∀ {F A E i} → Free (Catch E ⊕ Exc E ⊕ F) A {i} → Free (Exc E ⊕ F) A
 bcatch (pure x)    = pure x
-bcatch (BCatch pf) = upcast (runExc (ecatch (pf (inj₂ tt)))) >>= λ where
-    (inj₁ e) → bcatch (pf (inj₁ e))
-    (inj₂ k) → bcatch k
-  where open RawMonad freeMonad using (_>>=_)
-bcatch (ECatch pf) = bcatch (pf tt)
-bcatch (impure (inj₂ s , pf)) = impure (s , bcatch ∘ pf)
+bcatch (BCatch κ)  = upcast (runExc (ecatch (κ (inj₁ tt)))) >>= λ where
+  (inj₁ e) → bcatch (κ (inj₂ e))
+  (inj₂ k) → bcatch k
+bcatch (ECatch κ)  = bcatch (κ tt)
+bcatch (Other s κ) = impure (s , bcatch ∘ κ)
 
-runCatch : ∀ {F A E} → Free (Catch E ⊕ Exc E ⊕ F) A → Free F (E ⊎ A)
+ecatch (pure x)    = pure (pure x)
+ecatch (BCatch κ)  = upcast (runExc (ecatch (κ (inj₁ tt)))) >>= λ where
+  (inj₁ e) → ecatch (κ (inj₂ e))
+  (inj₂ k) → ecatch k
+ecatch (ECatch κ)  = pure (κ tt)
+ecatch (Other s κ) = impure (s , ecatch ∘ κ)
+
+runCatch : Free (Catch E ∷ Exc E ∷ ops) A → Free ops (E ⊎ A)
 runCatch = runExc ∘ bcatch

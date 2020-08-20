@@ -4,6 +4,9 @@ module Effect.Share where
 
 open import Function           using (_$_; _∘_; id; case_of_)
 
+open import Category.Monad     using (RawMonad)
+open        RawMonad ⦃...⦄     using (_>>=_; _>>_; return)
+
 open import Data.Bool          using (Bool; false; true)
 open import Data.List          using (List; []; _∷_)
 open import Data.List.NonEmpty using (List⁺; _∷_; toList)
@@ -15,11 +18,13 @@ open import Data.Unit          using (⊤; tt)
 
 open import Container          using (Container; _▷_; _⊕_)
 open import Free
-open import Injectable         using (_⊂_; inject; project; upcast; Other)
+open import Free.Instances
 
 open import Effect.Nondet      using (Nondet; failˢ; choiceˢ; fail; solutions)
 open import Effect.State       using (State; get; put; evalState)
-open import Effect.Void        using (Void; run)
+
+open import Tactic.Assumption
+
 
 data Shape : Set where
   BShareˢ : ℕ × ℕ → Shape
@@ -35,49 +40,49 @@ Share = Shape ▷ λ _ → ⊤
 -- Normalform --
 ----------------
 
-record Normalform (T : Container) (A B : Set) : Set where
+record Normalform (T : List Container) (A B : Set) : Set where
   field
-    nf : Free T A → Free T B
+    nf : A → Free T B
 open Normalform ⦃...⦄ public
 
 instance
   ℕ-normalform : ∀ {N} → Normalform N ℕ ℕ
-  Normalform.nf ℕ-normalform = id
+  Normalform.nf ℕ-normalform = pure
 
   bool-normalform : ∀ {N} → Normalform N Bool Bool
-  Normalform.nf bool-normalform = id
+  Normalform.nf bool-normalform = pure
 
 ---------------
 -- Shareable --
 ---------------
 
-record Shareable (M : Container) (A : Set) : Set₁ where
+record Shareable (M : List Container) (A : Set) : Set₁ where
   field
     shareArgs : A → Free M A
 open Shareable ⦃...⦄ public
 
 instance
-  ℕ-shareable : ∀ {M} → ⦃ Share ⊂ M ⦄ → ⦃ State (ℕ × ℕ) ⊂ M ⦄ → Shareable M ℕ
+  ℕ-shareable : ∀ {M} → {@(tactic eff) _ : Share ∈ M} → {@(tactic eff) _ : State (ℕ × ℕ) ∈ M} → Shareable M ℕ
   Shareable.shareArgs ℕ-shareable = pure
 
-  bool-shareable : ∀ {M} → ⦃ Share ⊂ M ⦄ → ⦃ State (ℕ × ℕ) ⊂ M ⦄ → Shareable M Bool
+  bool-shareable : ∀ {M} → {@(tactic eff) _ : Share ∈ M} → {@(tactic eff) _ : State (ℕ × ℕ) ∈ M} → Shareable M Bool
   Shareable.shareArgs bool-shareable = pure
 
 -------------
 -- Handler --
 -------------
 
-nameChoices : ∀ {F A i} → ⦃ Nondet ⊂ F ⦄ → List⁺ ((ℕ × ℕ) × ℕ) → Free (Share ⊕ F) A {i} → Free F A
-runShare : ∀ {F A i} → ⦃ Nondet ⊂ F ⦄ → Free (Share ⊕ F) A {i} → Free F A
+nameChoices : ∀ {F A i} → {@(tactic eff) _ : Nondet ∈ F} → List⁺ ((ℕ × ℕ) × ℕ) → Free (Share ∷ F) A {i} → Free F A
+runShare : ∀ {F A i} → {@(tactic eff) _ : Nondet ∈ F} → Free (Share ∷ F) A {i} → Free F A
 
 nameChoices scopes@((sid , next) ∷ scps) (pure x)       = pure x
 nameChoices scopes@((sid , next) ∷ scps) (BShare n pf)  = nameChoices ((sid , 0) ∷ toList scopes) (pf tt)
 nameChoices scopes@((sid , next) ∷ scps) (EShare n pf)  = case scps of λ { [] → runShare (pf tt) ; (s ∷ ss) → nameChoices (s ∷ ss) (pf tt) }
-nameChoices scopes@((sid , next) ∷ scps) p@(Other s pf) with project {Nondet} p
-... | just (failˢ     , pf′) = fail
-... | just (choiceˢ _ , pf′) = inject $ choiceˢ (just (sid , next)) , λ where
-  false → nameChoices ((sid , (suc next)) ∷ scps) (pf′ false)
-  true  → nameChoices ((sid , (suc next)) ∷ scps) (pf′ true)
+nameChoices scopes@((sid , next) ∷ scps) p@(Other s pf) with prj {Nondet} {p = there assumption} p
+... | just (failˢ     , _) = fail
+... | just (choiceˢ _ , κ) = op $ choiceˢ (just (sid , next)) , λ where
+  false → nameChoices ((sid , (suc next)) ∷ scps) (κ false)
+  true  → nameChoices ((sid , (suc next)) ∷ scps) (κ true)
 ... | nothing = impure (s , nameChoices scopes ∘ pf)
 
 runShare (pure x)        = pure x
@@ -89,13 +94,13 @@ runShare (Other s pf)    = impure (s , runShare ∘ pf)
 -- Share Operator --
 --------------------
 
-begin : {F : Container} → ⦃ Share ⊂ F ⦄ → ℕ × ℕ → Free F ⊤
-begin n = inject (BShareˢ n , λ _ → pure tt)
+begin : ∀ {F} → {@(tactic eff) _ : Share ∈ F} → ℕ × ℕ → Free F ⊤
+begin n = op (BShareˢ n , λ _ → pure tt)
 
-end : {F : Container} → ⦃ Share ⊂ F ⦄ → ℕ × ℕ → Free F ⊤
-end n = inject (EShareˢ n , λ _ → pure tt)
+end : ∀ {F} → {@(tactic eff) _ : Share ∈ F} → ℕ × ℕ → Free F ⊤
+end n = op (EShareˢ n , λ _ → pure tt)
 
-share : ∀ {F A} → ⦃ Shareable F A ⦄ → ⦃ Share ⊂ F ⦄ → ⦃ State (ℕ × ℕ) ⊂ F ⦄ → Free F A → Free F (Free F A)
+share : ∀ {F A} → ⦃ Shareable F A ⦄ → {@(tactic eff) _ : Share ∈ F} → {@(tactic eff) _ : State (ℕ × ℕ) ∈ F} → Free F A → Free F (Free F A)
 share p = do
       (i , j) ← get
       put (i + 1 , j)
@@ -107,14 +112,13 @@ share p = do
         put (i + 1 , j)
         end (i , j)
         return x′
-  where open RawMonad freeMonad
 
 ------------------------------
 -- Call Time Choice Utility --
 ------------------------------
 
 runCTC : ∀ {A B}
-  → ⦃ Shareable (State (ℕ × ℕ) ⊕ Share ⊕ Nondet ⊕ Void) A ⦄
-  → ⦃ Normalform (State (ℕ × ℕ) ⊕ Share ⊕ Nondet ⊕ Void) A B ⦄
-  → Free (State (ℕ × ℕ) ⊕ Share ⊕ Nondet ⊕ Void) A → List B
-runCTC = run ∘ solutions ∘ runShare ∘ evalState (0 , 0) ∘ nf
+  → ⦃ Shareable (State (ℕ × ℕ) ∷ Share ∷ Nondet ∷ []) A ⦄
+  → ⦃ Normalform (State (ℕ × ℕ) ∷ Share ∷ Nondet ∷ []) A B ⦄
+  → Free (State (ℕ × ℕ) ∷ Share ∷ Nondet ∷ []) A → List B
+runCTC prog = run $ solutions $ runShare $ evalState (0 , 0) (prog >>= nf)

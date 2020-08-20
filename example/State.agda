@@ -1,23 +1,20 @@
-{-# OPTIONS --overlapping-instances #-}
-
 module State where
 
+open import Category.Monad using (RawMonad)
+open        RawMonad ⦃...⦄ hiding (pure)
 
-open import Data.Nat      using (ℕ; _+_)
-open import Data.Product  using (_×_)
-open import Data.Unit     using (⊤)
+open import Data.Nat       using (ℕ; _+_)
+open import Data.Product   using (_×_)
+open import Data.Unit      using (⊤)
 
-open import Container     using (Container)
+open import Container      using (Container)
 open import Free
-open import Injectable    using (_⊂_)
+open import Free.Instances
 
-open import Effect.State  using (State; runState; get; put)
-open import Effect.Void   using (run)
+open import Effect.State   using (State; runState; get; put)
 
-tick : {F : Container} → ⦃ State ℕ ⊂ F ⦄ → Free F ⊤
+tick : ∀ {F} → {@(tactic eff) _ : State ℕ ∈ F } → Free F ⊤
 tick = get >>= λ n → put (n + 1)
-  where open RawMonad freeMonad using (_>>=_)
 
 testState : ℕ × ⊤
 testState = run (runState 0 (tick >> tick >> tick))
-  where open RawMonad freeMonad using (_>>_)

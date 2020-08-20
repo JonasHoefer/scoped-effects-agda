@@ -1,37 +1,46 @@
 module Effect.State where
 
-open import Function     using (_∘_)
+open import Function         using (_∘_)
 
-open import Data.Product using (_×_; _,_; proj₂)
-open import Data.Sum     using (inj₁; inj₂)
-open import Data.Unit    using (⊤; tt)
+open import Category.Functor using (RawFunctor)
+open        RawFunctor ⦃...⦄
 
-open import Container    using (Container; _▷_; _⊕_)
+open import Data.List        using (List; []; _∷_)
+open import Data.Product     using (_×_; _,_; proj₂)
+open import Data.Sum         using (inj₁; inj₂)
+open import Data.Unit        using (⊤; tt)
+
+open import Container        using (Container; _▷_)
+open import Free.Instances
 open import Free
-open import Injectable   using (_⊂_; inject)
 
 data Shape (S : Set) : Set where
   putˢ : S → Shape S
   getˢ : Shape S
 
-pos : (S : Set) → Shape S → Set
-pos S (putˢ _) = ⊤
-pos S getˢ     = S
-
 State : Set → Container
-State S = Shape S ▷ pos S
+State S = Shape S ▷ λ { (putˢ _) → ⊤ ; getˢ → S }
 
-runState : {F : Container} {A S : Set} → S → Free (State S ⊕ F) A → Free F (S × A)
-runState s₀ (pure x) = pure (s₀ , x)
-runState s₀ (impure (inj₁ (putˢ s) , pf)) = runState s (pf tt)
-runState s₀ (impure (inj₁ getˢ     , pf)) = runState s₀ (pf s₀)
-runState s₀ (impure (inj₂ s        , pf)) = impure (s , runState s₀ ∘ pf )
+pattern Get pf = impure (inj₁ getˢ , pf)
+pattern Put s pf = impure (inj₁ (putˢ s) , pf)
 
-evalState : {F : Container} {A S : Set} → S → Free (State S ⊕ F) A → Free F A
-evalState s₀ p = map proj₂ (runState s₀ p)
+private
+  variable
+    A S : Set
+    ops : List Container
 
-get : {F : Container} {S : Set} → ⦃ State S ⊂ F ⦄ → Free F S
-get = inject (getˢ , pure)
+runState : S → Free (State S ∷ ops) A → Free ops (S × A)
+runState s₀ (pure x)    = pure (s₀ , x)
+runState s₀ (Put s₁ κ)  = runState s₁ (κ tt)
+runState s₀ (Get κ)     = runState s₀ (κ s₀)
+runState s₀ (Other s κ) = impure (s , runState s₀ ∘ κ)
 
-put : {F : Container} {S : Set} → ⦃ State S ⊂ F ⦄ → S → Free F ⊤
-put s = inject (putˢ s , λ tt → pure tt)
+evalState : S → Free (State S ∷ ops) A → Free ops A
+evalState s₀ p = proj₂ <$> runState s₀ p
+
+get : {@(tactic eff) _ : State S ∈ ops} → Free ops S
+get = op (getˢ , pure)
+
+put : {@(tactic eff) _ : State S ∈ ops} → S → Free ops ⊤
+put s = op (putˢ s , pure)
+
