@@ -113,6 +113,8 @@ assistant.
 This section contains a short introduction to Agda, dependent types and the idea
 of ``Propositions as types'' under which Agda can be used for theorem proofing.
 
+[TODO: General Introduction]
+
 Agdas syntax is similar to Haskells.
 Data types are declared with syntax similar to Haskells GADTs.
 Functions declarations and definitions are also similar to Haskell, except that
@@ -144,8 +146,14 @@ $$
 F : A \rightarrow \mathcal{U} \quad\text{where}\quad B(a) : \mathcal{U}
 \quad\text{for}\quad a : A
 $$
-To avoid Russell's paradox, i.e. there cannot exist a type of all types, a
-hierarchy of universes is introduced.
+To avoid Russell's paradox, a hierarchy of universes $\mathcal{U}_1 :
+\mathcal{U}_2 : \dots$ is introduced.
+Usually the universes are cumulative, i.e. if $\tau : \mathcal{U}_n$ then
+$\tau : \mathcal{U}_k$ for $k>n$.
+by default this is not the case in Agda.
+Each type is member of a unique universe, forcing us to do additional
+bookkeeping.
+Since Agda 2.6.1 an experimental \texttt{--cumulativity} flag exists.
 
 \paragraph{Dependent Function Types ($\Pi$-Types)} are a generalization of
 function types.
@@ -155,7 +163,7 @@ The codomain is defined using a type family of the domain, which specifies the
 type of the result for each given argument.
 
 $$
-\Pi_{a : A} B(a) \quad \text{with}\quad B : A \rightarrow\mathcal{U}
+\prod_{a : A} B(a) \quad \text{with}\quad B : A \rightarrow\mathcal{U}
 $$
 An element of the above type is a function which maps every $a : A$ to a $b :
 B(a)$.
@@ -165,16 +173,16 @@ types.
 The type of the second component of the product is not fixed, but varies with
 the value of the first.
 $$
-\Sigma_{a : A} B(a) \quad \text{with}\quad B : A \rightarrow\mathcal{U}
+\sum_{a : A} B(a) \quad \text{with}\quad B : A \rightarrow\mathcal{U}
 $$
 
-\paragraph{In Agda}
+An element of the above type is a pair consisting of an $a : A$ and a $b : B(a)$.
 
-Consider the following definition of a vector.
+\paragraph{Programming with Dependent Types}
+
+A common example for dependent types are fixed length vectors.
 The data type depends on a type \AgdaDatatype{A} and a value of type
 \AgdaDatatype{ℕ}.
-Therefore, it's a family of types indexed by \AgdaDatatype{ℕ}.
-Each $n : \mathbb{N}$ is mapped to the type \AgdaDatatype{Vec A n}.
 
 \begin{code}
 data Vec (A : Set) : ℕ → Set where
@@ -185,6 +193,8 @@ Arguments on the left-hand side of the colon are called parameters and are the
 same for all constructors.
 Arguments on the right-hand side of the colon are called indices an can differ
 for each constructor.
+Therefore \AgdaDatatype{Vec}\AgdaSpace{}\AgdaArgument{A} is a family of types
+indexed by \AgdaDatatype{ℕ}.
 
 The \AgdaInductiveConstructor{[]} constructor allows us to create an empty
 vector of any type, but forces the index to be zero.
@@ -213,6 +223,76 @@ Therefore, the \AgdaInductiveConstructor{[]} case does not apply.
 By constraining the type of the function we were able to avoid the case, which
 usually requires error handling or introduces partiality.
 
+We can extend this idea to type safe indexing.
+A vector of length \AgdaArgument{n} is indexed by the first \AgdaArgument{n}
+natural numbers.
+The type \AgdaDatatype{Fin}\AgdaSpace{}\AgdaArgument{n} represents the subset of
+natural numbers smaller than $n$.
+
+\begin{code}
+data Fin : ℕ → Set where
+  zero  : {n : ℕ} → Fin (suc n)
+  suc   : {n : ℕ} → Fin n → Fin (suc n)
+\end{code}
+Because $0$ is smaller than every positive natural number,
+\AgdaInductiveConstructor{zero} can only be used to construct an element of
+\AgdaDatatype{Fin}\AgdaSpace{}$($\AgdaInductiveConstructor{suc}
+\AgdaArgument{n}$)$ i.e. for every type except
+\AgdaDatatype{Fin}\AgdaSpace{}\AgdaArgument{0}.
+
+If any number is smaller than $n$, then its successor is smaller than $n+1$.
+Therefore, if any number is an element of
+\AgdaDatatype{Fin}\AgdaSpace{}\AgdaArgument{n}
+then its successor is an element of
+\AgdaDatatype{Fin}\AgdaSpace{}$($\AgdaInductiveConstructor{suc}\AgdaSpace{}\AgdaArgument{n}$)$.
+
+So we can construct a $k<n$ of type
+\AgdaDatatype{Fin}\AgdaSpace{}\AgdaArgument{n} by starting with
+\AgdaInductiveConstructor{zero} of type
+\AgdaDatatype{Fin}\AgdaSpace{}$($\AgdaArgument{n - k}$)$ and applying
+\AgdaInductiveConstructor{suc} $k$ times.
+Using this definition of the bounded subsets of natural numbers we can define
+\AgdaFunction{\_!\_} for vectors.
+
+\begin{AgdaAlign}
+\begin{code}
+_!_ : ∀ {A n} → Vec A n → Fin n → A
+(x  ∷ _ )  ! zero   = x
+(_  ∷ xs)  ! suc i  = xs ! i
+\end{code}
+Notice that similar to \AgdaFunction{head} there is no case for
+\AgdaInductiveConstructor{[]}.
+\AgdaArgument{n} is used as index for
+\AgdaDatatype{Vec}\AgdaSpace{}\AgdaArgument{A} and \AgdaDatatype{Fin}.
+The constructors for \AgdaDatatype{Fin} only use \AgdaInductiveConstructor{suc},
+therefore the type \AgdaDatatype{Fin}\AgdaSpace{}\AgdaInductiveConstructor{zero}
+is not inhabited and the cases for \AgdaInductiveConstructor{[]} do not apply.
+
+By case splitting on the vector first we could have obtained the term
+\AgdaInductiveConstructor{[]}\AgdaSpace{}\AgdaFunction{!}\AgdaArgument{i}.
+By case splitting on \AgdaArgument{i} we notice that no constructor for
+\AgdaDatatype{Fin zero} exists.
+Therefore, this case cannot occur, because the type of the argument is
+uninhabited i.e. it's impossible to call the function, because we cannot
+construct such an argument.
+In this example we can either omit the case or explicitly state that the
+argument is impossible to construct, by replacing it with $()$, allowing us to
+omit the definition of the right-hand side of the equation.
+
+\begin{code}
+[]         ! () -- no right-hand side
+\end{code}
+\end{AgdaAlign}
+
+The other two cases are straightforward.
+For index \AgdaInductiveConstructor{zero} we return the hard of the vector.
+For index \AgdaInductiveConstructor{suc}\AgdaSpace{}\AgdaArgument{i} we call
+\AgdaFunction{\_!\_} recursively with the smaller index and the tail of the
+vector.
+Notice that the types for the recursive call change.
+The tail of the vector \AgdaArgument{xs} and the smaller index \AgdaArgument{i}
+are indexed over the predecessor of \AgdaArgument{n}.
+
 \subsection{Propositions as Types}
 
 An more in depth explanation and an overview over the history of the idea can be
@@ -231,11 +311,8 @@ found in Wadlers paper of the same name \cite{DBLP:journals/cacm/Wadler15}.
   \end{tabular}
 \end{center}
 
-\subsection{Strict Positivity}
-
-\subsubsection{Container}
-
 \subsection{Termination Checking}
+\label{sec:termination-checking}
 
 The definition of non-terminating functions entails logical inconsistency.
 Agda therefore only allows the definition terminating functions.
@@ -279,8 +356,190 @@ map-rose : {A B : Set} {i : Size} → (A → B) → (Rose A i → Rose B i)
 map-rose f (rose x xs) = rose (f x) (map (map-rose f) xs)
 \end{code}
 
-\section{Curry and Call-Time-Choice}
-let x = coin in x + x
+\subsection{Strict Positivity}
+
+In a type system with arbitrary recursive types, it is possible to to implement a
+fixpoint combinator and therefore non terminating functions without explicit
+recursion.
+As explained in section \ref{sec:termination-checking} this entails logical
+inconsistency.
+Agda allows only strictly positive data types.
+A data type $D$ is strictly positive if all constructors are of the form
+$$
+  A_1 \rightarrow A_2 \rightarrow \dots \rightarrow A_n \rightarrow D
+$$
+where $A_i$ is either not inductive (does not mention $D$) or are of the form
+$$
+A_1 \rightarrow B_2 \rightarrow \dots \rightarrow B_n \rightarrow D
+$$
+where $B_j$ is not inductive.
+By restricting recursive occurrences of a data type in its definition to strict
+positive positions strong normalization is preserved.
+
+\subsubsection{Container}
+
+Because of the strict positivity requirement it is not allowed to apply generic
+type constructors to inductive occurrences of a data type in its definition.
+The reason for this restriction is that a type constructor is not required to
+use its argument only in strictly positive positions.
+To still work generically with type constructors or more precise functors we
+need a more restrictive representation, which only uses its argument in a
+strictly positive position.
+One representation of such functors are containers.
+
+Containers are a generic representation of data type, which store values of an
+arbitrary type.
+A container is defined by a type of shapes $S$ and a type of positions for each
+of its shapes $P : S \rightarrow \mathcal{U}$.
+Usually containers are denoted $S \rhd P$.
+A common example are lists.
+The shape of a list is defined by its length, therefore the shape type is
+$\mathbb{N}$.
+A list of length $n$ has exactly $n$ places or positions containing data.
+Therefore, the type of positions is $\Pi_{n : \mathbb{N}}\mathrm{Fin}\;n$ where
+$\mathrm{Fin}\;n$ is the type of natural numbers smaller than $n$.
+The extension of a container is a functor $\lBrack S \rhd P \rBrack $,
+whose lifting of types is given by
+
+$$
+  \lBrack S \rhd P \rBrack\;X = \sum\limits_{s : S} P s \rightarrow X.
+$$
+A lifted type corresponds to the container storing elements of the given type
+e.g. $\lBrack\, \mathbb{N} \rhd \mathrm{Fin}\;\rBrack \; A \cong
+\mathrm{List}\;A$.
+The second element of the dependent pair sometimes called position function.
+It assigns each position a stored value.
+The functors action on functions is given by
+
+$$
+  \lBrack S \rhd P \rBrack \;f\;\langle s , pf \rangle = \langle s , f \circ pf \rangle.
+$$
+We can translate these definition directly to Agda.
+Instead of a \AgdaKeyword{data} declaration we can use \AgdaKeyword{record}
+declarations.
+Similar to other languages \AgdaKeyword{record}s are pure product types.
+A \AgdaKeyword{record} in Agda is an $n$-ary dependent product type i.e. the
+type of each field can contain all previous values.
+
+\begin{code}
+record Container : Set₁ where
+  constructor _▷_
+  field
+    Shape : Set
+    Pos : Shape → Set
+open Container public
+\end{code}
+As expected, a container consists of a type of shapes and a dependent type of
+positions.
+Notice that \AgdaDatatype{Container} is an element of \AgdaDatatype{Set₁},
+because it contains a type from \AgdaDatatype{Set} and therefore has to be
+larger.
+Next we define the lifting of types i.e. the container extension, as a function
+between universes.
+
+\begin{code}
+open import Data.Product using (Σ-syntax; _,_) -- TODO: define and explain earlier
+open import Function using (_∘_)
+⟦_⟧ : Container → Set → Set
+⟦ S ▷ P ⟧ A = Σ[ s ∈ S ] (P s → A)
+\end{code}
+Using this definition we can define \AgdaFunction{fmap} for containers.
+
+\begin{code}
+fmap : ∀ {A B C} → (A → B) → (⟦ C ⟧ A → ⟦ C ⟧ B)
+fmap f (s , pf) = (s , f ∘ pf)
+\end{code}
+
+\section{Curry}
+
+Curry \cite{Hanus95curry} is a functional logic programming language.
+It combines paradigms from functional programming languages like Haskell
+with those logical languages Prolog.
+Curry is based on Haskell i.e. its syntax and semantics not involve
+nondeterminism closely resemble Haskell.
+Curry integrates logical features, such as nondeterminism and free variables
+with a few additional concepts.
+
+When defining a function with overlapping patterns on the left-hand side of
+equations all matching right-hand sides are executed.
+This introduces non determinism.
+The simplest example of such a function is the choice operator \texttt{?}.
+
+\begin{minted}{haskell}
+(?) :: A -> A -> A
+x ? _ = x
+_ ? y = y
+\end{minted}
+Both equations always match, therefore both arguments are returned i.e.
+\texttt{?} introduces a nondeterministic choice between its two arguments.
+Using choice we can define a simple nondeterministic program.
+
+\begin{minted}{haskell}
+coin :: Int
+coin = 0 ? 1
+
+twoCoins :: Int
+twoCoins = coin + coin
+\end{minted}
+\texttt{coin} chooses non-deterministically between $0$ and $1$.
+Executing coin therefore yields these two results.
+When executing \texttt{twoCoins} the two calls of \texttt{coin} are independent.
+Both choose between $0$ and $1$, therefore \texttt{twoCoins} yields the results
+$0$, $1$, $1$ and $2$.
+
+\subsubsection{Call-Time-Choice}
+
+Next we will take a look at the interactions between nondeterminism and function
+calls.
+
+\begin{minted}{haskell}
+double :: Int -> Int
+double x = x + x
+
+doubleCoin :: Int
+doubleCoin = double coin
+\end{minted}
+When calling \texttt{double} with a nondeterministic value two behaviors are
+conceivable.
+The first possibility is that the choice is moved into the function i.e. both
+\texttt{x} chose independent of each other yielding the results $0$, $1$, $1$
+and $2$.
+The second possibility is choosing a value before calling the function and
+choosing between the results for each possible argument.
+In this case both \texttt{x} have the same value, therefore the possible results
+are $0$ and $2$.
+This option is called Call-Time-Choice and it is the one implemented by Curry.
+
+Similar to Haskell, Curry programs are evaluated lazily.
+The evaluation of an expression is delayed until its result is needed and each
+expression is evaluated at most once.
+The later is important when expressions are named and reused via \texttt{let}
+bindings or lambda abstraction.
+The named expression is evaluated the first time it is needed.
+If the result is needed again the old value is reused.
+This behavior is called sharing.
+usually function application is defined using the \texttt{let} primitive.
+Applying a non variable expression to a function introduces a new intermediate
+result, which bound using \texttt{let}.
+$$
+  (\lambda x.\sigma) \tau = \texttt{let}\;y = \tau\;\texttt{in}\;\sigma[x\mapsto
+  y]
+$$
+We therefore expect a variable bound by a \texttt{let} to behave similar to one
+bound by a function.
+This naturally extends Call-Time-Choice to \texttt{let}-bindings in lazily
+evaluated languages.
+
+\begin{minted}{haskell}
+sumCoin :: Int
+sumCoin = let x = coin in x + x
+\end{minted}
+As expected this function yields the results $0$ and $1$.
+
+\subsubsection{Permutation Sort}
+
+Introduce Free Variables + Explain for Later Example
+
 
 \chapter{Algebraic Effects}
 \input{FirstOrder}

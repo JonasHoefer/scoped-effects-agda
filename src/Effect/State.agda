@@ -43,4 +43,3 @@ get = op (getˢ , pure)
 
 put : {@(tactic eff) _ : State S ∈ ops} → S → Free ops ⊤
 put s = op (putˢ s , pure)
-
