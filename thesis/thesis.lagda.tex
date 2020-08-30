@@ -31,7 +31,9 @@
 \newunicodechar{∘}{\ensuremath{\mathnormal{\circ}}}
 \newunicodechar{≡}{\ensuremath{\mathnormal{\equiv}}}
 \newunicodechar{⁇}{\ensuremath{\mathnormal{?\!?}}}
+% \newunicodechar{′}{\ensuremath{\mathnormal{\prime}}} -- somehow bad
 \newunicodechar{⊥}{\ensuremath{\mathnormal{\bot}}}
+\newunicodechar{⊤}{\ensuremath{\mathnormal{\top}}}
 \newunicodechar{ˢ}{\textsuperscript{s}}
 \newunicodechar{ˡ}{\textsuperscript{l}}
 \newunicodechar{ʳ}{\textsuperscript{r}}
@@ -64,6 +66,8 @@
 \pagestyle{fancy}
 \fancyhf{}%
 \fancyhead[LO,RE]{\thepage}
+\fancyhead[RO]{\rightmark}
+\fancyhead[LE]{\leftmark}
 \renewcommand{\headrulewidth}{0.4pt}
 \renewcommand{\footrulewidth}{0.0pt}
 
@@ -111,9 +115,7 @@ Due to its type system Agda can be used as a programming language and as a proof
 assistant.
 
 This section contains a short introduction to Agda, dependent types and the idea
-of ``Propositions as types'' under which Agda can be used for theorem proofing.
-
-[TODO: General Introduction]
+of ``Propositions as types'' under which Agda can be used for theorem proving.
 
 Agdas syntax is similar to Haskells.
 Data types are declared with syntax similar to Haskells GADTs.
@@ -126,7 +128,20 @@ of all (small) types.
 data ℕ : Set where
   zero  : ℕ
   suc   : ℕ → ℕ
+\end{code}
  
+Ordinary function definition are syntactically similar to Haskell.
+Agda allows the definition of mixfix operators.
+A mixfix operator is an nearly arbitrary list of symbols (builtin symbols like
+colons are not allowed as part of operators).
+Underscores in the operator name are placeholders for future parameters.
+A mixfix operator can be applied partially by writing underscores for the
+omitted parameters.
+
+In the following definition of plus for natural numbers \AgdaFunction{+} is a
+binary operator and therefore containers two underscores.
+
+\begin{code}
 _+_ : ℕ → ℕ → ℕ
 zero   + m = m
 suc n  + m = suc (n + m)
@@ -167,6 +182,9 @@ $$
 $$
 An element of the above type is a function which maps every $a : A$ to a $b :
 B(a)$.
+In Agda the builtin function type $\Rightarrow$ is a $\Pi$-type.
+An arguments can be named by replacing the type $\tau$ with a $x : \tau$, allowing
+us to use the value as part of later types.
 
 \paragraph{Dependent Sum Types ($\Sigma$-Types)} are a generalization of product
 types.
@@ -175,8 +193,9 @@ the value of the first.
 $$
 \sum_{a : A} B(a) \quad \text{with}\quad B : A \rightarrow\mathcal{U}
 $$
-
 An element of the above type is a pair consisting of an $a : A$ and a $b : B(a)$.
+In Agda \AgdaKeyword{record}s represent $n$-ary $\Sigma$-types.
+Each field can be used in the type of the following fields.
 
 \paragraph{Programming with Dependent Types}
 
@@ -273,8 +292,9 @@ By case splitting on the vector first we could have obtained the term
 By case splitting on \AgdaArgument{i} we notice that no constructor for
 \AgdaDatatype{Fin zero} exists.
 Therefore, this case cannot occur, because the type of the argument is
-uninhabited i.e. it's impossible to call the function, because we cannot
-construct such an argument.
+uninhabited.
+It's impossible to call the function, because we cannot construct an argument of
+the correct type.
 In this example we can either omit the case or explicitly state that the
 argument is impossible to construct, by replacing it with $()$, allowing us to
 omit the definition of the right-hand side of the equation.
@@ -283,7 +303,6 @@ omit the definition of the right-hand side of the equation.
 []         ! () -- no right-hand side
 \end{code}
 \end{AgdaAlign}
-
 The other two cases are straightforward.
 For index \AgdaInductiveConstructor{zero} we return the hard of the vector.
 For index \AgdaInductiveConstructor{suc}\AgdaSpace{}\AgdaArgument{i} we call
@@ -377,6 +396,7 @@ By restricting recursive occurrences of a data type in its definition to strict
 positive positions strong normalization is preserved.
 
 \subsubsection{Container}
+\label{container}
 
 Because of the strict positivity requirement it is not allowed to apply generic
 type constructors to inductive occurrences of a data type in its definition.
@@ -389,6 +409,8 @@ One representation of such functors are containers.
 
 Containers are a generic representation of data type, which store values of an
 arbitrary type.
+They were introduced by Abbott, Altenkirch and Ghani
+\cite{DBLP:conf/fossacs/AbbottAG03}.
 A container is defined by a type of shapes $S$ and a type of positions for each
 of its shapes $P : S \rightarrow \mathcal{U}$.
 Usually containers are denoted $S \rhd P$.
@@ -466,20 +488,20 @@ This introduces non determinism.
 The simplest example of such a function is the choice operator \texttt{?}.
 
 \begin{minted}{haskell}
-(?) :: A -> A -> A
-x ? _ = x
-_ ? y = y
+     (?) :: A -> A -> A
+     x ? _ = x
+     _ ? y = y
 \end{minted}
 Both equations always match, therefore both arguments are returned i.e.
 \texttt{?} introduces a nondeterministic choice between its two arguments.
 Using choice we can define a simple nondeterministic program.
 
 \begin{minted}{haskell}
-coin :: Int
-coin = 0 ? 1
+     coin :: Int
+     coin = 0 ? 1
 
-twoCoins :: Int
-twoCoins = coin + coin
+     twoCoins :: Int
+     twoCoins = coin + coin
 \end{minted}
 \texttt{coin} chooses non-deterministically between $0$ and $1$.
 Executing coin therefore yields these two results.
@@ -493,11 +515,11 @@ Next we will take a look at the interactions between nondeterminism and function
 calls.
 
 \begin{minted}{haskell}
-double :: Int -> Int
-double x = x + x
-
-doubleCoin :: Int
-doubleCoin = double coin
+     double :: Int -> Int
+     double x = x + x
+     
+     doubleCoin :: Int
+     doubleCoin = double coin
 \end{minted}
 When calling \texttt{double} with a nondeterministic value two behaviors are
 conceivable.
@@ -518,7 +540,7 @@ bindings or lambda abstraction.
 The named expression is evaluated the first time it is needed.
 If the result is needed again the old value is reused.
 This behavior is called sharing.
-usually function application is defined using the \texttt{let} primitive.
+Usually function application is defined using the \texttt{let} primitive.
 Applying a non variable expression to a function introduces a new intermediate
 result, which bound using \texttt{let}.
 $$
@@ -531,8 +553,8 @@ This naturally extends Call-Time-Choice to \texttt{let}-bindings in lazily
 evaluated languages.
 
 \begin{minted}{haskell}
-sumCoin :: Int
-sumCoin = let x = coin in x + x
+     sumCoin :: Int
+     sumCoin = let x = coin in x + x
 \end{minted}
 As expected this function yields the results $0$ and $1$.
 

@@ -2,15 +2,16 @@
 module FirstOrder where
 
 open import Level using (Level; suc; zero; _⊔_)
-open import Function using (_∘_; id; _$_)
+open import Function
 open import Size using (Size; ↑_)
 
 open import Data.Bool using (Bool; true; false; if_then_else_)
 open import Data.Empty using (⊥)
-open import Data.List using (List; []; _∷_; _++_)
+open import Data.List using (List; []; _∷_; _++_; foldr)
 open import Data.Nat using (ℕ; _+_)
+open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Product using (Σ-syntax; _×_; _,_)
-open import Data.Sum using (_⊎_; [_,_])
+open import Data.Sum using (_⊎_; [_,_]; inj₁; inj₂)
 open import Data.Unit using (⊤; tt)
 
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong)
@@ -26,6 +27,10 @@ algebraic theory.
 Section \ref{fo-definition} gives a concrete definition for algebraic effects.
 Section \ref{fo-free-monads} describes the implementation using free monads in
 Agda.
+The following sections describe the implementation of unscoped and scoped
+effects in the fist order setting.
+The scoped effects are implemented using explicit scope delimiters as described
+by Wu et al. \cite{DBLP:conf/haskell/WuSH14}.
 
 \section{Definition}
 \label{fo-definition}
@@ -37,29 +42,93 @@ works wth scoped syntax and the HO approach
 \label{fo-free-monads}
 
 The syntax of an algebraic effect is described using the free monad.
+The usual definition of the free monad is Haskell is the following.
 
-\begin{code}
+\begin{minted}{haskell}
+data Free f a = Pure a | Impure (f (Free f a))
+
+instance (Functor f) => Monad (Free f) where
+  return = Pure
+
+  Pura x    >>= k = k x
+  Impure fa >>= k = Impure (fmap (>>= k) fa)
+\end{minted}
+As the name suggests, the free monad is the free object in the category of
+monads, therefore the following holds.
+
+\begin{enumerate}
+  \item For every (endo)functor $F$ the functor $\mathrm{Free}\;F$ is a monad
+  \item For every natural transformation from an (endo)functor $F$ to a monad $G$
+    exists a monad homomorphism from $\mathrm{Free}\;F$ to $G$
+  \item As a consequence of (2) taking the natural transformation to be the
+    identity on $F$, for every monad exists a monad homomorphism from a
+    Free monad.
+  \item The $\mathrm{Free}$ functor is left adjoint and therefore preserves
+    coproducts i.e. $\mathrm{Free}\;F \oplus \mathrm{Free}\; G \cong \mathrm{Free}\;
+    (F \oplus G)$
+\end{enumerate}
+When defining the free monad in Agda we cannot use an arbitrary functor as in
+Haskell, because it would violate the strict positivity requirement.
+Instead we will represent the functor as the extension of a container as
+described in section \ref{container}.
+
+\begin{code}[hide]
 record Container : Set₁ where
   constructor _▷_
   field
     Shape : Set
     Pos : Shape → Set
+open Container public
 
 ⟦_⟧ : {ℓ : Level} → Container → Set ℓ → Set ℓ
 ⟦ S ▷ P ⟧ A = Σ[ s ∈ S ] (P s → A)
 \end{code}
-In the approach described by Wu et la. the functor coproduct is modelled
-as the data type \texttt{data (f :+: g) a = Inl (f a) | Inr (g a)}, which is a
-\texttt{Functor} in \texttt{a}.
+\begin{code}
+data Free′ (C : Container) (A : Set) : Set where
+  pure : A → Free′ C A
+  impure : ⟦ C ⟧ (Free′ C A) → Free′ C A
+\end{code}
+The free monad represents an arbitrary branching tree with values of type
+\AgdaArgument{A} in its leafs.
+The \AgdaInductiveConstructor{pure} constructor builds leafs containing just
+a value of type \AgdaArgument{A}.
+The \AgdaInductiveConstructor{impure} constructor takes a value of the
+\AgdaDatatype{Free} monad lifted by the container functor of \AgdaArgument{C}.
+Based on the choice of container the actual value could contain an arbitrary
+number of values i.e. \AgdaDatatype{Free} monads or subtrees.
+Furthermore for each shape from the \AgdaFunction{Shape} type the number of
+subtrees can differ or contain additional arbitrary values.
+The container has no access to the type parameter of the free monad.
+
+The \AgdaFunction{>>=} operator for free monads traverses the trees and applies
+the continuation to the values stored in the leafs, replacing them.
+\AgdaFunction{>>=} therefore substitutes leafs with new subtrees generated from
+the values stored in each leaf.
+
+\subsection{Functors {\`{a}} la carte}
+
+When modelling effects each functor represents the syntax i.e. the operations of
+an effect.
+For containers each shape corresponds to an operation symbol and the
+type of position for a shape corresponds to the arity set for the operation.
+The additional parameter of an operation is embedded in the shape.
+The free monad over a container describes a program using the effects syntax
+i.e. its the free model for the algebra without the equations.
+To combine the syntax of multiple effects we can combine the underlying
+functors, because the free monad preserves coproducts.
+
+
+The approach described by Wu et al. is based on ``Data types {\`{a}} la
+carte''\cite{DBLP:journals/jfp/Swierstra08}.
+The functor coproduct is modelled as the data type \texttt{data (f :+: g) a =
+  Inl (f a) | Inr (g a)}, which is a \texttt{Functor} in \texttt{a}.
 
 In Agda functors are represented as containers, a concrete data type not a type
 class.
 The coproduct of two containers $F$ and $G$ is the container whose
-\AgdaFunction{shape} is the disjoint union of $F$ and $G$s shapes and whose
-position function \AgdaFunction{pos} is the coproduct mediator of $F$ and $G$s
+\AgdaFunction{shape} is the disjoint union of $F$s and $G$s shapes and whose
+position function \AgdaFunction{pos} is the coproduct mediator of $F$s and $G$s
 position functions.
-The functor represented by the coproduct of two containers is isomorphic to the
-functor coproduct of their representations.
 
 \begin{code}[hide]
 infixr 1 _⊕_
@@ -67,30 +136,72 @@ infixr 1 _⊕_
 \begin{code}
 _⊕_ : Container → Container → Container
 (Shape₁ ▷ Pos₁) ⊕ (Shape₂ ▷ Pos₂) = (Shape₁ ⊎ Shape₂) ▷ [ Pos₁ , Pos₂ ]
--- ⟦ F ⊕ G ⟧ A ≅ (⟦ F ⟧ + ⟦ G ⟧) A         Should i proof this?
 \end{code}
-Later each container will represent the syntax (the operations) of an effect.
-To combine syntax of effects Wu et al. use a ``Data types {\`{a}} la
-carte''\cite{DBLP:journals/jfp/Swierstra08} approach.
-The type class \texttt{:<:} marks a functor as an option in a coproduct.
-\texttt{:<:} can be used to inject values into or maybe extract values from a
-coproduct.
-The two instances for \texttt{:<:} overlap and use \texttt{:+:}.
-Since the result of \AgdaFunction{\_⊕\_} is another container, not just a
-value of a simple data type, instance resolution using \AgdaFunction{\_⊕\_} is
-not as straight forward as in Haskell and in some cases extremely slow.
-
-Therefore this implementation of the free monad uses an approach similar to the
-Idris effect library \cite{DBLP:conf/icfp/Brady13}.
-The free monad is not parameterised over a single container, but a list
-\AgdaArgument{ops} of containers representing an $n$-ary coproduct.
-Whenever the functor would be  used, an arbitrary container \AgdaArgument{op}
-together with a proof
-\AgdaArgument{op}\AgdaSpace{}\AgdaDatatype{∈}\AgdaSpace{}\AgdaArgument{ops} is
-used.
+The functor represented by the coproduct of two containers is isomorphic to the
+functor coproduct of their representations.
+The container without shapes is neutral element for the coproduct of containers.
+This allows us to define $n$-ary coproducts for containers.
 
 \begin{code}
+sum : List Container → Container
+sum  = foldr (_⊕_) (⊥ ▷ λ())
+\end{code}
+To generically work with arbitrary coproducts of functors we will define two
+utility functions.
+Given a value $x:A$ we want to be able to inject it into any coproduct
+mentioning $A$.
+Given any coproduct mentioning $A$ we want to be able to project a value of
+type $A$ from the coproduct, if $A$ is the currently held alternative.
+
+In the ``Data types {\`{a}} la carte''\cite{DBLP:journals/jfp/Swierstra08}
+approach the type class \texttt{:<:} is introduced.
+\texttt{:<:} relates a functor to a coproduct of functors, marking it as an
+option in the coproduct.
+\texttt{:<:}s functions can be used to inject values into or maybe extract
+values from a coproduct.
+The two instances for \texttt{:<:} mark $F$ as an element of the coproduct if
+it's an on the left-hand side of the coproduct (in the head) or if it's already
+in the right-hand side (in the tail).
+
+\begin{minted}{haskell}
+     class (Syntax sub, Syntax sup) => sub :<: sup where
+       inj :: sub m a -> sup m a
+       prj :: sup m a -> Maybe (sub m a)
+     
+     instance {-# OVERLAPPABLE #-} (Syntax f, Syntax g) => f :<: (f :+: g) where
+       inj = Inl
+       prj (Inl a) = Just a
+       prj _ = Nothing
+     
+     instance {-# OVERLAPPABLE #-} (Syntax h, f :<: g) => f :<: (h :+: g) where
+       inj = Inr . inj
+       prj (Inr ga) = prj ga
+       prj _ = Nothing
+\end{minted}
+The two instances overlap resulting in possible slower instance resolution.
+Furthermore, \texttt{:+:} is assumed to be right associative and only to be
+used in a right associative way to avoid backtracking.
+
+Because in Agda the result of \AgdaFunction{\_⊕\_} is another container, not
+just a value of a simple data type, instance resolution using
+\AgdaFunction{\_⊕\_} is not as straight forward as in Haskell and in some cases
+extremely slow\footnote{I encountered cases where type checking of overlapping
+instances involving \AgdaFunction{\_⊕\_} did not seem to terminate.}.
+
+This implementation of the free monad uses an approach similar to the Idris
+effect library \cite{DBLP:conf/icfp/Brady13}.
+The free monad is not parameterised over a single container, but a list
+\AgdaArgument{ops} of containers.
+This has the benefit that we cannot associate coproducts to the left by
+accident.
+The elements of the list are combined later using \AgdaFunction{sum}.
+To track which functors are part of the coproduct we introduce the new type
+\AgdaDatatype{\_∈\_}.
+
+\begin{code}[hide]
 infix 4 _∈_
+\end{code}
+\begin{code}
 data _∈_ {ℓ : Level} {A : Set ℓ} (x : A) : List A → Set ℓ where
   instance
     here : ∀ {xs} → x ∈ x ∷ xs
@@ -115,15 +226,82 @@ For simplicity the following code will still use instance arguments.
 This version can easily be adapted to one using macros, by replacing the
 instance arguments with correctly annotated hidden ones.
 
+Using this proposition we can define functions for injection into and maybe projecting
+out of coproducts.
+
 \begin{code}
-data Free {ℓ : Level} (ops : List Container) (A : Set ℓ) : {Size} → Set (ℓ ⊔ suc zero) where
-  pure : ∀ {i} → A → Free ops A {i}
-  impure : ∀ {i op} → ⦃ op ∈ ops ⦄ → ⟦ op ⟧ (Free ops A {i}) → Free ops A {↑ i}
+inject : ∀ {C ops ℓ} {A : Set ℓ} → C ∈ ops → ⟦ C ⟧ A → ⟦ sum ops ⟧ A
+inject here           (s , pf)  = (inj₁ s) , pf
+inject (there ⦃ p ⦄)  prog      with inject p prog
+... | s , pf = (inj₂ s) , pf
+
+project : ∀ {C ops ℓ} {A : Set ℓ} → C ∈ ops → ⟦ sum ops ⟧ A → Maybe (⟦ C ⟧ A)
+project here           (inj₁ s , pf)  = just (s , pf)
+project here           (inj₂ _ , _ )  = nothing
+project there          (inj₁ _ , _ )  = nothing
+project (there ⦃ p ⦄)  (inj₂ s , pf)  = project p (s , pf)
 \end{code}
-[GENERAL EXPLANATION]
+Both \AgdaFunction{inject} and \AgdaFunction{project} require a proof/evidence
+that specific container is an element of the list used to construct the
+coproduct.
 
-[EXPLANATION FOR LEVEL]
+Let us consider \AgdaFunction{inject} first.
+By pattern matching on the evidence we acquire more information about type 
+\AgdaFunction{sum}\AgdaSpace{}\AgdaArgument{ops}.
+In case of \AgdaInductiveConstructor{here} we know that \AgdaArgument{op} is in
+the head of the list i.e. that the given value \AgdaArgument{C}
+is the same as the one in the head of the list.
+Therefore the \AgdaField{Shape} types are the same and we can use our given
+\AgdaArgument{s} and \AgdaArgument{pf} to construct the coproduct.
+In case of \AgdaInductiveConstructor{there} we obtain a proof that the container
+is in the tail of the list, which we can use to make a recursive call.
+By pattern matching on and repackaging the result we obtain a value of the right
+type.
 
+\AgdaFunction{project} functions similarly.
+By pattern matching on the proof we either know that the value we found has
+the correct type or we obtain a proof for the tail of the list allowing us to
+make a recursive call.
+
+
+\subsection{The Free Monad for Effect Handling}
+
+Using the coproduct machinery we can now define a version of the free monad,
+suitable for working with effects.
+In contrast to the first definition, this free monad is parameterized over a
+list of containers.
+In the \AgdaInductiveConstructor{impure} constructor the containers are combined
+using \AgdaFunction{sum}.
+The parameterization over a list ensures that the containers are not combined
+prematurely.
+
+\begin{code}
+data Free (ops : List Container) (A : Set) : {Size} → Set where
+  pure : ∀ {i} → A → Free ops A {i}
+  impure : ∀ {i} → ⟦ sum ops ⟧ (Free ops A {i}) → Free ops A {↑ i}
+\end{code}
+% switch names for inj and inject / prj and project?
+Next we define utility functions for working with the free monad.
+\AgdaFunction{inj} and \AgdaFunction{prj} provide the same functionality as the
+ones used by Wu el al.
+\AgdaFunction{inj} allows to inject syntax into a program whose signature allows
+the operation.
+\AgdaFunction{prj} allows to inspect the next operation of a
+program, restrict to a specific signature.
+Furthermore we add the function \AgdaFunction{op}, which generates the generic
+operation for any operation symbol.
+
+\begin{code}
+inj : ∀ {C ops A} → ⦃ C ∈ ops ⦄ → ⟦ C ⟧ (Free ops A) → Free ops A
+inj ⦃ p ⦄ = impure ∘ inject p
+
+prj : ∀ {C ops A i} → ⦃ C ∈ ops ⦄ → Free ops A {↑ i} → Maybe (⟦ C ⟧ (Free ops A {i}))
+prj ⦃ p ⦄ (pure x)    = nothing
+prj ⦃ p ⦄ (impure x)  = project p x
+
+op : ∀ {C ops} → ⦃ C ∈ ops ⦄ → (s : Shape C) → Free ops (Pos C s)
+op s = inj (s , pure)
+\end{code}
 The free monad is indexed over an argument of Type \AgdaDatatype{Size}.
 \AgdaInductiveConstructor{pure} values have an arbitrary size.
 When constructing an \AgdaInductiveConstructor{impure} value the new value is
@@ -132,9 +310,9 @@ The size annotation therefore corresponds to the height of the tree described by
 the free monad.
 Using the annotation it's possible to proof that functions preserve the size of
 a value or that complex recursive functions terminate.
+
 Consider the following definition of \AgdaFunction{fmap} for the free
-monad\footnote{in the following code $A$, $B$ and $C$ are arbitrary types from
-  arbitrary type universes}.
+monad\footnote{in the following code $A$, $B$ and $C$ are arbitrary types}.
 
 \begin{code}[hide]
 variable
@@ -231,6 +409,7 @@ run (pure x) = x
 \end{code}
 
 \subsection{Nondet}
+\label{nondeterminism}
 
 The nondeterminism effect has two operations \AgdaFunction{\_⁇\_} and
 \AgdaFunction{fail}.
@@ -264,10 +443,10 @@ These versions of the operations already process the continuations parameter.
 
 \begin{code}
 _⁇_ : ∀ {ops} → ⦃ Nondet ∈ ops ⦄ → Free ops A → Free ops A → Free ops A
-p ⁇ q = impure (⁇ˢ , (if_then p else q))
+p ⁇ q = inj (⁇ˢ , (if_then p else q))
 
 fail : ∀ {ops} → ⦃ Nondet ∈ ops ⦄ → Free ops A
-fail = impure (failˢ , λ())
+fail = inj (failˢ , λ())
 \end{code}
 With the syntax in place we can now move on to semantics and define a handler
 for the effect.
@@ -277,9 +456,9 @@ Furthermore we introduce a \AgdaKeyword{pattern} for other operations, i.e.
 those who are not part of the currently handled signature.
 
 \begin{code}
-pattern Other s κ  = impure ⦃ there ⦄ (s , κ)
-pattern Fail κ  = impure ⦃ here ⦄ (failˢ , κ)
-pattern Choice κ  = impure ⦃ here ⦄ (⁇ˢ , κ)
+pattern Other s κ  = impure (inj₂ s , κ)
+pattern Fail κ  = impure (inj₁ failˢ , κ)
+pattern Choice κ  = impure (inj₁ ⁇ˢ , κ)
 \end{code}
 \begin{AgdaAlign}
   The handler interprets \AgdaDatatype{Nondet} syntax and removes it from the
@@ -355,8 +534,8 @@ State S = Stateˢ S ▷ λ where
   getˢ      → S
   (putˢ _)  → ⊤
 
-pattern Get κ  = impure ⦃ here ⦄ (getˢ , κ)
-pattern Put s κ  = impure ⦃ here ⦄ ((putˢ s) , κ)
+pattern Get κ  = impure (inj₁ getˢ , κ)
+pattern Put s κ  = impure (inj₁ (putˢ s) , κ)
 \end{code}
 To simplify working with the \AgdaDatatype{State} effect we add smart
 constructors.
@@ -364,10 +543,10 @@ These correspond to the generic operations.
 
 \begin{code}
 get : ∀ {ops S} → ⦃ State S ∈ ops ⦄ → Free ops S
-get = impure (getˢ , pure)
+get = inj (getˢ , pure)
 
 put : ∀ {ops S} → ⦃ State S ∈ ops ⦄ → S → Free ops ⊤
-put s = impure (putˢ s , pure)
+put s = inj (putˢ s , pure)
 \end{code}
 Using these defintions for the syntax we can define the handler for
 \AgdaDatatype{State}.
@@ -434,6 +613,26 @@ example₁ = refl
 \subsubsection{Properties}
 
 \section{Scoped Effects}
+
+- Modularity
+- Combination of Effects
+- Semantics choosen by order of handlers
+- problem with scoping operations and syntax of different effects
+
+To correctly handle operations with local scopes Wu et al. introduced scoped
+effects \cite{DBLP:conf/haskell/WuSH14}.
+They presented two solutions to explicitly declare how far an operations scopes
+over a program using arbitrary syntax.
+In this section we will implement the first order approach using explicit scope
+delimiters in Agda.
+
 \subsection{Cut}
 
-\section{Call-Time-Choice as Effect}
+\section{Call-Time Choice as Effect}
+
+Bunkenburg presented an approach to model Call-Time choice as a stack of
+scoped algebraic effects \cite{bunkenburg2019modeling}.
+In this section we will extend the nondeterminism effect from section \ref{nondeterminism} to
+one modelling call-time choice.
+
+The current implementation of \AgdaArgument{Nondet} does not support sharing.
