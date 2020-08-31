@@ -167,12 +167,12 @@ in the right-hand side (in the tail).
      class (Syntax sub, Syntax sup) => sub :<: sup where
        inj :: sub m a -> sup m a
        prj :: sup m a -> Maybe (sub m a)
-     
+
      instance {-# OVERLAPPABLE #-} (Syntax f, Syntax g) => f :<: (f :+: g) where
        inj = Inl
        prj (Inl a) = Just a
        prj _ = Nothing
-     
+
      instance {-# OVERLAPPABLE #-} (Syntax h, f :<: g) => f :<: (h :+: g) where
        inj = Inr . inj
        prj (Inr ga) = prj ga
@@ -263,7 +263,6 @@ By pattern matching on the proof we either know that the value we found has
 the correct type or we obtain a proof for the tail of the list allowing us to
 make a recursive call.
 
-
 \subsection{The Free Monad for Effect Handling}
 
 Using the coproduct machinery we can now define a version of the free monad,
@@ -288,8 +287,12 @@ ones used by Wu el al.
 the operation.
 \AgdaFunction{prj} allows to inspect the next operation of a
 program, restrict to a specific signature.
-Furthermore we add the function \AgdaFunction{op}, which generates the generic
-operation for any operation symbol.
+Furthermore we add the functions \AgdaFunction{op} and \AgdaFunction{upcast}.
+\AgdaFunction{op} generates the generic operation for any operation symbol.
+\AgdaFunction{upcast} transformes a program using any signature to one using a
+larger signature.
+Notice that upcast prserves the size of its input, because it just traverses the
+tree and repackages the contents.
 
 \begin{code}
 inj : ∀ {C ops A} → ⦃ C ∈ ops ⦄ → ⟦ C ⟧ (Free ops A) → Free ops A
@@ -301,6 +304,10 @@ prj ⦃ p ⦄ (impure x)  = project p x
 
 op : ∀ {C ops} → ⦃ C ∈ ops ⦄ → (s : Shape C) → Free ops (Pos C s)
 op s = inj (s , pure)
+
+upcast : ∀ {C ops A i} → Free ops A {i} → Free (C ∷ ops) A {i}
+upcast (pure x) = pure x
+upcast (impure (s , κ)) = impure (inj₂ s , upcast ∘ κ)
 \end{code}
 The free monad is indexed over an argument of Type \AgdaDatatype{Size}.
 \AgdaInductiveConstructor{pure} values have an arbitrary size.
@@ -358,9 +365,11 @@ ma >> mb = ma >>= λ _ → mb
 To complete our basic set of monadic functions we also define \AgdaFunction{ap}.
 
 \begin{code}
-_⊛_ : ∀ {ops} → Free ops (A → B) → Free ops A → Free ops B
+_⊛_ _<*>_ : ∀ {ops} → Free ops (A → B) → Free ops A → Free ops B
 pure f          ⊛ ma = f <$> ma
 impure (s , pf) ⊛ ma = impure (s , (_⊛ ma) ∘ pf)
+
+_<*>_ = _⊛_
 \end{code}
 
 \subsection{Properties}
@@ -623,16 +632,187 @@ To correctly handle operations with local scopes Wu et al. introduced scoped
 effects \cite{DBLP:conf/haskell/WuSH14}.
 They presented two solutions to explicitly declare how far an operations scopes
 over a program using arbitrary syntax.
-In this section we will implement the first order approach using explicit scope
-delimiters in Agda.
+In the following section we will implement the scoped effect
+\AgdaDatatype{Cut} using the first order approach in Agda.
+The central idea is to add new effect syntax, representing explicit scope
+delimiters.
+Whenever an opening delimiter is encountered the handler can be run on the
+again on the scoped program.
 
-\subsection{Cut}
+
+\subsection{Cut and Call}
+
+First we will define the syntax for the new effect and its delimiters.
+
+\begin{code}
+data Cutˢ : Set where cutfailˢ : Cutˢ
+data Callˢ : Set where bcallˢ ecallˢ : Callˢ
+
+pattern Cutfail = impure (inj₁ cutfailˢ , _)
+pattern BCall κ = impure (inj₁ bcallˢ , κ)
+pattern ECall κ = impure (inj₁ ecallˢ , κ)
+
+Cut Call : Container
+Cut   = Cutˢ    ▷ λ _ → ⊥
+Call  = Callˢ  ▷ λ _ → ⊤
+\end{code}
+The \AgdaDatatype{Cut} effect has just a single operation, \AgdaFunction{cutfail}.
+\AgdaFunction{cutfail} can only be used in a context with nondeterminism.
+When a cutfail is called it will prunes all unexplored branches and call
+\AgdaFunction{fail}.
+The Agda implementation of the handlers is identical to the one by Wu et al.
+
+\begin{code}[hide] % TODO: introduce earlier
+private
+  variable
+    ops : List Container
+    i : Size
+\end{code}
+
+\begin{AgdaAlign}
+The handler itself calls the function \AgdaFunction{go}, which accumulates the
+unexplored alternatives in its second argument.
+\AgdaFunction{fail} is the neutral element for \AgdaFunction{⁇} and therefore
+the default argument.
+Since this handler is not orthogonal (i.e it interacts with another effect)
+\AgdaDatatype{Nondet} is required to be in scope, but its position is irrelevant.
+
+To prove termination we mark the second argument with an arbitrary but fixed size
+\AgdaArgument{i}.
+The position functions for each case return subterms indexed with a smaller size.
+Recursive calls to \AgdaFunction{go} with these terms as arguemnt therefore
+terminate.
+
+\begin{code}
+call : ⦃ Nondet ∈ ops ⦄ → Free (Cut ∷ ops) A → Free ops A
+call = go fail
+  where
+    go : ⦃ Nondet ∈ ops ⦄ → Free ops A → Free (Cut ∷ ops) A {i} → Free ops A
+\end{code}
+In case of a \AgdaInductiveConstructor{pure} value no \AgdaFunction{cutfail}
+happend.
+We therefore return a calculation choosing between the value and the earlier
+separated alternatives.
+
+\begin{code}
+    go q (pure a)       = (pure a) ⁇ q
+\end{code}
+In case of a cutfail we terminate the current computation by calling
+\AgdaFunction{fail} and prune the alternatives by ignoring \AgdaArgument{q}.
+
+\begin{code}
+    go _ Cutfail        = fail
+\end{code}
+To interact with \AgdaDatatype{Nondet} syntax we have to find it.
+We have a proof that the \AgdaDatatype{Nondet} effect is an element of the effect
+list.
+Whenever we find syntax from another effect we can therefore try to project the
+\AgdaDatatype{Nondet} option from the coproduct.
+Notice that \AgdaFunction{prj} hides the structural recursion but decreases the
+\AgdaDatatype{Size} index.
+We can therefore still proof that the function terminates.
+
+\begin{code}
+    go q p@(Other s κ)  with prj {Nondet} p
+\end{code}
+The case for \AgdaFunction{⁇} separates the main branch from the alternative.
+Using \AgdaFunction{go} the \AgdaDatatype{Cut} syntax is removed from both
+alternatives, but the results are handled asymetrically.
+The left option is direclty passed to the recursive call of
+\AgdaFunction{go}.
+The handeled right option is the new alternative for the left one and therefore
+could be pruned if left contains a \AgdaFunction{cutfail} call.
+
+\begin{code}
+    ... | just (⁇ˢ     , κ′)  = go (go q (κ′ false)) (κ′ true)
+\end{code}
+When encountering a \AgdaFunction{fail} we continue with the accumulated
+alternatives.
+
+\begin{code}
+    ... | just (failˢ  , _ )  = q
+\end{code}
+Syntax from other effects is handled as usuall.
+
+\begin{code}
+    ... | nothing             = impure (s , go q ∘ κ)
+\end{code}
+\end{AgdaAlign}
+With the handler for \AgdaDatatype{Cut} in place we can define the handler for the
+scope delimiters.
+The implementation is again similar to the one presented by Wu et al., but to
+proof termination we again have to add \AgdaDatatype{Size} annotations to the
+functions.
+
+The \AgdaFunction{bcall} and \AgdaFunction{ecall} handler remove the scope
+delimiter syntax from the program and run \AgdaFunction{call} (the handler
+for \AgdaDatatype{cut}) at the begining of each scope.
+Whenever a \AgdaFunction{BCall} is found the handler \AgdaFunction{ecall} is
+used to handle the rest of the program.
+\AgdaFunction{ecall} searches for the end of the scope and returns the program
+up to that point.
+The rest of the program is the result of the returned program.
+
+A valid upper bound for the size of the rest of the program is \AgdaArgument{i},
+the size of the program before separating the syntax after the closing delimiter.
+This fact is curcial to proof that the recursive calls to \AgdaFunction{bcall} and
+\AgdaFunction{ecall} using \AgdaFunction{>>=} terminate.
+
+Calling the handler on the extracted program guaranties that the handler does
+not interact with syntax outside the intended scope.
+Nested scopes are handled using recursive calls to \AgdaFunction{ecall} if
+\AgdaFunction{BCall} operations are encountered while searching a closing
+delimiter.
+
+Since the delimiters could be placed freely it is possible to mismatch them.
+If we encounter a closing before and operening delimiter, we know that they are
+mismatched.
+Wu et al. use Haskells \texttt{error} function to terminate the program.
+In Agda we are not allowed to define partial functions, therefore we have to
+handle the error.
+We could either correct the error and just continue or short circuit the
+calculation using exceptions in form of e.g. a \AgdaDatatype{Maybe} monad.
+For simplicity we will use the former approach.
+In a real application it would be advisable to inform the programmer about the
+error, either using exceptions are at least trace the error.
+
+\begin{code}
+bcall : ⦃ Nondet ∈ ops ⦄ → Free (Call ∷ Cut ∷ ops) A {i} → Free (Cut ∷ ops) A
+ecall : ⦃ Nondet ∈ ops ⦄ → Free (Call ∷ Cut ∷ ops) A {i}
+  → Free (Cut ∷ ops) (Free (Call ∷ Cut ∷ ops) A {i})
+
+bcall (pure x)     = pure x
+bcall (BCall κ)    = upcast (call (ecall (κ tt))) >>= bcall
+bcall (ECall κ)    = bcall (κ tt) -- Unexpected ECall! We just fix the error.
+bcall (Other s κ)  = impure (s , bcall ∘ κ)
+
+ecall (pure x)     = pure (pure x)
+ecall (BCall κ)    = upcast (call (ecall (κ tt))) >>= ecall
+ecall (ECall κ)    = pure (κ tt)
+ecall (Other s κ)  = impure (s , ecall ∘ κ)
+\end{code}
+Using the handlers defined above we can define a handler for scoped
+\AgdaDatatype{Cut} syntax, which removes \AgdaDatatype{Cut} and
+\AgdaDatatype{Call} syntax simultaneously.
+The delimiters and correctly scoped \AgdaDatatype{Cut} syntax is removed using
+\AgdaFunction{bcall} and potential unscoped \AgdaDatatype{Cut} syntax is
+removed with a last use of \AgdaFunction{call}.
+The function \AgdaFunction{call′} is a smart constructor for the scope
+delimiters.
+
+\begin{code}
+runCut : ⦃ Nondet ∈ ops ⦄ → Free (Call ∷ Cut ∷ ops) A → Free ops A
+runCut = call ∘ bcall
+
+call′ : ⦃ Call ∈ ops ⦄ → Free ops A → Free ops A
+call′ p = do op bcallˢ ; x ← p ; op ecallˢ ; pure x
+\end{code}
 
 \section{Call-Time Choice as Effect}
 
-Bunkenburg presented an approach to model Call-Time choice as a stack of
+Bunkenburg presented an approach to model call-time choice as a stack of
 scoped algebraic effects \cite{bunkenburg2019modeling}.
 In this section we will extend the nondeterminism effect from section \ref{nondeterminism} to
 one modelling call-time choice.
 
-The current implementation of \AgdaArgument{Nondet} does not support sharing.
+The current implementation of \AgdaDatatype{Nondet} does not support sharing.

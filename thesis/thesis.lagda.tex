@@ -43,6 +43,10 @@
 
 \usepackage{hyperref}
 \usepackage[links]{agda}
+\usepackage{mathtools}
+
+\newcommand{\fmap}[0]{\ensuremath{<\hspace{.4pt}\mathclap{\raisebox{-0.85pt}{\scalebox{0.95}{$\$$}}}\hspace{.4pt}>}}
+\newcommand{\ap}[0]{\ensuremath{<\hspace{.4pt}\mathclap{*}\hspace{.4pt}>}}
 
 \DeclareRobustCommand{\AgdaFormat}[2]{%
   \ifthenelse{\equal{#1}{>>=}}
@@ -57,7 +61,15 @@
   {\ensuremath{\mathbin{>\!\!\!>}}}
   {\ifthenelse{\equal{#1}{\AgdaUnderscore{}>>\AgdaUnderscore{}}}
   {\AgdaUnderscore{}\ensuremath{\mathbin{>\!\!\!>}}\AgdaUnderscore{}}
-  {#2}}}}}}}
+  {\ifthenelse{\equal{#1}{<\$>}}
+  {\fmap}
+  {\ifthenelse{\equal{#1}{<\$>\AgdaUnderscore{}}}
+  {\fmap\AgdaUnderscore{}}
+  {\ifthenelse{\equal{#1}{\AgdaUnderscore{}<\$>\AgdaUnderscore{}}}
+  {\AgdaUnderscore{}\fmap\AgdaUnderscore{}}
+  {\ifthenelse{\equal{#1}{\AgdaUnderscore{}<*>\AgdaUnderscore{}}}
+  {\AgdaUnderscore{}\ap\AgdaUnderscore{}}
+  {#2}}}}}}}}}}}
 
 \usepackage{graphicx}
 \graphicspath{{images/}}
@@ -93,7 +105,7 @@
   {Informatik}\\
   {69555}
 }
-\date{Juli 2020}
+\date{2020}
 
 \begin{document}
 \maketitle
@@ -104,7 +116,7 @@
 
 \chapter{Introduction}
 \section{Goals}
-
+$\$$
 \chapter{Preliminaries}
 \section{Agda}
 
@@ -544,8 +556,7 @@ Usually function application is defined using the \texttt{let} primitive.
 Applying a non variable expression to a function introduces a new intermediate
 result, which bound using \texttt{let}.
 $$
-  (\lambda x.\sigma) \tau = \texttt{let}\;y = \tau\;\texttt{in}\;\sigma[x\mapsto
-  y]
+(\lambda x.\sigma) \tau = \texttt{let}\;y = \tau\;\texttt{in}\;\sigma[x\mapsto y]
 $$
 We therefore expect a variable bound by a \texttt{let} to behave similar to one
 bound by a function.
