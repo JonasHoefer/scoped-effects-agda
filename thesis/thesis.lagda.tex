@@ -63,13 +63,15 @@
   {\AgdaUnderscore{}\ensuremath{\mathbin{>\!\!\!>}}\AgdaUnderscore{}}
   {\ifthenelse{\equal{#1}{<\$>}}
   {\fmap}
+  {\ifthenelse{\equal{#1}{\$}}
+  {\ensuremath{\$}}
   {\ifthenelse{\equal{#1}{<\$>\AgdaUnderscore{}}}
   {\fmap\AgdaUnderscore{}}
   {\ifthenelse{\equal{#1}{\AgdaUnderscore{}<\$>\AgdaUnderscore{}}}
   {\AgdaUnderscore{}\fmap\AgdaUnderscore{}}
   {\ifthenelse{\equal{#1}{\AgdaUnderscore{}<*>\AgdaUnderscore{}}}
   {\AgdaUnderscore{}\ap\AgdaUnderscore{}}
-  {#2}}}}}}}}}}}
+  {#2}}}}}}}}}}}}
 
 \usepackage{graphicx}
 \graphicspath{{images/}}
