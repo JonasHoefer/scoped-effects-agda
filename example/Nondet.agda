@@ -26,3 +26,12 @@ sumTwo xs = do
 
 testNonDet : List ℕ
 testNonDet = run $ solutions $ sumTwo $ 3 ∷ 4 ∷ 7 ∷ []
+
+
+open import Effect.Catch   using (Catch; _catch_; runCatch)
+open import Effect.Exc     using (Exc; throw)
+open import Data.Unit using (⊤; tt)
+open import Data.Sum using (_⊎_; inj₁; inj₂)
+
+test : ⊤ ⊎ List ℕ
+test = run $ runCatch $ solutions ((pure 5 ⁇ throw tt) catch (λ _ → pure 42)) -- ??!?!?

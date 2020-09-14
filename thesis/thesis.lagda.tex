@@ -118,7 +118,6 @@
 
 \chapter{Introduction}
 \section{Goals}
-$\$$
 \chapter{Preliminaries}
 \section{Agda}
 
@@ -130,6 +129,8 @@ assistant.
 
 This section contains a short introduction to Agda, dependent types and the idea
 of ``Propositions as types'' under which Agda can be used for theorem proving.
+
+\subsection{Basic Syntax}
 
 Agdas syntax is similar to Haskells.
 Data types are declared with syntax similar to Haskells GADTs.
@@ -143,7 +144,6 @@ data ℕ : Set where
   zero  : ℕ
   suc   : ℕ → ℕ
 \end{code}
- 
 Ordinary function definition are syntactically similar to Haskell.
 Agda allows the definition of mixfix operators.
 A mixfix operator is an nearly arbitrary list of symbols (builtin symbols like
@@ -177,7 +177,7 @@ F : A \rightarrow \mathcal{U} \quad\text{where}\quad B(a) : \mathcal{U}
 $$
 To avoid Russell's paradox, a hierarchy of universes $\mathcal{U}_1 :
 \mathcal{U}_2 : \dots$ is introduced.
-Usually the universes are cumulative, i.e. if $\tau : \mathcal{U}_n$ then
+Usually the universes are cumulative i.e. if $\tau : \mathcal{U}_n$ then
 $\tau : \mathcal{U}_k$ for $k>n$.
 by default this is not the case in Agda.
 Each type is member of a unique universe, forcing us to do additional
@@ -197,7 +197,7 @@ $$
 An element of the above type is a function which maps every $a : A$ to a $b :
 B(a)$.
 In Agda the builtin function type $\Rightarrow$ is a $\Pi$-type.
-An arguments can be named by replacing the type $\tau$ with a $x : \tau$, allowing
+An argument can be named by replacing the type $\tau$ with $x : \tau$, allowing
 us to use the value as part of later types.
 
 \paragraph{Dependent Sum Types ($\Sigma$-Types)} are a generalization of product
@@ -224,7 +224,7 @@ data Vec (A : Set) : ℕ → Set where
 \end{code}
 Arguments on the left-hand side of the colon are called parameters and are the
 same for all constructors.
-Arguments on the right-hand side of the colon are called indices an can differ
+Arguments on the right-hand side of the colon are called indices and can differ
 for each constructor.
 Therefore \AgdaDatatype{Vec}\AgdaSpace{}\AgdaArgument{A} is a family of types
 indexed by \AgdaDatatype{ℕ}.
@@ -232,13 +232,13 @@ indexed by \AgdaDatatype{ℕ}.
 The \AgdaInductiveConstructor{[]} constructor allows us to create an empty
 vector of any type, but forces the index to be zero.
 The \AgdaInductiveConstructor{\_∷\_} constructor appends an element to the front
-of a vector of the same type, increasing the index in the process.
+of a vector of the same element type and increases the index by $1$.
 Only these two constructors can be used to construct vectors.
 Therefore the index is always equal to the amount of elements stored in the
 vector.
 
-By encoding more information about the data in its type we can add extra
-constraints to functions working with it.
+By encoding more information about data in its type we can add extra constraints
+to functions working with it.
 The following definition of \AgdaFunction{head} avoids error handling or
 partiality by excluding the empty vector as a valid argument.
 
@@ -318,7 +318,7 @@ omit the definition of the right-hand side of the equation.
 \end{code}
 \end{AgdaAlign}
 The other two cases are straightforward.
-For index \AgdaInductiveConstructor{zero} we return the hard of the vector.
+For index \AgdaInductiveConstructor{zero} we return the head of the vector.
 For index \AgdaInductiveConstructor{suc}\AgdaSpace{}\AgdaArgument{i} we call
 \AgdaFunction{\_!\_} recursively with the smaller index and the tail of the
 vector.
@@ -349,9 +349,11 @@ found in Wadlers paper of the same name \cite{DBLP:journals/cacm/Wadler15}.
 
 The definition of non-terminating functions entails logical inconsistency.
 Agda therefore only allows the definition terminating functions.
-Due to the Undecidability of the halting problem Agda uses a heuristic termination checker.
+Due to the undecidability of the halting problem Agda uses a heuristic
+termination checker.
 The termination checker proofs termination by observing structural recursion.
-Consider the following definitions of \AgdaDatatype{List} and \AgdaFunction{map}.
+Consider the following definitions of \AgdaDatatype{List} and
+\AgdaFunction{map}.
 
 \begin{code}
 data List (A : Set) : Set where
@@ -362,7 +364,6 @@ map : {A B : Set} → (A → B) → (List A → List B)
 map f (x ∷ xs)  = f x ∷ map f xs
 map f []        = []
 \end{code}
-
 The \AgdaInductiveConstructor{[]} case does not contain a recursive calls.
 In the \AgdaInductiveConstructor{\_∷\_} case the recursive call to
 \AgdaFunction{map} occurs on a structural smaller argument i.e.
@@ -372,6 +373,20 @@ Because elements of \AgdaDatatype{List A} are finite the function
 \AgdaFunction{map} terminates for every argument.
 
 \subsubsection{Sized Types}
+In more complex recursive functions the structural recursion can be obscured.
+Agda does not inline functions containing pattern matches during termination
+checking and therefore cannot proof the termination.
+A common example are recursive calls in lambdas, which are passed
+to higher order functions like \AgdaFunction{map} and \AgdaFunction{>>=}.
+
+Consider a monad like \AgdaDatatype{List} or \AgdaDatatype{Maybe}.
+It is not obvious that the argument of the continuation of \AgdaFunction{>>=} is
+a subterm of the first argument.
+
+TODO: explain better via [SEMI-CONTINUOUS SIZED TYPES AND TERMINATION ABEL]
+
+A possibility to still proof termination are Sized Types.
+Agda has a special builtin, well-ordered type \AgdaDatatype{Size}.
 
 \begin{code}
 open import Agda.Builtin.Size public
@@ -381,13 +396,51 @@ open import Agda.Builtin.Size public
            ; ↑_                   --  ↑_     : Size → Size
            ; _⊔ˢ_                 --  _⊔ˢ_   : Size → Size → Size
            ; ∞ )                  --  ∞      : Size
+\end{code}
+By augmenting a data type with an index of type \AgdaDatatype{Size} its
+size can be represented on the type level.
+If a value of type \AgdaDatatype{Size} decreases with every recursive call, the
+functions has to termination, because there exist no infinitely decreasing
+chains on elements of \AgdaDatatype{Size}.
 
+A common idiom for data types is to mark all non-inductive constructors and
+recursive occurrences with an arbitrary size \AgdaArgument{i} and all inductive
+constructors with the next larger size
+\AgdaFunction{↑}\AgdaSpace{}\AgdaArgument{i}.
+The size therefore corresponds to the height of the tree described by the term
+($+$ the initial height for the lowest non-inductive constructor).
+
+A common example for sized types are rose trees.
+The size index can be intuitively thought of as the height of the tree.
+
+\begin{code}
 data Rose (A : Set) : Size → Set where
   rose : ∀ {i} → A → List (Rose A i) → Rose A (↑ i)
+\end{code}
+When \AgdaFunction{fmap} for rose trees is defined in terms of
+\AgdaFunction{map} the termination is obscured.
+The argument of the functions passed to \AgdaFunction{map} is not recognized as
+structurally smaller than the given rose tree.
+Using size annotations we can fix this problem.
 
+\begin{code}
 map-rose : {A B : Set} {i : Size} → (A → B) → (Rose A i → Rose B i)
 map-rose f (rose x xs) = rose (f x) (map (map-rose f) xs)
 \end{code}
+By pattern matching on the argument of type
+\AgdaDatatype{Rose}\AgdaSpace{}\AgdaArgument{A} of size
+\AgdaFunction{↑}\AgdaSpace{}\AgdaArgument{i} we obtain a \AgdaDatatype{List} of
+trees of size \AgdaArgument{i}.
+The recursive calls via \AgdaFunction{map} therefore occur on smaller trees.
+Therefore the functions has to terminates.
+
+In this case inlining the call of \AgdaFunction{map} would also solve the
+termination problem.
+When generalizing the definition of the tree from \AgdaDatatype{List} to an
+arbitrary functor this wouldn't be possible.
+In many cases inlining all helper functions is either not feasible or would lead
+to large and unreadable programs.
+
 
 \subsection{Strict Positivity}
 
@@ -524,7 +577,7 @@ Both choose between $0$ and $1$, therefore \texttt{twoCoins} yields the results
 $0$, $1$, $1$ and $2$.
 
 \subsubsection{Call-Time-Choice}
-
+\label{call-time-choice}
 Next we will take a look at the interactions between nondeterminism and function
 calls.
 
@@ -569,7 +622,7 @@ evaluated languages.
      sumCoin :: Int
      sumCoin = let x = coin in x + x
 \end{minted}
-As expected this function yields the results $0$ and $1$.
+As expected this function yields the results $0$ and $2$.
 
 \subsubsection{Permutation Sort}
 
@@ -580,6 +633,33 @@ Introduce Free Variables + Explain for Later Example
 \input{FirstOrder}
 
 \chapter{Higher Order}
+\begin{itemize}
+  \item working implementation using (simplified) indexed containers
+  \item scoped effects alone work
+  \item does only partially work with monadic data structures (size problems
+    when using scoped effects like sharing)
+  \item sharing is the ``worst case scenario''
+  \item size problems generally occur with this approach thanks to existential
+    types (which again hold programs)
+\end{itemize}
+
+\chapter{Hybrid Approach}
+\begin{itemize}
+  \item potential worth pursuing (no explicit scope delimiters, but control
+    over continuation (seems) limited in contrast to HO approach (important for
+    memorization of sharing))
+  \item based on Syntax and Semantics for Scoped Effects by Wu et al.
+  \item rewrites higher order monad using Kan Extension $\Rightarrow$ removes
+    coend $\Rightarrow$ no existential types $\Rightarrow$ no size issue (marks
+    scope using double monad layer)
+  \item algebras from paper don't seem to compose easily, but traditional handlers seem to work
+  \begin{itemize}
+    \item Carrier types are type families $\Rightarrow$ Agda implementation could be easier
+      than Haskell implementation thanks to better dependent type support
+  \end{itemize}
+  \item Current Problem: proof of monad laws seems impossible due to termination
+    issues thanks to double monadic layer in the \texttt{Scope} constructor
+\end{itemize}
 
 \chapter{Conclusion}
 \section{Summary}

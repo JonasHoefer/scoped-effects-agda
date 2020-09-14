@@ -22,22 +22,72 @@ postulate
       → (∀ (x : A) → f x ≡ g x) → f ≡ g
 \end{code}
 
+
 Algebraic effects are computational effects, which can be described using an
 algebraic theory.
+Handlers for algebraic effects were first presented by Gordon and Plotkin
+as a generalization of exception handlers \cite{}. % \cite{DBLP:conf/esop/PlotkinP09} <- handler? definitely not first one, see Wu
+Examples for effects include I/O, exceptions, nondeterminism, state, delimited
+continuations and more~\cite{DBLP:journals/corr/abs-1807-05923}.
 
 Section \ref{fo-definition} gives a concrete definition for algebraic effects.
 Section \ref{fo-free-monads} describes the implementation using free monads in
 Agda.
 The following sections describe the implementation of unscoped and scoped
-effects in the fist order setting.
+effects in the fist order setting. They focus on implementation details specific
+to Agda like termination checks.
 The scoped effects are implemented using explicit scope delimiters as described
 by Wu et al. \cite{DBLP:conf/haskell/WuSH14}.
 
 \section{Definition}
 \label{fo-definition}
 
-Needed? A la Bauer? Adapts nicely to containers, but I'm not sure how well it
-works wth scoped syntax and the HO approach
+The following definition is similar to the one given by Bauer
+\cite{DBLP:journals/corr/abs-1807-05923}.
+
+An algebraic theory consists of a signature describing the syntax of the
+operations together with a set of equations.
+A signature is a set of operation symbols together with an arity set and an
+additional parameter.
+Operations of this form are usually denoted with a colon and $\rightsquigarrow$
+between the three sets, suggesting that they describe special functions.
+\[
+  \Sigma = \{ \mathrm{op}_i : P_i \rightsquigarrow A_i  \}_{i\in \mathbf{N}}
+\]
+Given a signature $\Sigma$ we can build terms over a set of variables $\mathbb{X}$.
+\[
+  x \in \mathrm{Term}_\Sigma(\mathbb{X}) \quad\text{for}\quad x\in\mathbb{X} \qquad
+  \mathrm{op}_i(p, \kappa) \in \mathrm{Term}_\Sigma(\mathbb{X}) \quad\text{for}\quad
+  p\in P_i, \kappa : A_i \rightarrow \mathrm{Term}_\Sigma(\mathbb{X})
+\]
+Terms can be used to form a equations of the form $x | l=r$.
+Each equation consists of two terms $l$ and $r$ over a set of variables $x$.
+A signature $\Sigma_T$ together with a set of equations $\mathcal{E}_T$ forms an
+algebraic theory $T$.
+\[
+  T = (\Sigma_T, \mathcal{E}_T)
+\]
+An interpretation $I$ of a signature is given by a carrier set $|I|$ and an
+interpretation for each operation $\lBrack\cdot\rBrack_I$.
+An interpretation of an operation $\mathrm{op}_i$ is given by a functions to the
+carrier set $|I|$, that takes an additional parameter from $P_i$ an $|A_i|$
+parameters as a function from the arity set to the carrier set $|I|$.
+\[
+  \lBrack \mathrm{op}_i \rBrack_I : P_i \times |I|^{A_i} \rightarrow |I|
+\]
+Given a function $\iota : \mathbb{X} \rightarrow |I|$, assigning each variable
+a value, we can give an interpretation for terms $\lBrack\cdot\rBrack_{(I,\iota)}$.
+\begin{align*}
+  \lBrack x \rBrack_{(I,\iota)} &= \iota(x) \\
+  \lBrack \mathrm{op}_i(p, \kappa)\rBrack_{(I,\iota)} &= \lBrack op_i \rBrack_I (p, \kappa \circ \lBrack\cdot\rBrack_{(I, \iota)})
+\end{align*}
+An interpretation for $T$ is called $T$-model if it validates all equations in $\mathcal{E}_T$.
+
+\subsection{Free Model}
+
+For each algebraic theory $T$ we can generate a so called free model
+$\mathrm{Free}_T(\mathbb{X})$, which validates all equations.
+
 
 \section{Free Monads}
 \label{fo-free-monads}
@@ -412,10 +462,35 @@ bind-assoc f g (impure (s , pf))  = cong (impure ∘ (s ,_)) (extensionality (bi
 
 \section{Handler}
 
+An effect handler interprets and removes the syntax of an effect and injects
+corresponding code into the program.
+Some handlers manipulate syntax of other effects or the structure of the program
+itself.
+The handler for an algebraic effect defines it's semantics.
+
+All handlers will have the same basic structure.
+They will take a program i.e. a variable of type
+\AgdaDatatype{Free}\AgdaSpace{}\AgdaArgument{C}\AgdaSpace{}\AgdaArgument{A}
+, where the head of \AgdaArgument{C} is the effect interpreted by the handler.
+Each handler produces a program without the interpreted syntax i.e. just the
+tail of \AgdaArgument{C} in it's effect stack and potentially modify the type
+\AgdaArgument{A} to one modelling the result of the effect.
+For example a handler for exceptions would remove exception syntax and transform
+a program producing a value of type \AgdaArgument{A} to one producing a value of
+type \AgdaArgument{E}\AgdaSpace{}\AgdaFunction{⊎}\AgdaSpace{}\AgdaArgument{A},
+either an exception or a result.
+
+A simple but important handler is the one handling the empty effect stack and
+therefore the \AgdaDatatype{Void} effect.
+A program containing just \AgdaDatatype{Void} syntax contains no impure
+constructors, because \AgdaDatatype{Void} has no operations.
+Therefore, we can always produce a value of type \AgdaArgument{A}.
+This handler is important, because it can be used to escape the
+\AgdaDatatype{Free} context after all other effects are handled.
+
 \begin{code}
 run : Free [] A → A
 run (pure x) = x
-
 \end{code}
 
 \subsection{Nondet}
@@ -836,4 +911,18 @@ scoped algebraic effects \cite{bunkenburg2019modeling}.
 In this section we will extend the nondeterminism effect from section
 \ref{nondeterminism} to one modelling call-time choice.
 
-The current implementation of \AgdaDatatype{Nondet} does not support sharing.
+As explained in section \ref{call-time-choice}, call-time choice semantics
+describe the interaction between sharing and nondeterminism.
+The current implementation of \AgdaDatatype{Nondet} does not support sharing
+i.e. it is not possible for two choice to be linked.
+Based on Bunkenburgs implementation we will make two changes to the
+nondeterminism effect.
+Each choice is augmented with an an identifier consisting of a triple of natural
+numbers, called \textit{choice id}.
+The first two are used to identity the current scope and will be refereed to as
+\textit{scope id}.
+The third numbers identifies the choice inside it's scope.
+Furthermore, instead of producing a list the handler will now produce a tree of
+choices.
+This change allows to choose the evaluation strategy, e.g. depth first or breath
+first search, independent of the handler.
