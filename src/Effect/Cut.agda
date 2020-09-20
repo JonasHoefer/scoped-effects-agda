@@ -1,0 +1,56 @@
+module Effect.Cut where
+
+open import Function using (id; _∘_; const; _$_; case_of_)
+
+open import Category.Monad using (RawMonad)
+open        RawMonad ⦃...⦄ renaming (_⊛_ to _<*>_)
+
+open import Data.Bool  using (Bool; true; false; if_then_else_)
+open import Data.Empty using (⊥)
+open import Data.Maybe using (Maybe; just; nothing)
+open import Data.Tree
+open import Data.Unit  using (⊤; tt)
+
+open import Variables
+open import Effect
+open import Effect.Nondet
+open import Prog
+open import Prog.Instances
+
+data Cutˢ : Set where cutfailˢ : Cutˢ
+data Callˢ : Set where callˢ : Callˢ
+
+Cut : Effect
+Ops  Cut = Cutˢ ~> ⊥
+Scps Cut = Callˢ ~> ⊤
+
+pattern Cutfail = (inj₁ cutfailˢ , _)
+pattern Call κ = (inj₁ callˢ , κ)
+
+runCut′ : ⦃ Nondet ∈ effs ⦄ → Prog (Cut ∷ effs) A → Prog effs A → Prog effs A
+runCut′ {effs} {A} ⦃ p ⦄ = foldP (λ i → ((λ X → Prog effs X → Prog effs X) ^ i) A) 1 id
+  (λ x q → var x ⁇ q)
+  (λ where
+    Cutfail q     → fail
+    (Other s κ) q → case prj (ops-inj p) (s , κ) of λ where
+      nothing  → op (s , λ p → κ p q)
+      (just (failˢ       , _)) → q
+      (just (choiceˢ cid , κ)) → κ true (κ false q) -- cid?
+  ) λ where
+    (Call κ)    q → κ tt fail >>= λ r → r q
+    (Other s κ) q → scp (s , λ p → (λ r → r q) <$> κ p fail) -- just a guess
+
+runCut : ⦃ Nondet ∈ effs ⦄ → Prog (Cut ∷ effs) A → Prog effs A
+runCut p = runCut′ p fail
+
+cutfail : ⦃ Cut ∈ effs ⦄ → Prog effs A
+cutfail = Op (cutfailˢ , λ())
+
+call : ⦃ Cut ∈ effs ⦄ → Prog effs A → Prog effs A
+call p = Scp (callˢ , λ{ tt → pure <$> p })
+
+cut : ⦃ Cut ∈ effs ⦄ → ⦃ Nondet ∈ effs ⦄ → Prog effs ⊤
+cut = pure tt ⁇ cutfail
+
+once : ⦃ Cut ∈ effs ⦄ → ⦃ Nondet ∈ effs ⦄ → Prog effs A → Prog effs A
+once p = call (do x ← p ; cut ; pure x)
