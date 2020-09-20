@@ -25,10 +25,20 @@ postulate
 
 Algebraic effects are computational effects, which can be described using an
 algebraic theory.
+Examples of effects include I/O, exceptions, nondeterminism, state, delimited
+continuations and more~\cite{DBLP:journals/corr/abs-1807-05923}.
 Handlers for algebraic effects were first presented by Gordon and Plotkin
 as a generalization of exception handlers \cite{}. % \cite{DBLP:conf/esop/PlotkinP09} <- handler? definitely not first one, see Wu
-Examples for effects include I/O, exceptions, nondeterminism, state, delimited
-continuations and more~\cite{DBLP:journals/corr/abs-1807-05923}.
+Handlers can be used to describe non-algebraic operations, which include
+operations with scopes such as \texttt{catch} and \texttt{once}.
+Wu et al. describe a problem with this approach when multiple handlers
+interact.
+The ordering of handlers induces a semantic for the program, but simultaneously
+the handlers also delimit scopes.
+The correct ordering for scoping and semantics maybe not coincide.
+Wu et al. fix this problem by introducing new syntactic constructs to delimit
+scopes, removing the responsibility from the
+handler~\cite{DBLP:conf/haskell/WuSH14,DBLP:conf/lics/PirogSWJ18}.
 
 Section \ref{fo-definition} gives a concrete definition for algebraic effects.
 Section \ref{fo-free-monads} describes the implementation using free monads in
@@ -93,7 +103,7 @@ $\mathrm{Free}_T(\mathbb{X})$, which validates all equations.
 \label{fo-free-monads}
 
 The syntax of an algebraic effect is described using the free monad.
-The usual definition of the free monad is Haskell is the following.
+The usual definition of the free monad in Haskell is the following.
 
 \begin{minted}{haskell}
 data Free f a = Pure a | Impure (f (Free f a))
@@ -337,7 +347,7 @@ ones used by Wu el al.
 \AgdaFunction{inj} allows to inject syntax into a program whose signature allows
 the operation.
 \AgdaFunction{prj} allows to inspect the next operation of a
-program, restrict to a specific signature.
+program, restricted to a specific signature.
 Furthermore we add the functions \AgdaFunction{op} and \AgdaFunction{upcast}.
 \AgdaFunction{op} generates the generic operation for any operation symbol.
 \AgdaFunction{upcast} transformes a program using any signature to one using a
