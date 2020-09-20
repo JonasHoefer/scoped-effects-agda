@@ -1,4 +1,4 @@
-# Haskell
+# `Haskell`
 
 This directory contains a Haskell implementation of effects based on ["Effect Handlers in Scope"][paper/WuSH14] by Wu et al.
 The Haskell implementation is used to experiment with some effects before implementing them in Agda.

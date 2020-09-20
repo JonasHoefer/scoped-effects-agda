@@ -1,56 +1,57 @@
 module Effect.Nondet where
 
-open import Function       using (_∘_)
+open import Function using (id; _∘_; const; _$_)
 
 open import Category.Monad using (RawMonad)
-open        RawMonad ⦃...⦄ using (_<$>_) renaming (_⊛_ to _<*>_)
+open        RawMonad ⦃...⦄ renaming (_⊛_ to _<*>_)
 
-open import Data.Bool      using (Bool; true; false)
-open import Data.Empty     using (⊥)
-open import Data.List      using (List; []; _∷_; _++_)
-open import Data.Nat       using (ℕ)
-open import Data.Maybe     using (Maybe; just; nothing)
-open import Data.Product   using (_×_; _,_)
-open import Data.Sum       using (inj₁; inj₂)
+open import Data.Bool  using (Bool; true; false; if_then_else_)
+open import Data.Empty using (⊥)
+open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Tree
 
-open import Container      using (Container; _▷_; _⊕_)
-open import Free
-open import Free.Instances
+open import Variables
+open import Effect
+open import Prog
+open import Prog.Instances
 
 
-data Shape : Set where
-  failˢ   : Shape
-  choiceˢ : Maybe ((ℕ × ℕ) × ℕ) → Shape
+data Nondetˢ : Set where
+  failˢ : Nondetˢ
+  choiceˢ : Maybe CID → Nondetˢ
 
-pattern Fail pf       = impure (inj₁ failˢ , pf)
-pattern Choice mId pf = impure (inj₁ (choiceˢ mId) , pf)
+Nondet : Effect
+Ops  Nondet = Nondetˢ ▷ λ{ failˢ → ⊥ ; (choiceˢ x) → Bool }
+Scps Nondet = Void
 
--- non determinism effect
-Nondet : Container
-Nondet = Shape ▷ λ{ failˢ → ⊥ ; (choiceˢ x) → Bool }
+pattern Fail = (inj₁ failˢ , _)
+pattern Choice cid κ = (inj₁ (choiceˢ cid) , κ)
 
-private
-  variable
-    F : List Container
-    A : Set
+hdl : ∀ {A} → Tree (Prog effs (Tree A)) → Prog effs (Tree A)
+hdl (leaf x)         = x
+hdl failed           = var failed
+hdl (choice cid l r) = choice cid <$> hdl l <*> hdl r
 
-runNondet : Free (Nondet ∷ F) A → Free F (Tree A)
-runNondet (pure x) = pure (leaf x)
-runNondet (Fail pf) = pure failed
-runNondet (Choice n pf) = choice n <$> runNondet (pf true) <*> runNondet (pf false)
-runNondet (Other s pf) = impure (s , runNondet ∘ pf)
+runNondet′ : Prog (Nondet ∷ effs) A → Prog effs (Tree A)
+runNondet′ {effs} {A} = foldP (λ i → (Prog effs ∘ Tree) ^ i $ A) 1 id
+  (var ∘ leaf)
+  (λ where
+    Fail           → var failed
+    (Choice cid κ) → choice cid <$> κ true <*> κ false
+    (Other s κ)    → op (s , κ)
+  ) λ where
+    (Other s κ)    → scp (s , (hdl <$>_) ∘ κ)
 
-solutions : Free (Nondet ∷ F) A → Free F (List A)
-solutions p = dfs empty <$> runNondet p
+runNondet : Prog (Nondet ∷ effs) A → Prog effs (List A)
+runNondet p = dfs empty <$> runNondet′ p
 
-fail : {@(tactic eff) _ : Nondet ∈ F} → Free F A
-fail = op (failˢ , λ())
+fail : ⦃ Nondet ∈ effs ⦄ → Prog effs A
+fail = Op (failˢ , λ())
 
-infixr 0 _⁇_
-_⁇_ : {@(tactic eff) _ : Nondet ∈ F} → Free F A → Free F A → Free F A
-p ⁇ q = op (choiceˢ nothing , λ{ true → p ; false → q})
+infixl 0 _⁇_ _⁇⟨_⟩_
+_⁇_ : ⦃ Nondet ∈ effs ⦄ → Prog effs A → Prog effs A → Prog effs A
+p ⁇ q = Op (choiceˢ nothing , (if_then p else q))
 
-select : {@(tactic eff) _ : Nondet ∈ F} → List A → Free F A
-select []       = fail
-select (x ∷ xs) = pure x ⁇ select xs
+_⁇⟨_⟩_ : ⦃ Nondet ∈ effs ⦄ → Prog effs A → CID → Prog effs A → Prog effs A
+p ⁇⟨ cid ⟩ q = Op ((choiceˢ (just cid)) , (if_then p else q))
+

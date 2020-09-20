@@ -1,103 +1,79 @@
-{-# OPTIONS --overlapping-instances #-}
 
+{-# OPTIONS --overlapping-instances #-}
 module Share where
 
-open import Function                              using (_$_)
-open import Size                                  using (Size; ↑_)
+open import Size     using (↑_)
+open import Function using (_$_; flip)
 
-open import Category.Monad                        using (RawMonad)
-open        RawMonad ⦃...⦄                        using (_>>=_; _>>_; return; _<$>_) renaming (_⊛_ to _<*>_)
+open import Category.Monad using (RawMonad)
+open        RawMonad ⦃...⦄ renaming (_⊛_ to _<*>_)
+
+open import Data.Bool using (Bool; true; false; if_then_else_)
+open import Data.MList
+open import Data.Nat using (ℕ; _+_; _≤?_)
+open import Data.Normalform
+
+open import Variables
+open import Effect
+open import Effect.Nondet
+open import Effect.Share
+open import Effect.Share.Shareable
+open import Effect.State
+open import Prog
+open import Prog.Instances
+
+open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong; sym; trans)
+open import Relation.Nullary.Decidable            using (⌊_⌋)
 
 
-open import Data.List                             using (List; _∷_; [])
-open import Data.MList                            using (Listᴹ; _∷ᴹ_; []ᴹ; _++_; head; sum)
-open import Data.Nat                              using (ℕ; _+_)
-open import Data.Product                          using (_×_; _,_)
-
-open import Container                             using (Container)
-open import Free
-open import Free.Instances
-
-open import Effect.Nondet                         using (Nondet; solutions; select; _⁇_)
-open import Effect.State                          using (State; evalState)
-open import Effect.Share                          using (Share; share; runCTC; nf)
-
-open import Relation.Binary.PropositionalEquality using (_≡_; refl)
-
-
-private
-  variable
-    F : List Container
-    A B : Set
-
-coin : {@(tactic eff) _ : Nondet ∈ F} → Free F ℕ
+coin : ⦃ Nondet ∈ effs ⦄ → Prog effs ℕ
 coin = pure 0 ⁇ pure 1
 
-addM : Free F ℕ → Free F ℕ → Free F ℕ
-addM x y = ⦇ x + y ⦈
+doubleUnSharedCoin : ⦃ Nondet ∈ effs ⦄ → Prog effs ℕ
+doubleUnSharedCoin = do
+  let c = coin
+  ⦇ c + c ⦈
 
--- | Shares the result of a non deterministic computation.
-coin*2 : {@(tactic eff) _ : State (ℕ × ℕ) ∈ F} {@(tactic eff) _ : Share ∈ F} {@(tactic eff) _ : Nondet ∈ F} → Free F ℕ
-coin*2 = do
-  x ← share coin
-  addM x x
+testDoubleUnSharedCoin : (run $ runNondet $ runShare $ evalState {S = SID} doubleUnSharedCoin (0 , 0)) ≡ 0 ∷ 1 ∷ 1 ∷ 2 ∷ []
+testDoubleUnSharedCoin = refl
 
--- | Shares results of computations using shared arguments.
-nested-sharing :
-  {@(tactic eff) _ : State (ℕ × ℕ) ∈ F}
-  {@(tactic eff) _ : Share         ∈ F}
-  {@(tactic eff) _ : Nondet        ∈ F}
-  → Free F ℕ
-nested-sharing = share (share coin >>= λ fx → addM fx fx) >>= λ fy → addM fy fy
+doubleSharedCoin : ⦃ Nondet ∈ effs ⦄ → ⦃ State SID ∈ effs ⦄ → ⦃ Share ∈ effs ⦄ → Prog effs ℕ
+doubleSharedCoin = do
+  c ← share coin
+  ⦇ c + c ⦈
 
-add-shared-coin-clash :
-  {@(tactic eff) _ : State (ℕ × ℕ) ∈ F}
-  {@(tactic eff) _ : Share         ∈ F}
-  {@(tactic eff) _ : Nondet        ∈ F}
-  → Free F ℕ
-add-shared-coin-clash = share (share coin >>= λ fx → addM fx fx) >>= λ fy → share coin >>= λ fz → addM fy fz
+testDoubleSharedCoin : (run $ runNondet $ runShare $ evalState doubleSharedCoin (0 , 0)) ≡ 0 ∷ 2 ∷ []
+testDoubleSharedCoin = refl
 
-share-list :
-  {@(tactic eff) _ : State (ℕ × ℕ) ∈ F}
-  {@(tactic eff) _ : Share         ∈ F}
-  {@(tactic eff) _ : Nondet        ∈ F}
-  → Free F (Listᴹ F ℕ)
-share-list = do
-  xs ← share (coin ∷ᴹ []ᴹ)
-  xs ++ xs
+insertND : ⦃ Nondet ∈ effs ⦄ → Prog effs A → Prog effs (Listᴹ effs A {i}) → Prog effs (Listᴹ effs A {↑ i})
+insertND mx mys = mys >>= λ where
+  nilᴹ           → mx ∷ᴹ []ᴹ
+  (consᴹ my mys) → mx ∷ᴹ my ∷ᴹ mys ⁇ my ∷ᴹ insertND mx mys
 
-share-list-elems :
-  {@(tactic eff) _ : State (ℕ × ℕ) ∈ F}
-  {@(tactic eff) _ : Share         ∈ F}
-  {@(tactic eff) _ : Nondet        ∈ F}
-  → Free F ℕ
-share-list-elems = do
-  xs ← share (coin ∷ᴹ []ᴹ)
-  ⦇ head xs + head xs ⦈
+testInsertND : runCurry (insertND (var 1) (var 2 ∷ᴹ var 3 ∷ᴹ []ᴹ)) ≡ (1 ∷ 2 ∷ 3 ∷ []) ∷ (2 ∷ 1 ∷ 3 ∷ []) ∷ (2 ∷ 3 ∷ 1 ∷ []) ∷ []
+testInsertND = refl
 
-shared-list-elem :
-  {@(tactic eff) _ : State (ℕ × ℕ) ∈ F}
-  {@(tactic eff) _ : Share         ∈ F}
-  {@(tactic eff) _ : Nondet        ∈ F}
-  → Free F ℕ
-shared-list-elem = do
-  x ← share coin
-  sum (x ∷ᴹ x ∷ᴹ []ᴹ)
+permutations : ⦃ Nondet ∈ effs ⦄ → Prog effs (Listᴹ effs A {i}) → Prog effs (Listᴹ effs A {i})
+permutations = _>>= λ where
+  nilᴹ           → []ᴹ
+  (consᴹ mx mxs) → insertND mx (permutations mxs)
 
-coin*2-test : 0 ∷ 2 ∷ [] ≡ runCTC coin*2
-coin*2-test = refl
+isSorted : Prog effs (Listᴹ effs ℕ {i}) → Prog effs Bool
+isSorted = _>>= λ where
+  nilᴹ           → var true
+  (consᴹ mx mxs) → mxs >>= λ where
+    nilᴹ           → var true
+    (consᴹ my mys) → do
+      x ← mx
+      y ← my
+      if ⌊ x ≤? y ⌋ then isSorted mxs else var false
 
-nested-sharing-test : 0 ∷ 4 ∷ [] ≡ runCTC nested-sharing
-nested-sharing-test = refl
+sort : ⦃ Nondet ∈ effs ⦄ → ⦃ State SID ∈ effs ⦄ → ⦃ Share ∈ effs ⦄ →
+  Prog effs (Listᴹ effs ℕ) → Prog effs (Listᴹ effs ℕ)
+sort mxs = do
+    xs ← share (permutations mxs)
+    b  ← isSorted xs
+    if b then xs else fail
 
-add-shared-coin-clash-test : 0 ∷ 1 ∷ 2 ∷ 3 ∷ [] ≡ runCTC add-shared-coin-clash
-add-shared-coin-clash-test = refl
-
-share-list-test : (0 ∷ 0 ∷ []) ∷ (1 ∷ 1 ∷ []) ∷ [] ≡ runCTC share-list
-share-list-test = refl
-
-share-list-elems-test : 0 ∷ 2 ∷ [] ≡ runCTC share-list-elems
-share-list-elems-test = refl
-
-shared-list-elem-test : 0 ∷ 2 ∷ [] ≡ runCTC shared-list-elem
-shared-list-elem-test = refl
+testSort : (runCurry $ sort (var 3 ∷ᴹ var 1 ∷ᴹ var 4 ∷ᴹ var 2 ∷ᴹ []ᴹ)) ≡ (1 ∷ 2 ∷ 3 ∷ 4 ∷ []) ∷ []
+testSort = refl

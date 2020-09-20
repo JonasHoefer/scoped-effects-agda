@@ -1,58 +1,41 @@
-{-# OPTIONS --overlapping-instances #-}
-
 module Data.MList where
 
-open import Size           using (Size; ↑_)
+open import Size                   using (Size; ↑_)
 
-open import Category.Monad using (RawMonad)
-open        RawMonad ⦃...⦄ using (_>>=_; _>>_; return; _<$>_) renaming (_⊛_ to _<*>_)
+open import Category.Monad         using (RawMonad)
+open        RawMonad ⦃...⦄         renaming (_⊛_ to _<*>_)
 
-open import Data.List      using (List; _∷_; [])
-open import Data.Nat       using (ℕ; _+_)
-open import Data.Product   using (_×_; _,_)
+open import Data.List              using (List; _∷_; [])
+open import Data.Normalform        using (Normalform)
+open        Normalform ⦃...⦄
 
-open import Container      using (Container)
-open import Free
-open import Free.Instances
+open import Variables
+open import Effect
+open import Effect.State
+open import Effect.Share
+open import Effect.Share.Shareable using (Shareable)
+open        Shareable ⦃...⦄
+open import Prog
+open import Prog.Instances
 
-open import Effect.Nondet  using (Nondet; fail)
-open import Effect.Share   using (Share; share; Normalform; nf; Shareable)
-open import Effect.State   using (State)
+data Listᴹ (effs : List Effect) (A : Set) : {Size} → Set where
+  nilᴹ : Listᴹ effs A {i}
+  consᴹ : (mx : Prog effs A) → (mxs : Prog effs (Listᴹ effs A {i})) → Listᴹ effs A {↑ i}
 
-data Listᴹ (C : List Container) (A : Set) : {Size} → Set where
-  nil  : ∀ {i} → Listᴹ C A {i}
-  cons : ∀ {i} → Free C A → Free C (Listᴹ C A {i}) → Listᴹ C A {↑ i}
+infixr 5 _∷ᴹ_ _++ᴹ_
+pattern []ᴹ = var nilᴹ
+pattern _∷ᴹ_ mx mxs = var (consᴹ mx mxs)
 
-infixr 5 _∷ᴹ_ _++_
-pattern []ᴹ         = pure nil
-pattern _∷ᴹ_ mx mxs = pure (cons mx mxs)
-
-private
-  variable
-    F : List Container
-    A B : Set
-
-head : {@(tactic eff) _ : Nondet ∈ F} → Free F (Listᴹ F A) → Free F A
-head = _>>= λ where
-   nil         → fail
-   (cons mx _) → mx
-
-_++_ : ∀ {i} → Free F (Listᴹ F A {i}) → Free F (Listᴹ F A) → Free F (Listᴹ F A)
-mxs ++ mys = mxs >>= λ where
-    nil           → mys
-    (cons mx mxs) → mx ∷ᴹ mxs ++ mys
-
-sum : ∀ {i} → Free F (Listᴹ F ℕ {i}) → Free F ℕ
-sum xs = xs >>= λ where
-    nil          → return 0
-    (cons x mxs) → ⦇ x + sum mxs ⦈
+_++ᴹ_ : Prog effs (Listᴹ effs A {i}) → Prog effs (Listᴹ effs A) → Prog effs (Listᴹ effs A)
+mxs ++ᴹ mys = mxs >>= λ where
+  nilᴹ           → mys
+  (consᴹ mx mxs) → mx ∷ᴹ mxs ++ᴹ mys
 
 instance
-  Listᴹ-normalform : ∀ {i} → ⦃ Normalform F A B ⦄ → Normalform F (Listᴹ F A {i}) (List B)
-  Normalform.nf Listᴹ-normalform nil           = pure []
-  Normalform.nf Listᴹ-normalform (cons mx mxs) = ⦇ (mx >>= nf) ∷ (mxs >>= nf) ⦈
+  Listᴹ-Normalform : ⦃ Normalform effs A B ⦄ → Normalform effs (Listᴹ effs A {i}) (List B)
+  Normalform.nf Listᴹ-Normalform nilᴹ           = var []
+  Normalform.nf Listᴹ-Normalform (consᴹ mx mxs) = ⦇ ! mx ∷ ! mxs ⦈
 
-  Listᴹ-shareable : ∀ {i} → ⦃ Shareable F A ⦄ → {@(tactic eff) _ : Share ∈ F} → {@(tactic eff) _ : State (ℕ × ℕ) ∈ F}
-    → Shareable F (Listᴹ F A {i})
-  Shareable.shareArgs Listᴹ-shareable nil           = []ᴹ
-  Shareable.shareArgs Listᴹ-shareable (cons mx mxs) = cons <$> share mx <*> share mxs
+  Listᴹ-Shareable : ⦃ Shareable effs A ⦄ → ⦃ State SID ∈ effs ⦄ → ⦃ Share ∈ effs ⦄ → Shareable effs (Listᴹ effs A {i})
+  Shareable.shareArgs Listᴹ-Shareable nilᴹ           = []ᴹ
+  Shareable.shareArgs Listᴹ-Shareable (consᴹ mx mxs) = ⦇ consᴹ (share mx) (share mxs) ⦈

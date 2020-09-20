@@ -1,34 +1,50 @@
 module Effect.Exc where
 
-open import Function     using (_∘_)
-open import Level        using (Level)
+open import Function using (id; _∘_; const; _$_)
 
-open import Data.Unit    using (⊤; tt)
-open import Data.Empty   using (⊥)
-open import Data.List    using (List; _∷_)
-open import Data.Product using (_,_)
-open import Data.Sum     using (_⊎_; inj₁; inj₂)
+open import Category.Monad using (RawMonad)
+open        RawMonad ⦃...⦄ renaming (_⊛_ to _<*>_)
 
-open import Container    using (Container; _▷_)
-open import Free
+open import Data.Bool  using (Bool; true; false; if_then_else_)
+open import Data.Empty using (⊥)
+open import Data.Maybe using (Maybe; just; nothing)
+open import Data.Sum   using (_⊎_; inj₁; inj₂; [_,_])
 
-private
-  variable
-    A : Set
-    ops : List Container
+open import Variables
+open import Effect
+open import Prog
+open import Prog.Instances
 
-data Shape (E : Set) : Set where
-  throwˢ : E → Shape E
+data Excˢ (E : Set) : Set where throwˢ : (e : E) → Excˢ E
+data Catchˢ         : Set where catchˢ : Catchˢ
+data Catchᵖ (E : Set) : Set where
+  mainᵖ   : Catchᵖ E
+  handleᵖ : (e : E) → Catchᵖ E
 
-pattern Throw e pf = impure (inj₁ (throwˢ e) , pf)
+Exc : Set → Effect
+Ops  (Exc E) = Excˢ E ~> ⊥
+Scps (Exc E) = Catchˢ ~> Catchᵖ E
 
-Exc : Set → Container
-Exc E = Shape E ▷ λ _ → ⊥
+pattern Throw e = (inj₁ (throwˢ e) , _)
+pattern Catch κ = (inj₁ catchˢ , κ)
 
-runExc : ∀ {E} → Free (Exc E ∷ ops) A → Free ops (E ⊎ A)
-runExc (pure x)       = pure (inj₂ x)
-runExc (Throw e pf)   = pure (inj₁ e)
-runExc (Other s pf) = impure (s , runExc ∘ pf)
+runExc : ∀ {E} → Prog (Exc E ∷ effs) A → Prog effs (E ⊎ A)
+runExc {effs} {A} {E} = foldP (λ i → ((Prog effs ∘ (E ⊎_)) ^ i) A) 1 id
+  (var ∘ inj₂)
+  (λ where
+    (Throw e)   → var (inj₁ e)
+    (Other s κ) → op (s , κ)
+  ) λ where
+    (Catch κ) → κ mainᵖ >>= λ where
+      (inj₁ e) → κ (handleᵖ e) >>= λ where
+        (inj₁ e) → var (inj₁ e)
+        (inj₂ x) → x
+      (inj₂ x) → x
+    (Other s κ) → scp (s , ([ var ∘ inj₁ , id ] <$>_) ∘ κ)
 
-throw : ∀ {E} → {@(tactic eff) _ : Exc E ∈ ops } → E → Free ops A
-throw e = op (throwˢ e , λ())
+throw : ∀ {E} → ⦃ Exc E ∈ effs ⦄ → E → Prog effs A
+throw e = Op (throwˢ e , λ())
+
+infixl 0 _catch_
+_catch_ : ∀ {E} → ⦃ Exc E ∈ effs ⦄ → Prog effs A → (E → Prog effs A) → Prog effs A
+ma catch h = Scp (catchˢ , λ{ mainᵖ → pure <$> ma ; (handleᵖ e) → pure <$> h e })

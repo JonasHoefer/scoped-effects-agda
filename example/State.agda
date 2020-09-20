@@ -1,20 +1,24 @@
 module State where
 
+open import Function using (_$_; _∘_)
+
 open import Category.Monad using (RawMonad)
-open        RawMonad ⦃...⦄ hiding (pure)
+open        RawMonad ⦃...⦄ renaming (_⊛_ to _<*>_)
 
-open import Data.Nat       using (ℕ; _+_)
-open import Data.Product   using (_×_)
-open import Data.Unit      using (⊤)
+open import Data.Nat using (ℕ; _+_)
+open import Data.Unit using (⊤; tt)
 
-open import Container      using (Container)
-open import Free
-open import Free.Instances
+open import Variables
+open import Effect
+open import Effect.State
+open import Prog
+open import Prog.Instances
 
-open import Effect.State   using (State; runState; get; put)
+open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong; sym; trans)
 
-tick : ∀ {F} → {@(tactic eff) _ : State ℕ ∈ F } → Free F ⊤
-tick = get >>= λ n → put (n + 1)
 
-testState : ℕ × ⊤
-testState = run (runState 0 (tick >> tick >> tick))
+tick : ⦃ State ℕ ∈ effs ⦄ → Prog effs ⊤
+tick = get >>= put ∘ suc
+
+testTick : (run $ runState (tick >> tick) 0) ≡ (2 , tt)
+testTick = refl

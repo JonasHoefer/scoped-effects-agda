@@ -10,10 +10,6 @@ open import Data.Product.Relation.Binary.Lex.Strict using (×-strictTotalOrder)
 order = ×-strictTotalOrder (×-strictTotalOrder <-strictTotalOrder <-strictTotalOrder) <-strictTotalOrder
 open import Data.Tree.AVL.Map order public          using (Map; empty; insert; lookup)
 
-CID SID : Set
-SID = ℕ × ℕ
-CID = SID × ℕ
-
 data Tree (A : Set) : Set where
   leaf   : A → Tree A
   failed : Tree A

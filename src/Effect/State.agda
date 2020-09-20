@@ -1,45 +1,49 @@
 module Effect.State where
 
-open import Function         using (_∘_)
+open import Function       using (id; _∘_; const; _$_; flip)
 
-open import Category.Functor using (RawFunctor)
-open        RawFunctor ⦃...⦄
+open import Category.Monad using (RawMonad)
+open        RawMonad ⦃...⦄ renaming (_⊛_ to _<*>_)
 
-open import Data.List        using (List; []; _∷_)
-open import Data.Product     using (_×_; _,_; proj₂)
-open import Data.Sum         using (inj₁; inj₂)
-open import Data.Unit        using (⊤; tt)
+open import Data.Product   using (_×_; _,_; proj₂)
+open import Data.Unit      using (⊤; tt)
 
-open import Container        using (Container; _▷_)
-open import Free.Instances
-open import Free
+open import Variables
+open import Effect
+open import Prog
+open import Prog.Instances
 
-data Shape (S : Set) : Set where
-  putˢ : S → Shape S
-  getˢ : Shape S
-
-State : Set → Container
-State S = Shape S ▷ λ { (putˢ _) → ⊤ ; getˢ → S }
-
-pattern Get pf = impure (inj₁ getˢ , pf)
-pattern Put s pf = impure (inj₁ (putˢ s) , pf)
 
 private
   variable
-    A S : Set
-    ops : List Container
+    S : Set
 
-runState : S → Free (State S ∷ ops) A → Free ops (S × A)
-runState s₀ (pure x)    = pure (s₀ , x)
-runState s₀ (Put s₁ κ)  = runState s₁ (κ tt)
-runState s₀ (Get κ)     = runState s₀ (κ s₀)
-runState s₀ (Other s κ) = impure (s , runState s₀ ∘ κ)
+data Stateˢ (S : Set) : Set where
+  getˢ : Stateˢ S
+  putˢ : S → Stateˢ S
 
-evalState : S → Free (State S ∷ ops) A → Free ops A
-evalState s₀ p = proj₂ <$> runState s₀ p
+State : Set → Effect
+Ops  (State S) = Stateˢ S ▷ λ{ getˢ → S ; (putˢ _) → ⊤ }
+Scps (State S) = Void
 
-get : {@(tactic eff) _ : State S ∈ ops} → Free ops S
-get = op (getˢ , pure)
+pattern Get κ = (inj₁ getˢ , κ)
+pattern Put s κ = (inj₁ (putˢ s) , κ)
 
-put : {@(tactic eff) _ : State S ∈ ops} → S → Free ops ⊤
-put s = op (putˢ s , pure)
+runState : Prog (State S ∷ effs) A → S → Prog effs (S × A)
+runState {S} {effs} {A} = foldP (λ i → (λ X → S → Prog effs (S × X)) ^ i $ A) 1 id
+  (λ a s₀ → var (s₀ , a))
+  (λ where
+    (Get κ)     s₀ → κ s₀ s₀
+    (Put s₁ κ)  s₀ → κ tt s₁
+    (Other s κ) s₀ → op (s , λ c → κ c s₀)
+  ) λ where
+    (Other s κ) s₀ → scp (s , λ c → (λ (a , f) → f a) <$> κ c s₀)
+
+evalState : Prog (State S ∷ effs) A → S → Prog effs A
+evalState p s₀ = proj₂ <$> runState p s₀
+
+get : ⦃ State S ∈ effs ⦄ → Prog effs S
+get = Op (getˢ , pure)
+
+put : ⦃ State S ∈ effs ⦄ → S → Prog effs ⊤
+put s = Op (putˢ s , pure)
