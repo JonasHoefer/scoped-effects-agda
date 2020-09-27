@@ -37,7 +37,6 @@ foldP P (suc n) a v o s (var x) = v (     foldP P n             a v o s  x)
 foldP P (suc n) a v o s (op  x) = o (map (foldP P (suc n)       a v o s) x)
 foldP P (suc n) a v o s (scp x) = s (map (foldP P (suc (suc n)) a v o s) x)
 
-
 inP : (P : (n : ℕ) → (Prog effs ^ n) A → Set) → ∀ n →
   (∀ {x}       → A                                                 → P 0 x                  ) →
   (∀ {n x}     → P n x                                             → P (suc n) (var x)      ) →
@@ -79,3 +78,5 @@ pattern Other s κ = (inj₂ s , κ)
 
 run : Prog [] A → A
 run (var x) = x
+
+

@@ -6,11 +6,14 @@ open import Category.Monad         using (RawMonad)
 open        RawMonad ⦃...⦄         renaming (_⊛_ to _<*>_)
 
 open import Data.List              using (List; _∷_; [])
+open import Data.Nat               using (ℕ; _+_)
 open import Data.Normalform        using (Normalform)
 open        Normalform ⦃...⦄
+open import Data.Unit              using (⊤; tt)
 
 open import Variables
 open import Effect
+open import Effect.Exc
 open import Effect.State
 open import Effect.Share
 open import Effect.Share.Shareable using (Shareable)
@@ -30,6 +33,16 @@ _++ᴹ_ : Prog effs (Listᴹ effs A {i}) → Prog effs (Listᴹ effs A) → Prog
 mxs ++ᴹ mys = mxs >>= λ where
   nilᴹ           → mys
   (consᴹ mx mxs) → mx ∷ᴹ mxs ++ᴹ mys
+
+headᴹ : ⦃ Exc ⊤ ∈ effs ⦄ → Prog effs (Listᴹ effs A) → Prog effs A
+headᴹ mxs = mxs >>= λ where
+  nilᴹ        → throw tt
+  (consᴹ x _) → x
+
+lengthᴹ : Prog effs (Listᴹ effs A {i}) → Prog effs ℕ
+lengthᴹ mxs = mxs >>= λ where
+  nilᴹ           → var 0
+  (consᴹ mx mxs) → suc <$> lengthᴹ mxs
 
 instance
   Listᴹ-Normalform : ⦃ Normalform effs A B ⦄ → Normalform effs (Listᴹ effs A {i}) (List B)

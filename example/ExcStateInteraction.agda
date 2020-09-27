@@ -2,7 +2,7 @@
 
 module ExcStateInteraction where
 
-open import Function using (_$_; flip)
+open import Function using (_$_; flip; id)
 
 open import Category.Monad using (RawMonad)
 open        RawMonad ⦃...⦄ renaming (_⊛_ to _<*>_)
@@ -33,3 +33,6 @@ localUpdate = refl
 
 globalUpdate : (run $ flip runState 2 $ runExc tripleDecr) ≡ (0 , inj₂ tt)
 globalUpdate = refl
+
+scopeInteraction : ⦃ State ℕ ∈ effs ⦄ → ⦃ Exc ⊤ ∈ effs ⦄ → Prog effs ℕ
+scopeInteraction = local id ((local id (throw tt) catch λ _ → decr >> var 1) catch λ _ → var 2)

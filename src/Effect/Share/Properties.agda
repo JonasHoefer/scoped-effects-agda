@@ -31,8 +31,12 @@ open        Eq.≡-Reasoning using (begin_; _≡⟨⟩_; step-≡; _∎)
 CTC : List Effect
 CTC = State SID ∷ Share ∷ Nondet ∷ []
 
+----------------------------------------------------------------------------------------------
+-- (unfinished) laws of sharing from "Purely Functional Lazy Non-deterministic Programming" --
+----------------------------------------------------------------------------------------------
+
 share-fail : ⦃ _ : Normalform CTC A B ⦄ → ⦃ _ : Shareable CTC A ⦄ →
-  runCurry {A} {B} (share fail >>= id) ≡ runCurry fail
+  runCTC {A} {B} (share fail >>= id) ≡ runCTC fail
 share-fail = refl
 
 -- TODO: Lemma for reasoning modulo ids (runCurry p ≡ runCurry (incrAllIDs p))

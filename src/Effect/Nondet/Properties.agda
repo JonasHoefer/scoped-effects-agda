@@ -2,7 +2,7 @@
 
 module Effect.Nondet.Properties where
 
-open import Function using (_$_; _∘_; id)
+open import Function using (_$_; _∘_; id; const)
 
 open import Category.Monad using (RawMonad)
 open        RawMonad ⦃...⦄ renaming (_⊛_ to _<*>_)
@@ -67,3 +67,4 @@ fail>>= k = refl
     runNondet ma                                                                              ∎
 
 -- ⁇ should also be associative and therefore a monoid. Proof should follow structure of ⁇-identʳ and use ++assoc.
+-- this is NOT a law in "Purely Functional Lazy Non-deterministic Programming", because it does nt hold in a probabilistic context.

@@ -24,4 +24,3 @@ cutTest = pure 1 ⁇ once (pure 2 ⁇ pure 3)
 
 runCutTest : (run $ runNondet $ runCut cutTest) ≡ 1 ∷ 2 ∷ []
 runCutTest = refl
-

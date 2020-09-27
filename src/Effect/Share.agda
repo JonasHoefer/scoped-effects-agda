@@ -59,5 +59,5 @@ runShare′ {effs} {A} ⦃ p ⦄ = foldP (λ i → ((λ X → SID → ℕ → Pr
 runShare : ⦃ Nondet ∈ effs ⦄ → Prog (Share ∷ effs) A → Prog effs A
 runShare p = runShare′ p (0 , 0) 0
 
-runCurry : ⦃ Normalform (State SID ∷ Share ∷ Nondet ∷ []) A B ⦄ → Prog (State SID ∷ Share ∷ Nondet ∷ []) A → List B
-runCurry p = run $ runNondet $ runShare $ evalState (! p) (0 , 0)
+runCTC : ⦃ Normalform (State SID ∷ Share ∷ Nondet ∷ []) A B ⦄ → Prog (State SID ∷ Share ∷ Nondet ∷ []) A → List B
+runCTC p = run $ runNondet $ runShare $ evalState (! p) (0 , 0)

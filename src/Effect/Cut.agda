@@ -38,7 +38,7 @@ runCut′ {effs} {A} ⦃ p ⦄ = foldP (λ i → ((λ X → Prog effs X → Prog
       (just (choiceˢ cid , κ)) → κ true (κ false q) -- cid?
   ) λ where
     (Call κ)    q → κ tt fail >>= λ r → r q
-    (Other s κ) q → scp (s , λ p → (λ r → r q) <$> κ p fail) -- just a guess
+    (Other s κ) q → scp (s , λ p → (λ r → r q) <$> κ p fail) -- Wrong! Pass results to next one?
 
 runCut : ⦃ Nondet ∈ effs ⦄ → Prog (Cut ∷ effs) A → Prog effs A
 runCut p = runCut′ p fail
