@@ -182,10 +182,12 @@ functors, because the free monad preserves coproducts.
 The approach described by Wu et al. is based on ``Data types {\`{a}} la
 carte''\cite{DBLP:journals/jfp/Swierstra08}.
 The functor coproduct is modelled as the data type \texttt{data (f :+: g) a =
-  Inl (f a) | Inr (g a)}, which is a \texttt{Functor} in \texttt{a}.
+  Inl (f a) | Inr (g a)}, which is again a \texttt{Functor} in \texttt{a}.
 
 In Agda functors are represented as containers, a concrete data type not a type
 class.
+Containers are closed under multiple operations, coproducts being one of
+them~\cite{DBLP:conf/fossacs/AbbottAG03}.
 The coproduct of two containers $F$ and $G$ is the container whose
 \AgdaFunction{shape} is the disjoint union of $F$s and $G$s shapes and whose
 position function \AgdaFunction{pos} is the coproduct mediator of $F$s and $G$s
@@ -287,7 +289,7 @@ For simplicity the following code will still use instance arguments.
 This version can easily be adapted to one using macros, by replacing the
 instance arguments with correctly annotated hidden ones.
 
-Using this proposition we can define functions for injection into and maybe projecting
+Using this proposition we can define functions for injection into and maybe projection
 out of coproducts.
 
 \begin{code}
@@ -503,7 +505,7 @@ run : Free [] A → A
 run (pure x) = x
 \end{code}
 
-\subsection{Nondet}
+\subsection{Nondeterministic Choice}
 \label{nondeterminism}
 
 The nondeterminism effect has two operations \AgdaFunction{\_⁇\_} and
@@ -532,7 +534,7 @@ Nondet = Nondetˢ ▷ λ where
 \end{code}
 We can now define smart constructors for each operation.
 These are not the generic operations, but helper functions based on them.
-The generic operations take no parameters an alaways use
+The generic operations take no parameters an alaways use % no params?!?
 \AgdaInductiveConstructor{pure} as continutation.
 These versions of the operations already process the continuations parameter.
 
@@ -610,7 +612,9 @@ parameter of the continuation being a value of type \AgdaArgument{s}.
 
 \AgdaFunction{put} updates the current state.
 The operation takes an additional parameter, the new state.
-The operation itself is unary i.e. there is no return value, therefore
+The operation itself is unary i.e. there is no return value, therefore % maybe
+                                % better: that handler chooses no continuation
+                                % (no return value would imply bottom)
 \AgdaInductiveConstructor{tt} is passed to the rest of the program.
 
 $$
@@ -742,8 +746,8 @@ In the following section we will implement the scoped effect
 \AgdaDatatype{Cut} using the first order approach in Agda.
 The central idea is to add new effect syntax, representing explicit scope
 delimiters.
-Whenever an opening delimiter is encountered the handler can be run on the
-again on the scoped program.
+Whenever an opening delimiter is encountered the handler can be run again on the
+scoped program.
 
 
 \subsection{Cut and Call}
@@ -764,8 +768,8 @@ Call  = Callˢ   ▷ λ _ → ⊤
 \end{code}
 The \AgdaDatatype{Cut} effect has just a single operation, \AgdaFunction{cutfail}.
 \AgdaFunction{cutfail} can only be used in a context with nondeterminism.
-When a cutfail is called it will prunes all unexplored branches and call
-\AgdaFunction{fail}.
+When \AgdaFunction{cutfail} is called it will prunes all unexplored branches and
+call \AgdaFunction{fail}.
 The Agda implementation of the handlers is identical to the one by Wu et al.
 
 \begin{code}[hide] % TODO: introduce earlier
@@ -786,7 +790,7 @@ Since this handler is not orthogonal (i.e it interacts with another effect)
 To prove termination we mark the second argument with an arbitrary but fixed size
 \AgdaArgument{i}.
 The position functions for each case return subterms indexed with a smaller size.
-Recursive calls to \AgdaFunction{go} with these terms as arguemnt therefore
+Recursive calls to \AgdaFunction{go} with these terms as argument therefore
 terminate.
 
 \begin{code}
@@ -880,7 +884,7 @@ We could either correct the error and just continue or short circuit the
 calculation using exceptions in form of e.g. a \AgdaDatatype{Maybe} monad.
 For simplicity we will use the former approach.
 In a real application it would be advisable to inform the programmer about the
-error, either using exceptions are at least trace the error.
+error, either using exceptions or at least trace the error.
 
 \begin{code}
 bcall : ⦃ Nondet ∈ ops ⦄ → Free (Call ∷ Cut ∷ ops) A {i} → Free (Cut ∷ ops) A

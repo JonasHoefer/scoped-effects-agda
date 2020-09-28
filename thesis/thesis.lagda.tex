@@ -4,10 +4,10 @@
 \usepackage[a4paper,width=150mm,top=25mm,bottom=25mm]{geometry}
 
 \usepackage{fontspec}
-\usepackage[]{unicode-math}
+\usepackage{unicode-math}
 \usepackage{wasysym}
-\setmathfont{Latin Modern Math}
-\setmathfont[range={\lBrace,\rBrace}]{XITSMath} % fallback for these two glyphe
+\setmathfont{Latin Modern Math}                 % normal math font
+\setmathfont[range={\lBrace,\rBrace}]{XITSMath} % fallback for these two glyphs
 \setsansfont{Latin Modern Sans}
 % \setmainfont{Latin Modern Roman}
 % \setmonofont{Fira Code}
@@ -31,7 +31,8 @@
 \newunicodechar{∘}{\ensuremath{\mathnormal{\circ}}}
 \newunicodechar{≡}{\ensuremath{\mathnormal{\equiv}}}
 \newunicodechar{⁇}{\ensuremath{\mathnormal{?\!?}}}
-% \newunicodechar{′}{\ensuremath{\mathnormal{\prime}}} -- somehow bad
+% see https://tex.stackexchange.com/questions/511401/newunicodechar-fails-for-prime-only
+\AtBeginDocument{\newunicodechar{′}{\makebox[\fontcharwd\font`a]{$\prime$}}}
 \newunicodechar{⊥}{\ensuremath{\mathnormal{\bot}}}
 \newunicodechar{⊤}{\ensuremath{\mathnormal{\top}}}
 \newunicodechar{ˢ}{\textsuperscript{s}}
@@ -40,6 +41,9 @@
 \newunicodechar{₀}{\textsubscript{0}}
 \newunicodechar{₁}{\textsubscript{1}}
 \newunicodechar{₂}{\textsubscript{2}}
+\newunicodechar{₃}{\textsubscript{3}}
+\newunicodechar{₄}{\textsubscript{4}}
+\newunicodechar{₅}{\textsubscript{5}}
 
 \usepackage{hyperref}
 \usepackage[links]{agda}
@@ -47,6 +51,7 @@
 
 \newcommand{\fmap}[0]{\ensuremath{<\hspace{.4pt}\mathclap{\raisebox{-0.85pt}{\scalebox{0.95}{$\$$}}}\hspace{.4pt}>}}
 \newcommand{\ap}[0]{\ensuremath{<\hspace{.4pt}\mathclap{*}\hspace{.4pt}>}}
+\newcommand{\bind}[0]{\ensuremath{\mathbin{>\!\!\!>\mkern-6.7mu=}}}
 
 \DeclareRobustCommand{\AgdaFormat}[2]{%
   \ifthenelse{\equal{#1}{>>=}}
@@ -112,6 +117,13 @@
 \date{2020}
 
 \begin{document}
+Notiz: Der Code für alle 3 Ansätze ist quasi fertig.
+Aktuell schreibe ich also fast ausschließlich an der Arbeit an sich.
+Dieses PDF ist eine unfertige Arbeitsversion.
+Einige bereits geschriebene Abschnitte sind noch unfertig oder an der falschen
+Position in der Arbeit.
+Kaptiel 4 und 5 enthalten Stichpunkte mit wichtigsten Ergebnissen.
+
 \maketitle
 \begin{abstract}
 \end{abstract}
@@ -346,6 +358,118 @@ found in Wadlers paper of the same name \cite{DBLP:journals/cacm/Wadler15}.
   \end{tabular}
 \end{center}
 
+\subsection{Notions of Equality and Equality Types}
+
+In the last section we saw how we can encode propositions from propositional and
+predicate logic as types.
+One of the most important proposition is equality i.e. the proposition that
+given two terms $a, b : A$ that $a$ and $b$ are equal.
+When using Agda for theorem proving we have to express propositions like $a + b
+= b + a$ and $2 = 1$, which could be true or false, to be able to prove or
+disprove them.
+In type theory and therefore in Agda we have to consider different notions of
+equality.
+
+When defining a program rule like
+\AgdaFunction{truth}\AgdaSpace{}\AgdaSymbol{=}\AgdaSpace{}\AgdaNumber{42}
+we are making an \textit{equality judgement}.
+The symbol \AgdaFunction{truth} is \textit{definitional equal} to \AgdaNumber{42}.
+A judgment is always true.
+We define one term to be equal to another one i.e. we allow Agda to reduce the
+left hand side of the equality to the right hand side.
+
+The next notion of equality is \textit{computational equality}.
+Two terms $t_1$ and $t_2$ are computational equal if they reduce to the same
+term.
+For example, given the above definition of $+$ the terms $0+(0+n)$ and $n$ are
+computational equal, because using the first rule in the definition of plus
+$0+(0+n)$ $\beta$-reduces to $n$.
+On the other hand $n+0$ and $n$ are not computational equal, because for a free
+variable $n$ none of the program rules for $+$ can be used to reduce the term
+further.
+Therefore computational equality is not the right notion of equality, because
+the later equality should also hold.
+
+To talk about the equality of two terms we have to use \textit{propositional
+equality} i.e. we have to define a proposition representing the fact that two
+terms of type $A$ are equal.
+This proposition is usually encapsulated in an \textit{equality type} of $A$.
+
+\begin{code}
+infix 4 _≡_
+data _≡_ {A : Set} (x : A) : A → Set where
+  refl : x ≡ x
+\end{code}
+The type
+\AgdaArgument{x}\AgdaSpace{}\AgdaDatatype{≡}\AgdaSpace{}\AgdaArgument{y}
+represents the proposition that $x$ and $y$ are equal.
+The only way to construct evidence for the proposition is using the
+\AgdaInductiveConstructor{refl} constructor i.e. if $x$ and $y$ are actually the
+same.
+
+This notion of equality has the usualy expected properties like transitivity,
+symmetry and congruence.
+The definition of \AgdaFunction{cong} shows the typical way of working with
+equality proofs.
+
+\begin{code}
+cong : ∀ {A B x y} → (f : A → B) → x ≡ y → f x ≡ f y
+cong f refl = refl
+\end{code}
+We expect that $≡$ is a congruence relation i.e. if $x$ and $y$ are equal then
+$f x$ and $f y$ should also be equal.
+We cannot produce a value of type
+\AgdaArgument{f}\AgdaSpace{}\AgdaArgument{x}\AgdaSpace{}\AgdaDatatype{≡}\AgdaSpace{}\AgdaArgument{f}\AgdaSpace{}\AgdaArgument{y}
+because the two are not equal.
+By pattern matching in the argument of type 
+\AgdaArgument{x}\AgdaSpace{}\AgdaDatatype{≡}\AgdaSpace{}\AgdaArgument{y}
+i.e. by inspecting the evidence that $x$ and $y$ are equal we obtain more
+information about the goal.
+Because \AgdaInductiveConstructor{refl} can only be constructed if the two
+values are the same the two variables are unified.
+We therefore have to produce a proof that $f x$ is equal to itself, which is
+given by reflexivity.
+
+By pattern matching on variables used in the equality type we can obtain more
+information about the goal.
+Either because the constructors them self restrict the use of the variables or
+because the terms used in the equality type can be reduced further.
+Consider the following example.
+
+\begin{code}
++-identʳ : ∀ n → n + 0 ≡ n
++-identʳ 0        = refl
++-identʳ (suc m)  = cong suc (+-identʳ m)
+\end{code}
+By pattern matching on the variable $n$ we obtain two cases, one for each
+constructor (this is analogous to a proof by exhaustion).
+In both cases the term
+\AgdaArgument{n}\AgdaSpace{}\AgdaFunction{}\AgdaSpace{}\AgdaNumber{0}
+can now be reduced further.
+In the \AgdaNumber{0} case we obtain
+\AgdaNumber{0}\AgdaSpace{}\AgdaFunction{+}\AgdaSpace{}\AgdaNumber{0}
+on the left hand side, which can be reduced to \AgdaNumber{0}.
+The return type simplifies to 
+\AgdaNumber{0}\AgdaSpace{}\AgdaDatatype{≡}\AgdaSpace{}\AgdaNumber{0}
+for which we can simply construct evidence using
+\AgdaInductiveConstructor{refl}.
+
+The second case is more complex.
+The left hand side still contains the free variable $m$, but reduces to
+\AgdaInductiveConstructor{suc}\AgdaSpace{}$($\AgdaArgument{m}\AgdaSpace{}\AgdaFunction{+}\AgdaSpace{}\AgdaNumber{0}$)$
+using the second rule for \AgdaFunction{\_+\_}.
+Using a recursive call we obtain evidence for
+\AgdaArgument{m}\AgdaSpace{}\AgdaFunction{+}\AgdaSpace{}\AgdaNumber{0}\AgdaSpace{}\AgdaDatatype{≡}\AgdaSpace{}\AgdaArgument{m}.
+The recursive call to obtain evidence for a smaller case corresponds to the use
+of the induction hypothesis in an inductive proof.
+By applying \AgdaInductiveConstructor{suc} on both sides of the equality we
+obtain a proof for the correct proposition.
+
+We obtained a non obvious equality by using just definitional and computational
+equality together with the analogs of proofs by exhaustion and induction.
+This proof can now be used to rewrite arbitrary terms containing terms
+corresponding to or containing the left- or right-hand of the equality.
+
 \subsection{Termination Checking}
 \label{sec:termination-checking}
 
@@ -366,7 +490,7 @@ map : {A B : Set} → (A → B) → (List A → List B)
 map f (x ∷ xs)  = f x ∷ map f xs
 map f []        = []
 \end{code}
-The \AgdaInductiveConstructor{[]} case does not contain a recursive calls.
+The \AgdaInductiveConstructor{[]} case does not contain a recursive call.
 In the \AgdaInductiveConstructor{\_∷\_} case the recursive call to
 \AgdaFunction{map} occurs on a structural smaller argument i.e.
 \AgdaArgument{xs} is a subterm of the argument
@@ -546,7 +670,7 @@ fmap f (s , pf) = (s , f ∘ pf)
 Curry \cite{Hanus95curry} is a functional logic programming language.
 It combines paradigms from functional programming languages like Haskell
 with those logical languages Prolog.
-Curry is based on Haskell i.e. its syntax and semantics not involve
+Curry is based on Haskell i.e. its syntax and semantics not involving
 nondeterminism closely resemble Haskell.
 Curry integrates logical features, such as nondeterminism and free variables
 with a few additional concepts.
@@ -554,7 +678,10 @@ with a few additional concepts.
 When defining a function with overlapping patterns on the left-hand side of
 equations all matching right-hand sides are executed.
 This introduces non determinism.
-The simplest example of such a function is the choice operator \texttt{?}.
+Nondeterminism is integrated as an ambient effect i.e. the effect is not
+represented at type level.
+The simplest example of a nondeterministic function is the choice operator
+\texttt{?}.
 
 \begin{minted}{haskell}
      (?) :: A -> A -> A
@@ -578,7 +705,7 @@ When executing \texttt{twoCoins} the two calls of \texttt{coin} are independent.
 Both choose between $0$ and $1$, therefore \texttt{twoCoins} yields the results
 $0$, $1$, $1$ and $2$.
 
-\subsubsection{Call-Time-Choice}
+\subsection{Call-Time-Choice}
 \label{call-time-choice}
 Next we will take a look at the interactions between nondeterminism and function
 calls.
@@ -626,7 +753,7 @@ evaluated languages.
 \end{minted}
 As expected this function yields the results $0$ and $2$.
 
-\subsubsection{Permutation Sort}
+\subsection{Permutation Sort}
 
 Introduce Free Variables + Explain for Later Example
 
@@ -636,31 +763,69 @@ Introduce Free Variables + Explain for Later Example
 
 \chapter{Higher Order}
 \begin{itemize}
-  \item working implementation using (simplified) indexed containers
-  \item scoped effects alone work
+  \item ultimatly failed
+  \item based on second approach from ``Effect Handlers in
+  Scope''\cite{DBLP:conf/haskell/WuSH14}
+  \item partially working implementation using (simplified) indexed containers
+  \item scoped effects without effectful data structures are working
   \item does only partially work with monadic data structures (size problems
     when using scoped effects like sharing)
-  \item sharing is the ``worst case scenario''
+  \item sharing is the ``worst case scenario'' (scoped effect executed on every
+    effectful component of data structure)
   \item size problems generally occur with this approach thanks to existential
-    types (which again hold programs)
+    types (which are instantiated again with \texttt{Free ...}) $\Rightarrow$
+    scoped effect representation (indexed container; indexed bicontainer;
+    in \texttt{Free} inlined existential type variable; ...) does not matter
+  \item see \url{https://lists.chalmers.se/pipermail/agda/2020/012248.html} for
+    simple implementation and explanation (conversation died down after
+    uncovering a bug in Agda)
+  \item embedding a growing hierarchy of types into each effectful programs
+    seems impractical (see mail)
 \end{itemize}
 
-\chapter{Hybrid Approach}
+\chapter{Scoped Algebras}
 \begin{itemize}
   \item potential worth pursuing (no explicit scope delimiters, but control
     over continuation (seems) limited in contrast to HO approach (important for
     memorization of sharing))
-  \item based on Syntax and Semantics for Scoped Effects by Wu et al.
+  \item based on Syntax and Semantics for Scoped Effects by Wu et al\cite{DBLP:conf/lics/PirogSWJ18}.
   \item rewrites higher order monad using Kan Extension $\Rightarrow$ removes
-    coend $\Rightarrow$ no existential types $\Rightarrow$ no size issue (marks
-    scope using double monad layer)
-  \item algebras from paper don't seem to compose easily, but traditional handlers seem to work
+    coend (existential type variable) $\Rightarrow$ no size issue (marks
+    scopes using double monad layer)
+
+    \[
+      EA \cong A + \Sigma (EA) + \int^{X\in\mathcal{C}} \Gamma (EA) \times (EA)^X
+      \cong A + \Sigma (EA) + \Gamma (E(EA))
+    \]
+   
+  \item algebras from paper don't seem to compose easily, but traditional
+    handlers seem to work
   \begin{itemize}
-    \item Carrier types are type families $\Rightarrow$ Agda implementation could be easier
-      than Haskell implementation thanks to better dependent type support
+    \item Carrier types are type families $\Rightarrow$ Agda implementation
+      could be easier than Haskell implementation thanks to better dependent
+      type support
   \end{itemize}
-  \item Current Problem: proof of monad laws seems impossible due to termination
-    issues thanks to double monadic layer in the \texttt{Scope} constructor
+  \item (solved) (proof of monad laws seems impossible due to termination
+    issues thanks to double monadic layer in the \texttt{Scope} constructor)
+  \item own implementation using dependent folds by Fu and Selinger 
+    \cite{DBLP:journals/corr/abs-1806-05230} seems to work
+  \item Induction schemes allow (complicated) proofs
+  \item folds (scoped algebras) by Wu et al. are similar to generic folds
+    presented by Fu and Selinger (the later are more generic and allow the
+    definition of \bind{}, handlers and more without sized types)
+  \item its possible to proof (some and probably all) laws from
+    \cite{DBLP:conf/icfp/FischerKS09}
+  \item Combination of effects using standard approach
+    \cite{DBLP:conf/haskell/SchrijversPWJ19} (i.e. produce new program without
+    the interpreted syntax; I ``generalized'' the approach; handlers produce values of
+    type $\mathrm{(\mathrm{Free}\; C \circ \mathrm{Carrier})^n}$; contrasts with comment by
+    Wu et al.\cite{DBLP:journals/corr/abs-1806-05230} suggesting different index
+    types for combined handlers)
+  \item traversal of foreign scopes is similar but not identical to higher order
+    approach (determines semantics of combined effects; e.g. cutting branches
+    containing \texttt{throw} calls)
+  \item correctness of combined handlers is not obvious (I did some tests and proved
+    some coherence lemmas, but general correctness is more complicated)
 \end{itemize}
 
 \chapter{Conclusion}
