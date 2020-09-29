@@ -7,7 +7,8 @@
 \usepackage{unicode-math}
 \usepackage{wasysym}
 \setmathfont{Latin Modern Math}                 % normal math font
-\setmathfont[range={\lBrace,\rBrace}]{XITSMath} % fallback for these two glyphs
+\setmathfont[range={\lBrace,\rBrace,\llparenthesis,\rrparenthesis}]{XITSMath}
+% fallback for these 4 glyphs
 \setsansfont{Latin Modern Sans}
 % \setmainfont{Latin Modern Roman}
 % \setmonofont{Fira Code}
@@ -22,6 +23,8 @@
 \newunicodechar{∈}{\ensuremath{\mathnormal{\in}}}
 \newunicodechar{⦃}{\ensuremath{\mathnormal{\lBrace}}}
 \newunicodechar{⦄}{\ensuremath{\mathnormal{\rBrace}}}
+\newunicodechar{⦇}{\ensuremath{\mathnormal{\llparenthesis}}}
+\newunicodechar{⦈}{\ensuremath{\mathnormal{\rrparenthesis}}}
 \newunicodechar{≅}{\ensuremath{\mathnormal{\cong}}}
 \newunicodechar{⊕}{\ensuremath{\mathnormal{\oplus}}}
 \newunicodechar{⊎}{\ensuremath{\mathnormal{\uplus}}}
@@ -38,6 +41,7 @@
 \newunicodechar{ˢ}{\textsuperscript{s}}
 \newunicodechar{ˡ}{\textsuperscript{l}}
 \newunicodechar{ʳ}{\textsuperscript{r}}
+\newunicodechar{ᴹ}{\textsuperscript{M}}
 \newunicodechar{₀}{\textsubscript{0}}
 \newunicodechar{₁}{\textsubscript{1}}
 \newunicodechar{₂}{\textsubscript{2}}
@@ -49,6 +53,7 @@
 \usepackage[links]{agda}
 \usepackage{mathtools}
 
+% nicer monadic operators
 \newcommand{\fmap}[0]{\ensuremath{<\hspace{.4pt}\mathclap{\raisebox{-0.85pt}{\scalebox{0.95}{$\$$}}}\hspace{.4pt}>}}
 \newcommand{\ap}[0]{\ensuremath{<\hspace{.4pt}\mathclap{*}\hspace{.4pt}>}}
 \newcommand{\bind}[0]{\ensuremath{\mathbin{>\!\!\!>\mkern-6.7mu=}}}
@@ -785,10 +790,9 @@ Introduce Free Variables + Explain for Later Example
 
 \chapter{Scoped Algebras}
 \begin{itemize}
-  \item potential worth pursuing (no explicit scope delimiters, but control
-    over continuation (seems) limited in contrast to HO approach (important for
-    memorization of sharing))
-  \item based on Syntax and Semantics for Scoped Effects by Wu et al\cite{DBLP:conf/lics/PirogSWJ18}.
+  \item no explicit scope delimiters, but control over continuation (seems)
+    limited in contrast to HO approach (important for memorization of sharing)
+  \item based on Syntax and Semantics for Scoped Effects by Wu et al.~\cite{DBLP:conf/lics/PirogSWJ18}.
   \item rewrites higher order monad using Kan Extension $\Rightarrow$ removes
     coend (existential type variable) $\Rightarrow$ no size issue (marks
     scopes using double monad layer)
@@ -813,13 +817,13 @@ Introduce Free Variables + Explain for Later Example
   \item folds (scoped algebras) by Wu et al. are similar to generic folds
     presented by Fu and Selinger (the later are more generic and allow the
     definition of \bind{}, handlers and more without sized types)
-  \item its possible to proof (some and probably all) laws from
-    \cite{DBLP:conf/icfp/FischerKS09}
+  \item it's possible to proof some (and probably all) laws
+    from~\cite{DBLP:conf/icfp/FischerKS09}
   \item Combination of effects using standard approach
     \cite{DBLP:conf/haskell/SchrijversPWJ19} (i.e. produce new program without
     the interpreted syntax; I ``generalized'' the approach; handlers produce values of
     type $\mathrm{(\mathrm{Free}\; C \circ \mathrm{Carrier})^n}$; contrasts with comment by
-    Wu et al.\cite{DBLP:journals/corr/abs-1806-05230} suggesting different index
+    Wu et al.~\cite{DBLP:journals/corr/abs-1806-05230} suggesting different index
     types for combined handlers)
   \item traversal of foreign scopes is similar but not identical to higher order
     approach (determines semantics of combined effects; e.g. cutting branches

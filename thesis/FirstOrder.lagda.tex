@@ -10,10 +10,15 @@ open import Data.Bool using (Bool; true; false; if_then_else_)
 open import Data.Empty using (⊥)
 open import Data.List using (List; []; _∷_; _++_; foldr)
 open import Data.Nat using (ℕ; _+_)
+open import Data.Nat.Properties using (<-strictTotalOrder)
 open import Data.Maybe using (Maybe; just; nothing)
-open import Data.Product using (Σ-syntax; _×_; _,_)
+open import Data.Product using (Σ-syntax; _×_; _,_; proj₂)
+open import Data.Product.Relation.Binary.Lex.Strict using (×-strictTotalOrder)
 open import Data.Sum using (_⊎_; [_,_]; inj₁; inj₂)
 open import Data.Unit using (⊤; tt)
+
+order = ×-strictTotalOrder (×-strictTotalOrder <-strictTotalOrder <-strictTotalOrder) <-strictTotalOrder
+open import Data.Tree.AVL.Map order using (Map; empty; insert; lookup)
 
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong)
 
@@ -70,7 +75,7 @@ Given a signature $\Sigma$ we can build terms over a set of variables $\mathbb{X
   \mathrm{op}_i(p, \kappa) \in \mathrm{Term}_\Sigma(\mathbb{X}) \quad\text{for}\quad
   p\in P_i, \kappa : A_i \rightarrow \mathrm{Term}_\Sigma(\mathbb{X})
 \]
-Terms can be used to form a equations of the form $x | l=r$.
+Terms can be used to form equations of the form $x\;|\;l=r$.
 Each equation consists of two terms $l$ and $r$ over a set of variables $x$.
 A signature $\Sigma_T$ together with a set of equations $\mathcal{E}_T$ forms an
 algebraic theory $T$.
@@ -80,7 +85,7 @@ algebraic theory $T$.
 An interpretation $I$ of a signature is given by a carrier set $|I|$ and an
 interpretation for each operation $\lBrack\cdot\rBrack_I$.
 An interpretation of an operation $\mathrm{op}_i$ is given by a functions to the
-carrier set $|I|$, that takes an additional parameter from $P_i$ an $|A_i|$
+carrier set $|I|$, that takes an additional parameter from $P_i$ and $|A_i|$
 parameters as a function from the arity set to the carrier set $|I|$.
 \[
   \lBrack \mathrm{op}_i \rBrack_I : P_i \times |I|^{A_i} \rightarrow |I|
@@ -392,7 +397,7 @@ variable
   C : Set ℓᶜ
 
 infixl 1 _>>=_ _>>_
-infixl 4 _<$>_ _⊛_
+infixl 4 _<$>_ _⊛_ _<*>_
 \end{code}
 \begin{code}
 fmap _<$>_ : {F : List Container} {i : Size} → (A → B) → Free F A {i} → Free F B {i}
@@ -683,6 +688,12 @@ runState s₀ (Other s κ)  = impure (s , runState s₀ ∘ κ)
 \end{code}
 \end{AgdaAlign}
 
+\begin{code}[hide]
+evalState : ∀ {ops S} → S → Free (State S ∷ ops) A → Free ops A
+evalState s₀ p = proj₂ <$> runState s₀ p
+\end{code}
+
+
 \subsubsection{Example}
 
 Here is a simple example for a function using the \AgdaDatatype{State}
@@ -931,12 +942,255 @@ The current implementation of \AgdaDatatype{Nondet} does not support sharing
 i.e. it is not possible for two choice to be linked.
 Based on Bunkenburgs implementation we will make two changes to the
 nondeterminism effect.
-Each choice is augmented with an an identifier consisting of a triple of natural
-numbers, called \textit{choice id}.
+Each choice is augmented with an optional identifier consisting of a triple of
+natural numbers, called \textit{choice id}.
 The first two are used to identity the current scope and will be refereed to as
 \textit{scope id}.
-The third numbers identifies the choice inside it's scope.
+The third number identifies the choice inside its scope.
 Furthermore, instead of producing a list the handler will now produce a tree of
 choices.
 This change allows to choose the evaluation strategy, e.g. depth first or breath
 first search, independent of the handler.
+
+
+\subsection{Effectful Data Structures}
+
+In Haskell and Curry ambient effects, like partiality, tracing and
+nondeterminism, can occur in components of data structures.
+Each argument of a constructor could be an effectful computation
+For example, in Curry the tail of a list could be a nondeterministic choice
+between two possible tails.
+
+We want to simulate this behavior with algebraic effects.
+The effects have to be modelled explicitly using the \AgdaDatatype{Free} type.
+We will lift data types using a standard construction, which is commonly used
+to simulate ambient
+effects~\cite{DBLP:conf/haskell/AbelBBHN05,DBLP:journals/programming/DylusCT19,DBLP:conf/haskell/ChristiansenDB19}.
+The following example of an effectful \AgdaDatatype{List} demonstrates the
+the general construction\footnote{In the following code effectful data
+  structures and lifted versions of functions are marked with a suffix
+  \textsuperscript{M}}.
+
+\begin{code}
+data Listᴹ (ops : List Container) (A : Set) : {Size} → Set where
+  nil   : Listᴹ ops A {i}
+  cons  : Free ops A → Free ops (Listᴹ ops A {i}) → Listᴹ ops A {↑ i}
+\end{code}
+\AgdaDatatype{Listᴹ}\AgdaSpace{}\AgdaArgument{ops}\AgdaSpace{}\AgdaArgument{A}
+represents a \AgdaDatatype{List}\AgdaSpace{}\AgdaArgument{A} in whose components
+effects from the given effect stack \AgdaArgument{ops} can occur.
+To easily construct and work with lifted values we introduce smart constructors
+in the form of pattern synonyms.
+
+\begin{code}[hide]
+infixr 5 _∷ᴹ_ _++ᴹ_
+\end{code}
+\begin{code}
+pattern []ᴹ          = pure nil
+pattern _∷ᴹ_ mx mxs  = pure (cons mx mxs)
+\end{code}
+The size annotations on the lifted data structures are needed to proof
+termination of structural recursive functions.
+To pattern match on a lifted value we have to use \AgdaFunction{>>=}.
+Therefore the structural recursion is obscured.
+
+\begin{code}
+_++ᴹ_ : Free ops (Listᴹ ops A {i}) → Free ops (Listᴹ ops A) → Free ops (Listᴹ ops A)
+mxs ++ᴹ mys = mxs >>= λ where
+  nil             → mys
+  (cons mx mxs′)  → mx ∷ᴹ mxs′ ++ᴹ mys
+\end{code}
+
+\subsubsection{Normalization of Effectful Data}
+
+Based on Bunkenburg's code~\cite{bunkenburg2019modeling} we will introduce a
+type class for normalizing effectful data structures i.e. moving interleaved
+\AgdaDatatype{Free} layers to the outside using \AgdaFunction{>>=}.
+
+\begin{code}
+record Normalform (ops : List Container) (A B : Set) : Set where
+  field
+    nf : A → Free ops B
+open Normalform ⦃...⦄ public
+
+!_ : ⦃ Normalform ops A B ⦄ → Free ops A → Free ops B
+! mx = mx >>= nf
+\end{code}
+
+The type class allow to normalize elements of type \AgdaArgument{A} (intuitively
+containing effectful calculations) to computations producing of elements of type
+\AgdaArgument{B} (intuitively a version of \AgdaArgument{B} without the effects).
+Instead of \AgdaArgument{A} and \AgdaArgument{B} we could have parameterized the
+type class over a type family of an effect stack, with \AgdaFunction{nf}
+producing an element of the type family applied to an empty stack.
+This implementation would allow us to restrict the normalizable types, but
+prohibit us from producing elements of standard data types.
+
+In contrast to Bunkenburg's implementation we do not expect a lifted argument.
+Simplifying the type and introducing the helper function \AgdaFunction{!\_}
+removes the need for auxiliary normalization lemmas for
+\AgdaInductiveConstructor{pure} and \AgdaInductiveConstructor{impure} values in
+proofs.
+The extra degree of freedom, introduced by a monadic argument, was not used in
+the original implementation.
+
+\begin{code}
+instance
+  ℕ-normalform : Normalform ops ℕ ℕ
+  Normalform.nf ℕ-normalform = pure
+
+  Listᴹ-Normalform : ⦃ Normalform ops A B ⦄ →
+    Normalform ops (Listᴹ ops A {i}) (List B)
+  Normalform.nf Listᴹ-Normalform nil            = pure []
+  Normalform.nf Listᴹ-Normalform (cons mx mxs)  = ⦇ ! mx ∷ ! mxs ⦈
+\end{code}
+The data stored in an effectful list could also be effectful and therefore has
+to be normalized.
+We simply require a \AgdaDatatype{Normalform} instance for the stored type.
+To allow normalization of general types and effectful data structures containing
+them, we have to implement dummy instances for data types like builtin natural
+numbers or booleans.
+
+\subsection{Sharing Handler}
+
+The idea of the following sharing handler is identical to the one presented by
+Bunkenburg.
+Thanks to the more flexible infrastructure described in the earlier sections we
+are able to define a more modular handler and avoid some inlining, necessary to
+prove termination in Coq.
+Similar to \AgdaDatatype{Cut} the sharing handler is not orthogonal to other
+effects, but interacts with existing \AgdaDatatype{Nondet} syntax.
+
+The scoping operation \AgdaFunction{share} takes an additional argument, the
+unique identifier for the created scope.
+Similar to \AgdaFunction{put} the parameter is part of the container shape.
+
+\begin{code}
+data Shareˢ : Set where bshareˢ eshareˢ : ℕ × ℕ → Shareˢ
+pattern BShare  n κ = impure (inj₁ (bshareˢ n) , κ)
+pattern EShare  n κ = impure (inj₁ (eshareˢ n) , κ)
+
+Share : Container
+Share = Shareˢ ▷ λ _ → ⊤
+\end{code}
+
+\begin{code}[hide]
+-- ID in earlier definition (Nondet is the first example without parameters) or
+-- redefine here (maybe hidden)?
+data NonDetˢ : Set where
+  ⁇ˢ     : Maybe ((ℕ × ℕ) × ℕ) → NonDetˢ
+  failˢ  : NonDetˢ
+
+pattern Choice′ cid κ = impure (inj₁ (⁇ˢ cid) , κ)
+pattern Fail′ = impure (inj₁ failˢ , _)
+
+NonDet : Container
+NonDet = NonDetˢ ▷ λ where
+  (⁇ˢ _) → Bool
+  failˢ  → ⊥
+
+fail′ : ⦃ NonDet ∈ ops ⦄ → Free ops A
+fail′ = inj (failˢ , λ())
+
+_⁇′_ : ⦃ NonDet ∈ ops ⦄ → Free ops A → Free ops A → Free ops A
+p ⁇′ q = inj (⁇ˢ nothing , (if_then p else q))
+
+data Tree (A : Set) : Set where
+  branch : Maybe ((ℕ × ℕ) × ℕ) → (l r : Tree A) → Tree A
+  leaf   : A → Tree A
+  failed : Tree A
+
+dfs : {A : Set} → Map Bool → Tree A → List A
+dfs mem failed                   = []
+dfs mem (leaf x)                 = x ∷ []
+dfs mem (branch nothing    l r)  = dfs mem l ++ dfs mem r
+dfs mem (branch (just id)  l r) with lookup id mem
+... | nothing  = dfs (insert id true mem) l ++ dfs (insert id false mem) r
+... | just d   = if d then dfs mem l else dfs mem r
+
+runNonDet : Free (NonDet ∷ ops) A → Free ops (Tree A)
+runNonDet (pure x)         = pure (leaf x)
+runNonDet (Choice′ cid κ)  = branch cid <$> runNonDet (κ true) <*> runNonDet (κ false)
+runNonDet Fail′            = pure failed
+runNonDet (Other s κ)      = impure (s , runNonDet ∘ κ)
+\end{code}
+
+\begin{code}
+bshare  : ⦃ NonDet ∈ ops ⦄ → Free (Share ∷ ops) A {i} → Free ops A
+eshare  : ⦃ NonDet ∈ ops ⦄ → ℕ → ℕ × ℕ → Free (Share ∷ ops) A {i}
+  → Free ops (Free (Share ∷ ops) A {i})
+
+bshare (pure x)        = pure x
+bshare (BShare sid κ)  = eshare 0 sid (κ tt) >>= bshare
+bshare (EShare sid κ)  = bshare (κ tt) -- missmatched scopes, we just continue!
+bshare (Other  s   κ)  = impure (s , bshare ∘ κ)
+
+eshare next sid (pure x)         = pure (pure x)
+eshare next sid (BShare sid′ κ)  = eshare 0 sid′ (κ tt) >>= eshare next sid
+eshare next sid (EShare sid′ κ)  = pure (κ tt) -- usually test that sid′ = sid
+eshare next sid p@(Other s κ) with prj {NonDet} p
+... | just (⁇ˢ _  , κ′)  = inj $ ⁇ˢ (just $ sid , next) , eshare (1 + next) sid ∘ κ′
+... | just (failˢ , κ′)  = inj $ failˢ , λ()
+... | nothing            = impure (s , eshare next sid ∘ κ)
+\end{code}
+Next we will define the \AgdaFunction{share} operator as described by
+Bunkenburg.
+The operator generates new unique identifiers using a \AgdaDatatype{State}
+effect.
+
+\begin{code}
+record Shareable (ops : List Container) (A : Set) : Set₁ where
+  field
+    shareArgs : A → Free ops A
+open Shareable ⦃...⦄ public
+
+begin end : ⦃ Share ∈ ops ⦄ → ℕ × ℕ → Free ops ⊤
+begin  id = op (bshareˢ id)
+end    id = op (eshareˢ id)
+
+share : ⦃ Shareable ops A ⦄ → ⦃ Share ∈ ops ⦄ → ⦃ State (ℕ × ℕ) ∈ ops ⦄ →
+  Free ops A → Free ops (Free ops A)
+share p = do
+  (i , j) ← get
+  put (1 + i , j)
+  pure do
+    begin (i , j)
+    put (i , 1 + j)
+    x  ← p
+    x′ ← shareArgs x
+    put (1 + i , j)
+    end (i , j)
+    pure x′
+
+instance
+  shareable-ℕ : Shareable ops ℕ
+  Shareable.shareArgs shareable-ℕ = pure
+\end{code}
+
+\subsection{Examples}
+
+\begin{code}
+CTC : List Container
+CTC = State (ℕ × ℕ) ∷ Share ∷ NonDet ∷ []
+
+runCTC : ⦃ Normalform CTC A B ⦄ → Free CTC A → List B
+runCTC p = dfs empty $ run $ runNonDet $ bshare $ evalState (0 , 0) (! p)
+
+coin : ⦃ NonDet ∈ ops ⦄ → Free ops ℕ
+coin = pure 0 ⁇′ pure 1
+
+doubleCoin : ⦃ Share ∈ ops ⦄ → ⦃ State (ℕ × ℕ) ∈ ops ⦄ → ⦃ NonDet ∈ ops ⦄ →
+  Free ops ℕ
+doubleCoin = share coin >>= λ c → ⦇ c + c ⦈
+
+runDoubleCoin : runCTC doubleCoin ≡ 0 ∷ 2 ∷ []
+runDoubleCoin = refl
+\end{code}
+
+% shareHelper : ⦃ Share ∈ ops ⦄ → ⦃ State (ℕ × ℕ) ∈ ops ⦄ → ⦃ Shareable ops A ⦄ →
+%   Free ops A → (Free ops A → Free ops B) → Free ops B
+% shareHelper p k = share p >>= k
+% syntax shareHelper e₁ (λ x → e₂) = share x ← e₁ here e₂
+
+\subsection{Laws of Sharing}
+
