@@ -42,6 +42,7 @@
 \newunicodechar{ˡ}{\textsuperscript{l}}
 \newunicodechar{ʳ}{\textsuperscript{r}}
 \newunicodechar{ᴹ}{\textsuperscript{M}}
+\newunicodechar{ₙ}{\textsubscript{n}}
 \newunicodechar{₀}{\textsubscript{0}}
 \newunicodechar{₁}{\textsubscript{1}}
 \newunicodechar{₂}{\textsubscript{2}}
@@ -764,73 +765,19 @@ Introduce Free Variables + Explain for Later Example
 
 
 \chapter{Algebraic Effects}
+\label{chapter:first-order}
 \input{FirstOrder}
 
+
 \chapter{Higher Order}
-\begin{itemize}
-  \item ultimatly failed
-  \item based on second approach from ``Effect Handlers in
-  Scope''\cite{DBLP:conf/haskell/WuSH14}
-  \item partially working implementation using (simplified) indexed containers
-  \item scoped effects without effectful data structures are working
-  \item does only partially work with monadic data structures (size problems
-    when using scoped effects like sharing)
-  \item sharing is the ``worst case scenario'' (scoped effect executed on every
-    effectful component of data structure)
-  \item size problems generally occur with this approach thanks to existential
-    types (which are instantiated again with \texttt{Free ...}) $\Rightarrow$
-    scoped effect representation (indexed container; indexed bicontainer;
-    in \texttt{Free} inlined existential type variable; ...) does not matter
-  \item see \url{https://lists.chalmers.se/pipermail/agda/2020/012248.html} for
-    simple implementation and explanation (conversation died down after
-    uncovering a bug in Agda)
-  \item embedding a growing hierarchy of types into each effectful programs
-    seems impractical (see mail)
-\end{itemize}
+\label{chapter:higher-order}
+\input{HigherOrder}
+
 
 \chapter{Scoped Algebras}
-\begin{itemize}
-  \item no explicit scope delimiters, but control over continuation (seems)
-    limited in contrast to HO approach (important for memorization of sharing)
-  \item based on Syntax and Semantics for Scoped Effects by Wu et al.~\cite{DBLP:conf/lics/PirogSWJ18}.
-  \item rewrites higher order monad using Kan Extension $\Rightarrow$ removes
-    coend (existential type variable) $\Rightarrow$ no size issue (marks
-    scopes using double monad layer)
+\label{chapter:scoped-algebras}
+\input{ScopedAlgebras}
 
-    \[
-      EA \cong A + \Sigma (EA) + \int^{X\in\mathcal{C}} \Gamma (EA) \times (EA)^X
-      \cong A + \Sigma (EA) + \Gamma (E(EA))
-    \]
-   
-  \item algebras from paper don't seem to compose easily, but traditional
-    handlers seem to work
-  \begin{itemize}
-    \item Carrier types are type families $\Rightarrow$ Agda implementation
-      could be easier than Haskell implementation thanks to better dependent
-      type support
-  \end{itemize}
-  \item (solved) (proof of monad laws seems impossible due to termination
-    issues thanks to double monadic layer in the \texttt{Scope} constructor)
-  \item own implementation using dependent folds by Fu and Selinger 
-    \cite{DBLP:journals/corr/abs-1806-05230} seems to work
-  \item Induction schemes allow (complicated) proofs
-  \item folds (scoped algebras) by Wu et al. are similar to generic folds
-    presented by Fu and Selinger (the later are more generic and allow the
-    definition of \bind{}, handlers and more without sized types)
-  \item it's possible to proof some (and probably all) laws
-    from~\cite{DBLP:conf/icfp/FischerKS09}
-  \item Combination of effects using standard approach
-    \cite{DBLP:conf/haskell/SchrijversPWJ19} (i.e. produce new program without
-    the interpreted syntax; I ``generalized'' the approach; handlers produce values of
-    type $\mathrm{(\mathrm{Free}\; C \circ \mathrm{Carrier})^n}$; contrasts with comment by
-    Wu et al.~\cite{DBLP:journals/corr/abs-1806-05230} suggesting different index
-    types for combined handlers)
-  \item traversal of foreign scopes is similar but not identical to higher order
-    approach (determines semantics of combined effects; e.g. cutting branches
-    containing \texttt{throw} calls)
-  \item correctness of combined handlers is not obvious (I did some tests and proved
-    some coherence lemmas, but general correctness is more complicated)
-\end{itemize}
 
 \chapter{Conclusion}
 \section{Summary}

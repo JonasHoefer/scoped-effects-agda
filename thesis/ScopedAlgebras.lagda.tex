@@ -1,0 +1,353 @@
+\begin{code}[hide]
+module ScopedAlgebras where
+
+open import Function using (id; _∘_; _$_; const)
+open import Level using (Level)
+
+open import Category.Monad using (RawMonad)
+open        RawMonad ⦃...⦄
+
+open import Data.Product using (Σ-syntax; _,_) renaming (proj₁ to π₁; proj₂ to π₂)
+open import Data.Nat using (ℕ; suc; _+_)
+open import Data.Sum using (_⊎_; inj₁; inj₂; [_,_])
+open import Data.Empty using (⊥)
+open import Data.List using (List; _∷_; []; foldr)
+open import Data.Unit using (⊤; tt)
+
+import Relation.Binary.PropositionalEquality as Eq
+open   Eq using (_≡_; refl; cong; sym; trans)
+open   Eq.≡-Reasoning using (_≡⟨⟩_; begin_; _∎; step-≡)
+
+postulate
+  extensionality : ∀ {ℓ ℓ′ : Level} {A : Set ℓ} {B : A → Set ℓ′} {f g : (x : A) → B x}
+      → (∀ (x : A) → f x ≡ g x) → f ≡ g
+\end{code}
+
+% \begin{itemize}
+%   \item no explicit scope delimiters, but control over continuation (seems)
+%     limited in contrast to HO approach (important for memorization of sharing)
+%   \item based on Syntax and Semantics for Scoped Effects by Wu et al.~\cite{DBLP:conf/lics/PirogSWJ18}.
+%   \item rewrites higher order monad using Kan Extension $\Rightarrow$ removes
+%     coend (existential type variable) $\Rightarrow$ no size issue (marks
+%     scopes using double monad layer)
+% 
+%     \[
+%       EA \cong A + \Sigma (EA) + \int^{X\in\mathcal{C}} \Gamma (EA) \times (EA)^X
+%       \cong A + \Sigma (EA) + \Gamma (E(EA))
+%     \]
+%    
+%   \item algebras from paper don't seem to compose easily, but traditional
+%     handlers seem to work
+%   \begin{itemize}
+%     \item Carrier types are type families $\Rightarrow$ Agda implementation
+%       could be easier than Haskell implementation thanks to better dependent
+%       type support
+%   \end{itemize}
+%   \item (solved) (proof of monad laws seems impossible due to termination
+%     issues thanks to double monadic layer in the \texttt{Scope} constructor)
+%   \item own implementation using dependent folds by Fu and Selinger 
+%     \cite{DBLP:journals/corr/abs-1806-05230} seems to work
+%   \item Induction schemes allow (complicated) proofs
+%   \item fold by Wu et al. is similar to generic fold, based on examples
+%     presented by Fu and Selinger (the later are more generic and allow the
+%     definition of \bind{}, handlers and more without sized types)
+%   \item it's possible to proof some (and probably all) laws of
+%     sharing~\cite{DBLP:conf/icfp/FischerKS09}
+%   \item Combination of handlers using standard
+%     approach~\cite{DBLP:conf/haskell/SchrijversPWJ19}
+%     \begin{itemize}
+%       \item partial handlers produce new program without the interpreted syntax
+%         and modified type
+%       \item scoped algebras use $\mathbb{N}$ indexed types (e.g. $n$-fold Lists
+%         $\texttt{List}^n\;\texttt{A}$ for nondeterminism)
+%       \item Wu et al. do not describe combination of handlers
+%       \item my handlers produce values of type $\mathrm{(\mathrm{Free}\; C \circ
+%           \mathrm{Carrier})^n\;\texttt{A}}$
+%       \item contrasts with comment by Wu et al.~\cite{DBLP:conf/lics/PirogSWJ18}
+%         suggesting different index types for combined handlers
+%     \end{itemize}
+%   \item traversal of foreign scopes is similar but not identical to higher order
+%     approach (determines semantics of combined effects; e.g. cutting branches
+%     containing \texttt{throw} calls)
+%   \item correctness of combined handlers is not obvious (I did some tests and proved
+%     some coherence lemmas, but general correctness is more complicated)
+% \end{itemize}
+
+
+...
+
+\section{The Monad $E$}
+
+Piróg et al. describe a monad, which is suited for modelling operations with
+scopes~\cite{DBLP:conf/lics/PirogSWJ18}.
+The monad is the result of rewriting a slightly modified version of the monad
+from ``Effect Handlers in Scope'' i.e. the monad used in chapter
+\ref{chapter:higher-order}.
+They separate the signature into one describing effects with scopes $\Gamma$ and
+one describing the algebraic effects $\Sigma$.
+The monad $E$ can be described as the fixpoint of the following equation, where
+the coend (the integral sign) denotes an existential types.
+
+\[
+  EA \cong A + \Sigma{}(EA) + \int^{X\in\mathscr{C}} \Gamma{}(EX) \times (EA)^X
+\]
+This representation looks appropriate considering our earlier definition.
+An element of the monad is either a value of $A$, an operation without scopes,
+i.e. a functor applied to \texttt{Free F A} or an operation with scopes.
+Operations with scopes (e.g. \texttt{catch}) always quantified over some type to
+store subprograms over the same signature but with different local result type.
+Furthermore they provided a continuation, which transformed values of the
+internal result type to the result type of the whole program.
+[GAMMA]
+The following Agda data type represents the above monad.
+
+\begin{code}[hide]
+record Container : Set₁ where
+  constructor _▷_
+  field
+    Shape : Set
+    Pos : Shape → Set
+open Container public
+
+⟦_⟧ : ∀ {ℓ} → Container → Set ℓ → Set ℓ
+⟦ S ▷ P ⟧ A = Σ[ s ∈ S ] (P s → A)
+
+-- TODO: EXPLAIN!
+map : {A B : Set} {C : Container} → (A → B) → ⟦ C ⟧ A → ⟦ C ⟧ B
+map f c = π₁ c , f ∘ π₂ c
+{-# INLINE map #-}
+
+_⊕_ : Container → Container → Container
+(S₁ ▷ P₁) ⊕ (S₂ ▷ P₂) = (S₁ ⊎ S₂) ▷ [ P₁ , P₂ ]
+
+Void : Container
+Void = ⊥ ▷ λ()
+\end{code}
+\begin{code}
+data E (Σ Γ : Container) (A : Set) : Set₁ where
+  var  : A → E Σ Γ A
+  op   : ⟦ Σ ⟧ (E Σ Γ A) → E Σ Γ A
+  scp  : {X : Set} → ⟦ Γ ⟧ (E Σ Γ X) → (X → E Σ Γ A) → E Σ Γ A
+\end{code}
+Notice again that this definition requires $X$ to be a smaller type than
+\AgdaDatatype{E} i.e. it's not sufficient to model deep effects as explained in
+chapter \ref{chapter:higher-order}.
+Piróg et al. also not size issues with this definition.
+
+Piróg et al. rewrite this definition using a left Kan extension and derive the
+following equivalent monad without the existential type.
+
+\[
+  EA \cong A + \Sigma{}(EA) + \Gamma{}(E(EA))
+\]
+An equivalent monad without the existential type is a promising candidate for
+modelling deep effects in Agda, because it avoids the size issues.
+
+\section{The \texttt{Prog} Monad}
+
+In this section we will define the central monad for this approach.
+Because signatures are split into effects with and without scopes we will define
+effects as pairs of functors and therefore \AgdaDatatype{Container}s.
+
+\begin{code}
+record Effect : Set₁ where
+  field
+    Ops Scps : Container
+open Effect public
+\end{code}
+The functions \AgdaFunction{ops} and \AgdaFunction{scps} combine the
+corresponding signatures of a \AgdaDatatype{List} of \AgdaDatatype{Effect}s.
+
+\begin{code}
+ops scps : List Effect → Container
+ops   = foldr  (λ e c → Ops   e ⊕ c)  Void
+scps  = foldr  (λ e c → Scps  e ⊕ c)  Void
+\end{code}
+Using these helper functions we can define a modular version of the monad by
+Piróg et al~\cite{DBLP:conf/lics/PirogSWJ18}.
+It's equivalent to the fixpoint and the Haskell definition from the paper
+(assuming that signatures are given by strictly positive functors).
+
+% TODO: Piróg et al. define algrabs in terms of antoher moand and proof
+% equvialence, but we cannot follow their defintion due to termination problems
+% => Alternative folds 
+\begin{code}
+data Prog (effs : List Effect) (A : Set) : Set where
+  var  :  A                                         → Prog effs A
+  op   :  ⟦ ops  effs  ⟧ (Prog effs A)              → Prog effs A
+  scp  :  ⟦ scps effs  ⟧ (Prog effs (Prog effs A))  → Prog effs A
+\end{code}
+Piróg et al. also derive algebras for the above monad, which correctly model
+scoped effects.
+To implement their recursion scheme we have to define \AgdaFunction{>>=} for 
+\AgdaDatatype{Prog}\AgdaSpace{}\AgdaArgument{effs}\AgdaSpace{}\AgdaArgument{A}.
+Notice that \AgdaDatatype{Prog} is a truly nested or non-regular data
+type~\cite{DBLP:conf/mpc/BirdM98}.
+
+Defining recursive functions for these data types is more complicated.
+The ``direct'' implementations of \AgdaFunction{fmap} and \AgdaFunction{>>=}
+do not obviously terminate.
+Augmenting \AgdaDatatype{Prog} with size annotations leads to problems when
+proving the monad laws\footnote{As in chapter \ref{chapter:higher-order} the
+  monad laws only hold for size $\infty$, but working with size $\infty$ in
+  proofs leads to termination problems.
+  The \AgdaInductiveConstructor{scp} constructor can produce an arbitrary number
+  of \AgdaDatatype{Prog}\AgdaSpace{}\AgdaArgument{effs} layers.
+  This forces us to use our induction hypothesis on not obviously smaller terms,
+  but size annotation is assumed to be $\infty$.}.
+Instead we will define a generic \texttt{fold}, which we can reuse for all
+functions traversing elements of
+\AgdaDatatype{Prog}\AgdaSpace{}\AgdaArgument{effs}\AgdaSpace{}\AgdaArgument{A}.
+
+
+\subsection{Folds for Nested Data Types}
+
+Defining recursion schemes for complex recursive data types is a common problem.
+Fu and Selinger demonstrate a general construction of a \texttt{fold}s for
+nested data types in Agda~\cite{DBLP:journals/corr/abs-1806-05230}.
+Following their construction and adapting it to arbitrary branching trees leads
+to a sufficiently strong \texttt{fold} to define all important functions for
+\AgdaDatatype{Prog}\AgdaSpace{}\AgdaArgument{effs}\AgdaSpace{}\AgdaArgument{A}.
+
+\paragraph{Index Type} The first part of the construction by Fu and Selinger is
+to define the correct index type for the data structure.
+The index type describes the recursive structure of the data type i.e. how the
+type variables at each level are instantiated.
+For complex mutual recursive data types the index type takes the form of a
+branching tree.
+For \AgdaDatatype{Prog}\AgdaSpace{}\AgdaArgument{effs}
+the one type variable is either instantiated with the value type $A$
+(\AgdaInductiveConstructor{pure}) or some number of
+\AgdaDatatype{Prog}\AgdaSpace{}\AgdaArgument{effs} layers applied to
+the current type variable (\AgdaInductiveConstructor{op},
+\AgdaInductiveConstructor{scp}).
+Our index type therefore just counts the number of
+\AgdaDatatype{Prog}\AgdaSpace{}\AgdaArgument{effs} layers, i.e. natural numbers
+are sufficient.
+
+Next Fu and Selinger define a type level function, which translates a value of
+the index type to its corresponding type.
+For 
+\AgdaDatatype{Prog}\AgdaSpace{}\AgdaArgument{effs}\AgdaSpace{}\AgdaArgument{A}
+this function just applies \AgdaDatatype{Prog}\AgdaSpace{}\AgdaArgument{effs}
+$n$ times to \AgdaArgument{A}.
+The operator \AgdaFunction{\_\textasciicircum\_} applies a function $n$-times to
+a given argument \AgdaArgument{x} i.e. it represents $n$-fold function
+application, usually denoted $f^n(x)$.
+
+\begin{code}[hide]
+infixl 10 _^_
+variable
+  A B : Set
+  effs : List Effect
+\end{code}
+\begin{code}
+_^_ : ∀ {ℓ} {C : Set ℓ} → (C → C) → ℕ → C → C
+(f ^ 0)      x = x
+(f ^ suc n)  x = f ((f ^ n) x)
+\end{code}
+
+\paragraph{Recursion Scheme} Next we will define \AgdaFunction{fold} for
+\AgdaDatatype{Prog}\AgdaSpace{}\AgdaArgument{effs}\AgdaSpace{}\AgdaArgument{A}.
+The fold produces an arbitrary $\mathbb{N}$ indexed value.
+The type family $P$ determines the result type at each index.
+The \AgdaFunction{fold} produces a value of type $P\;n$ for a given value of
+type
+$($\AgdaDatatype{Prog}\AgdaSpace{}\AgdaArgument{effs}\AgdaSpace{}\AgdaFunction{\textasciicircum}\AgdaSpace{}\AgdaArgument{n}$)$\AgdaSpace{}\AgdaArgument{A}.
+Furthermore the \texttt{fold} takes functions for processing substructures.
+As usual, the arguments of these function correspond to those of the
+constructors they processes with recursive occurrences of the type itself already
+processed.
+The cases are obtained by pattern matching on the index type and the value of
+type
+$($\AgdaDatatype{Prog}\AgdaSpace{}\AgdaArgument{effs}\AgdaSpace{}\AgdaFunction{\textasciicircum}\AgdaSpace{}\AgdaArgument{n}$)$\AgdaSpace{}\AgdaArgument{A}
+i.e. the value of the type depending on the index.
+
+\begin{code}
+fold : (P : ℕ → Set) → ∀ n →
+  (A                                           → P 0        )  →
+  (∀ {n} → P n                                 → P (suc n)  )  →
+  (∀ {n} → ⟦ ops   effs  ⟧  (P (suc n))        → P (suc n)  )  →
+  (∀ {n} → ⟦ scps  effs  ⟧  (P (suc (suc n)))  → P (suc n)  )  →
+  (Prog effs ^ n) A → P n
+fold P 0        a v o s x         = a  x
+fold P (suc n)  a v o s (var  x)  = v  (       fold P n              a v o s   x)
+fold P (suc n)  a v o s (op   x)  = o  (map (  fold P (suc n)        a v o s)  x)
+fold P (suc n)  a v o s (scp  x)  = s  (map (  fold P (suc (suc n))  a v o s)  x)
+\end{code}
+Notices that for the \AgdaInductiveConstructor{op} and
+\AgdaInductiveConstructor{spc} constructors the recursive occurrences and
+potential additional values are determined by the \AgdaDatatype{Container}.
+The functions therefore processor arbitrary \AgdaDatatype{Container} extensions,
+which contain solutions for the corresponding index.
+When implementing those two cases we cannot apply \AgdaFunction{fold} directly
+to recursive occurrences, because those depend on the choice of
+\AgdaDatatype{Container}.
+\AgdaFunction{map} for \AgdaDatatype{Container}s exactly captures the correct
+behavior.
+
+\paragraph{Example: \bind{}}
+Using \AgdaFunction{fold} we can implement \AgdaFunction{>>=} for
+\AgdaDatatype{Prog}\AgdaSpace{}\AgdaArgument{effs}\AgdaSpace{}\AgdaArgument{A}.
+The continuations \AgdaArgument{k} passed to \AgdaFunction{>>=} should just
+effect the inner most layer.
+Intuitively, when using bind an a value constructed with
+\AgdaInductiveConstructor{scp} we traverse the outer layer and call bind on the
+inner one recursively.
+To implement \AgdaFunction{>>=} we fold over the first argument.
+We could fix the arbitrary $n$ to be $1$, but defining a version generic in $n$
+is useful for later proofs.
+
+\begin{code}
+-- ! has to be defined outside to avoid capturing the outer n
+bind-P : ∀ A B effs → ℕ → Set
+bind-P A B effs 0       = A
+bind-P A B effs (suc n) = Prog effs ^ (suc n) $ B
+
+bind : ∀ n → (Prog effs ^ suc n) A → (A → Prog effs B) →
+  (Prog effs ^ suc n) B
+bind {effs} {A} {B} n ma k = fold (bind-P A B effs) (suc n) id (λ where
+    {0}      x → k x
+    {suc n}  x → var x
+  ) op scp ma
+
+instance
+  Prog-RawMonad : RawMonad (Prog effs)
+  Prog-RawMonad = record { return = var ; _>>=_ = bind 0 }
+\end{code}
+
+\subsection{Induction Schemes for Nested Data Types}
+
+\begin{code}
+ind : (P : (n : ℕ) → (Prog effs ^ n) A → Set) → ∀ n →
+  (∀ {x}        → A                                                    → P 0 x                     )  →
+  (∀ {n x}      → P n x                                                → P (suc n) (var x)         )  →
+  (∀ {n} s {κ}  → ((p : Pos (ops   effs) s) → P (suc n)        (κ p))  → P (suc n) (op   (s , κ))  )  →
+  (∀ {n} s {κ}  → ((p : Pos (scps  effs) s) → P (suc (suc n))  (κ p))  → P (suc n) (scp  (s , κ))  )  →
+  (x : (Prog effs ^ n) A) → P n x
+ind P 0       a v o s x               = a x
+ind P (suc n) a v o s (var x)         = v    (ind P n              a v o s x)
+ind P (suc n) a v o s (op   (c , κ))  = o c  (ind P (suc n)        a v o s ∘ κ)
+ind P (suc n) a v o s (scp  (c , κ))  = s c  (ind P (suc (suc n))  a v o s ∘ κ)
+\end{code}
+
+
+\subsection{The Monad Laws for \texttt{Prog}}
+
+\begin{code}
+bind-identˡ : ∀ {A B : Set} {a} {k : A → Prog effs B} →
+  (var a >>= k) ≡ k a
+bind-identˡ = refl
+
+bind-identʳ : {A : Set} (ma : Prog effs A) →
+  (ma >>= var) ≡ ma
+bind-identʳ {effs} {A} = ind (λ where
+    0        p → ⊤
+    (suc n)  p → bind n p var ≡ p
+  ) 1 _ (λ where
+    {0}      p → refl
+    {suc n}  p → cong var p
+  )
+  (λ s → cong (op   ∘ (s ,_)) ∘ extensionality)
+  (λ s → cong (scp  ∘ (s ,_)) ∘ extensionality)
+\end{code}

@@ -1,0 +1,81 @@
+\begin{code}[hide]
+module HigherOrder where
+\end{code}
+
+% \begin{itemize}
+%   \item ultimatly failed
+%   \item based on second approach from ``Effect Handlers in
+%   Scope''\cite{DBLP:conf/haskell/WuSH14}
+%   \item partially working implementation using (simplified) indexed containers
+%   \item scoped effects without effectful data structures are working
+%   \item does only partially work with effectful data structures due to size
+%     problems when using scoped effects like sharing
+%   \item sharing is the ``worst case scenario'' (scoped effect executed on every
+%     effectful component of data structure)
+%   \item size problems generally occur with this approach thanks to existential
+%     types (instantiated with again type \texttt{Free ...}) $\Rightarrow$
+%     scoped effect representation (indexed container; indexed bicontainer;
+%     in \texttt{Free} inlined existential type variable; ...) does not matter
+%   \item see \url{https://lists.chalmers.se/pipermail/agda/2020/012248.html} for
+%     simple implementation and explanation
+%   \item embedding a growing hierarchy of types into each effectful programs
+%     seems impractical (explanation in email)
+% \end{itemize}
+
+To address problems of the first order approach, like mismatched scope
+delimiters and explicit control over the continuation, Wu et al. introduced a
+second approach utilizing higher order syntax~\cite{DBLP:conf/haskell/WuSH14}.
+Bunkenburg already tried to implement some scoped effects using this approach,
+but failed due to limitations of Coq~\cite{bunkenburg2019modeling}.
+
+Chapter \ref{chapter:first-order} demonstrated how the first order approach
+could be transferred to Agda utilizing container representations for functors
+and sized types.
+This chapter focuses on the implementation of effects using higher order syntax.
+It partially follows Bunkenburg's approach, because the limitation of Coq
+described by him does not exist in Agda.
+Therefore this chapter focuses on expanding his approach further.
+Due to other limitations, needed for the consistency of Agda, this approach
+ultimately failed again.
+
+
+\section{Higher Order Syntax}
+
+In the first order approach effects only store possible continuations.
+In the higher order approach by Wu et al. scoped effects store possible
+continuations as well as the part of the program in their scope.
+
+In the first order approach the functors, which describe the syntax, are applied
+to types of the form \texttt{Free F A} i.e. programs consisting of syntax as
+described by \texttt{Free F}, which produce values of type \texttt{A}.
+In the higher order approach these functors are generalized to higher order
+functors i.e. in Haskell a data type of kind \texttt{(* -> *) -> * -> *}.
+These functors are applied to \texttt{Free F} and \texttt{A} separately.
+
+Because the program type is separated in syntax and result type it is possible
+to store programs, which use the same signature but produce values of different
+types.
+Consider the following definition of the higher order exception syntax as given
+by Wu et al.
+
+\begin{minted}{haskell}
+  data HExc e m a = Throw e | forall x. Catch (m x) (e -> m x) (x -> m a)
+\end{minted}
+The catch operation stores the computation in the scope of the catch block
+\texttt{m x}, the handler producing an alternative value in case of an error
+\texttt{e -> m x} as well as the continuation \texttt{x -> m a}.
+The three programs agree on an arbitrary, but per \texttt{catch} fixed type
+\texttt{x}.
+
+
+\section{Representing Strictly Positive Higher Order Functors}
+
+\begin{code}
+record Container : Set₂ where
+  constructor _◁_/_
+  field
+    Shape : Set₁
+    Pos : Shape → Set
+    Ctx : (s : Shape) → Pos s → Set → Set
+\end{code}
+
