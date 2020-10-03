@@ -20,29 +20,37 @@
 \newunicodechar{∀}{\ensuremath{\mathnormal{\forall}}}
 \newunicodechar{ℓ}{\ensuremath{\mathnormal{\ell}}}
 \newunicodechar{▷}{\ensuremath{\mathnormal{\rhd}}}
+\newunicodechar{◁}{\ensuremath{\mathnormal{\lhd}}}
 \newunicodechar{∈}{\ensuremath{\mathnormal{\in}}}
 \newunicodechar{⦃}{\ensuremath{\mathnormal{\lBrace}}}
 \newunicodechar{⦄}{\ensuremath{\mathnormal{\rBrace}}}
 \newunicodechar{⦇}{\ensuremath{\mathnormal{\llparenthesis}}}
 \newunicodechar{⦈}{\ensuremath{\mathnormal{\rrparenthesis}}}
+\newunicodechar{⟨}{\ensuremath{\mathnormal{\langle}}}
+\newunicodechar{⟩}{\ensuremath{\mathnormal{\rangle}}}
 \newunicodechar{≅}{\ensuremath{\mathnormal{\cong}}}
 \newunicodechar{⊕}{\ensuremath{\mathnormal{\oplus}}}
 \newunicodechar{⊎}{\ensuremath{\mathnormal{\uplus}}}
-\newunicodechar{λ}{\ensuremath{\mathnormal{\lambda}}}
+\newunicodechar{η}{\ensuremath{\mathnormal{\eta}}}
 \newunicodechar{κ}{\ensuremath{\mathnormal{\kappa}}}
+\newunicodechar{λ}{\ensuremath{\mathnormal{\lambda}}}
 \newunicodechar{⊛}{\ensuremath{\mathnormal{\circledast}}}
 \newunicodechar{∘}{\ensuremath{\mathnormal{\circ}}}
 \newunicodechar{≡}{\ensuremath{\mathnormal{\equiv}}}
 \newunicodechar{⁇}{\ensuremath{\mathnormal{?\!?}}}
+\newunicodechar{∎}{\ensuremath{\mathnormal{\QED}}}
 % see https://tex.stackexchange.com/questions/511401/newunicodechar-fails-for-prime-only
 \AtBeginDocument{\newunicodechar{′}{\makebox[\fontcharwd\font`a]{$\prime$}}}
 \newunicodechar{⊥}{\ensuremath{\mathnormal{\bot}}}
 \newunicodechar{⊤}{\ensuremath{\mathnormal{\top}}}
-\newunicodechar{ˢ}{\textsuperscript{s}}
 \newunicodechar{ˡ}{\textsuperscript{l}}
-\newunicodechar{ʳ}{\textsuperscript{r}}
-\newunicodechar{ᴹ}{\textsuperscript{M}}
 \newunicodechar{ₙ}{\textsubscript{n}}
+\newunicodechar{ᵖ}{\textsuperscript{p}}
+\newunicodechar{ʳ}{\textsuperscript{r}}
+\newunicodechar{ˢ}{\textsuperscript{s}}
+\newunicodechar{ᴸ}{\textsuperscript{L}}
+\newunicodechar{ᴹ}{\textsuperscript{M}}
+\newunicodechar{ᴾ}{\textsuperscript{P}}
 \newunicodechar{₀}{\textsubscript{0}}
 \newunicodechar{₁}{\textsubscript{1}}
 \newunicodechar{₂}{\textsubscript{2}}
@@ -74,6 +82,8 @@
   {\AgdaUnderscore{}\ensuremath{\mathbin{>\!\!\!>}}\AgdaUnderscore{}}
   {\ifthenelse{\equal{#1}{<\$>}}
   {\fmap}
+  {\ifthenelse{\equal{#1}{++}}
+  {\ensuremath{+\!+}}
   {\ifthenelse{\equal{#1}{\$}}
   {\ensuremath{\$}}
   {\ifthenelse{\equal{#1}{<\$>\AgdaUnderscore{}}}
@@ -82,7 +92,7 @@
   {\AgdaUnderscore{}\fmap\AgdaUnderscore{}}
   {\ifthenelse{\equal{#1}{\AgdaUnderscore{}<*>\AgdaUnderscore{}}}
   {\AgdaUnderscore{}\ap\AgdaUnderscore{}}
-  {#2}}}}}}}}}}}}
+  {#2}}}}}}}}}}}}}
 
 \usepackage{graphicx}
 \graphicspath{{images/}}

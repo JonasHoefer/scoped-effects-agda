@@ -5,13 +5,17 @@ open import Function using (id; _∘_; _$_; const)
 open import Level using (Level)
 
 open import Category.Monad using (RawMonad)
-open        RawMonad ⦃...⦄
+open        RawMonad ⦃...⦄ renaming (_⊛_ to _<*>_)
 
+open import Data.Bool using (Bool; true; false; if_then_else_)
 open import Data.Product using (Σ-syntax; _,_) renaming (proj₁ to π₁; proj₂ to π₂)
+open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Nat using (ℕ; suc; _+_)
+open import Data.Product using (_×_; _,_)
 open import Data.Sum using (_⊎_; inj₁; inj₂; [_,_])
 open import Data.Empty using (⊥)
-open import Data.List using (List; _∷_; []; foldr)
+open import Data.List using (List; _∷_; []; _++_; foldr) renaming (map to mapᴸ)
+open import Data.List.Relation.Unary.Any using (Any; here; there) renaming (map to map∈)
 open import Data.Unit using (⊤; tt)
 
 import Relation.Binary.PropositionalEquality as Eq
@@ -22,59 +26,6 @@ postulate
   extensionality : ∀ {ℓ ℓ′ : Level} {A : Set ℓ} {B : A → Set ℓ′} {f g : (x : A) → B x}
       → (∀ (x : A) → f x ≡ g x) → f ≡ g
 \end{code}
-
-% \begin{itemize}
-%   \item no explicit scope delimiters, but control over continuation (seems)
-%     limited in contrast to HO approach (important for memorization of sharing)
-%   \item based on Syntax and Semantics for Scoped Effects by Wu et al.~\cite{DBLP:conf/lics/PirogSWJ18}.
-%   \item rewrites higher order monad using Kan Extension $\Rightarrow$ removes
-%     coend (existential type variable) $\Rightarrow$ no size issue (marks
-%     scopes using double monad layer)
-% 
-%     \[
-%       EA \cong A + \Sigma (EA) + \int^{X\in\mathcal{C}} \Gamma (EA) \times (EA)^X
-%       \cong A + \Sigma (EA) + \Gamma (E(EA))
-%     \]
-%    
-%   \item algebras from paper don't seem to compose easily, but traditional
-%     handlers seem to work
-%   \begin{itemize}
-%     \item Carrier types are type families $\Rightarrow$ Agda implementation
-%       could be easier than Haskell implementation thanks to better dependent
-%       type support
-%   \end{itemize}
-%   \item (solved) (proof of monad laws seems impossible due to termination
-%     issues thanks to double monadic layer in the \texttt{Scope} constructor)
-%   \item own implementation using dependent folds by Fu and Selinger 
-%     \cite{DBLP:journals/corr/abs-1806-05230} seems to work
-%   \item Induction schemes allow (complicated) proofs
-%   \item fold by Wu et al. is similar to generic fold, based on examples
-%     presented by Fu and Selinger (the later are more generic and allow the
-%     definition of \bind{}, handlers and more without sized types)
-%   \item it's possible to proof some (and probably all) laws of
-%     sharing~\cite{DBLP:conf/icfp/FischerKS09}
-%   \item Combination of handlers using standard
-%     approach~\cite{DBLP:conf/haskell/SchrijversPWJ19}
-%     \begin{itemize}
-%       \item partial handlers produce new program without the interpreted syntax
-%         and modified type
-%       \item scoped algebras use $\mathbb{N}$ indexed types (e.g. $n$-fold Lists
-%         $\texttt{List}^n\;\texttt{A}$ for nondeterminism)
-%       \item Wu et al. do not describe combination of handlers
-%       \item my handlers produce values of type $\mathrm{(\mathrm{Free}\; C \circ
-%           \mathrm{Carrier})^n\;\texttt{A}}$
-%       \item contrasts with comment by Wu et al.~\cite{DBLP:conf/lics/PirogSWJ18}
-%         suggesting different index types for combined handlers
-%     \end{itemize}
-%   \item traversal of foreign scopes is similar but not identical to higher order
-%     approach (determines semantics of combined effects; e.g. cutting branches
-%     containing \texttt{throw} calls)
-%   \item correctness of combined handlers is not obvious (I did some tests and proved
-%     some coherence lemmas, but general correctness is more complicated)
-% \end{itemize}
-
-
-...
 
 \section{The Monad $E$}
 
@@ -122,12 +73,16 @@ _⊕_ : Container → Container → Container
 
 Void : Container
 Void = ⊥ ▷ λ()
+
+sum : List Container → Container
+sum = foldr _⊕_ Void
+
 \end{code}
 \begin{code}
-data E (Σ Γ : Container) (A : Set) : Set₁ where
-  var  : A → E Σ Γ A
-  op   : ⟦ Σ ⟧ (E Σ Γ A) → E Σ Γ A
-  scp  : {X : Set} → ⟦ Γ ⟧ (E Σ Γ X) → (X → E Σ Γ A) → E Σ Γ A
+data ProgE (Σ Γ : Container) (A : Set) : Set₁ where
+  var  : A → ProgE Σ Γ A
+  op   : ⟦ Σ ⟧ (ProgE Σ Γ A) → ProgE Σ Γ A
+  scp  : {X : Set} → ⟦ Γ ⟧ (ProgE Σ Γ X) → (X → ProgE Σ Γ A) → ProgE Σ Γ A
 \end{code}
 Notice again that this definition requires $X$ to be a smaller type than
 \AgdaDatatype{E} i.e. it's not sufficient to model deep effects as explained in
@@ -160,8 +115,8 @@ corresponding signatures of a \AgdaDatatype{List} of \AgdaDatatype{Effect}s.
 
 \begin{code}
 ops scps : List Effect → Container
-ops   = foldr  (λ e c → Ops   e ⊕ c)  Void
-scps  = foldr  (λ e c → Scps  e ⊕ c)  Void
+ops   = sum ∘ mapᴸ Ops
+scps  = sum ∘ mapᴸ Scps
 \end{code}
 Using these helper functions we can define a modular version of the monad by
 Piróg et al~\cite{DBLP:conf/lics/PirogSWJ18}.
@@ -170,7 +125,7 @@ It's equivalent to the fixpoint and the Haskell definition from the paper
 
 % TODO: Piróg et al. define algrabs in terms of antoher moand and proof
 % equvialence, but we cannot follow their defintion due to termination problems
-% => Alternative folds 
+% => Alternative folds
 \begin{code}
 data Prog (effs : List Effect) (A : Set) : Set where
   var  :  A                                         → Prog effs A
@@ -227,7 +182,7 @@ are sufficient.
 
 Next Fu and Selinger define a type level function, which translates a value of
 the index type to its corresponding type.
-For 
+For
 \AgdaDatatype{Prog}\AgdaSpace{}\AgdaArgument{effs}\AgdaSpace{}\AgdaArgument{A}
 this function just applies \AgdaDatatype{Prog}\AgdaSpace{}\AgdaArgument{effs}
 $n$ times to \AgdaArgument{A}.
@@ -238,7 +193,7 @@ application, usually denoted $f^n(x)$.
 \begin{code}[hide]
 infixl 10 _^_
 variable
-  A B : Set
+  A B E S : Set
   effs : List Effect
 \end{code}
 \begin{code}
@@ -286,7 +241,7 @@ to recursive occurrences, because those depend on the choice of
 \AgdaFunction{map} for \AgdaDatatype{Container}s exactly captures the correct
 behavior.
 
-\paragraph{Example: \bind{}}
+\paragraph{Example}
 Using \AgdaFunction{fold} we can implement \AgdaFunction{>>=} for
 \AgdaDatatype{Prog}\AgdaSpace{}\AgdaArgument{effs}\AgdaSpace{}\AgdaArgument{A}.
 The continuations \AgdaArgument{k} passed to \AgdaFunction{>>=} should just
@@ -297,26 +252,65 @@ inner one recursively.
 To implement \AgdaFunction{>>=} we fold over the first argument.
 We could fix the arbitrary $n$ to be $1$, but defining a version generic in $n$
 is useful for later proofs.
+The \AgdaDatatype{ℕ} indexed type \AgdaDatatype{bind-P} defines the type for the
+intermediate result at every layer.
 
 \begin{code}
--- ! has to be defined outside to avoid capturing the outer n
 bind-P : ∀ A B effs → ℕ → Set
 bind-P A B effs 0       = A
 bind-P A B effs (suc n) = Prog effs ^ (suc n) $ B
+\end{code}
+\bind{} corresponds to variable substitution i.e. it replaces the values stored
+in \AgdaInductiveConstructor{var} leafs with subtrees generated from these
+values.
+Calling $k$ on a program with zero layers (a value of type \AgdaArgument{A})
+would produce a program with one layer.
+Therefore, \bind{} can only be called on programs with at least one layer.
+The lowest layer is extended with the result of \AgdaArgument{k}.
+For all numbers greater than zero we produce a program with the same structure
+but a different value type.
+For layer zero (i.e. values) we could either produce a value of type 
+\AgdaDatatype{Prog}\AgdaSpace{}\AgdaArgument{effs}\AgdaSpace{}\AgdaArgument{B}
+or leave the value of type \AgdaArgument{A} unchanged.
+In both cases we have to handle the lowest \AgdaInductiveConstructor{var}
+constructors differently.
 
+\begin{code}
 bind : ∀ n → (Prog effs ^ suc n) A → (A → Prog effs B) →
   (Prog effs ^ suc n) B
 bind {effs} {A} {B} n ma k = fold (bind-P A B effs) (suc n) id (λ where
     {0}      x → k x
     {suc n}  x → var x
   ) op scp ma
+\end{code}
+We left the values unchanged, therefore the \AgdaInductiveConstructor{var}
+constructor at layer zero has to produce value of type 
+\AgdaDatatype{Prog}\AgdaSpace{}\AgdaArgument{effs}\AgdaSpace{}\AgdaArgument{B}
+by calling \AgdaArgument{k}.
+In all other cases we replace each constructor with itself to leave these parts
+unchanged.
 
+Using \bind{} for a program with one layer and \AgdaInductiveConstructor{var} as
+\AgdaFunction{return} we can define a monad instance for
+\AgdaDatatype{Prog}\AgdaSpace{}\AgdaArgument{effs}.
+In contrast to Haskell this automatically defines a functor and an applicative
+instances, because these can be defined in terms of \bind{} and
+\AgdaFunction{return}\footnote{We automatically obtain the functions
+  \AgdaFunction{<\$>}, \AgdaFunction{<*>}, \AgdaFunction{pure} and
+  \AgdaFunction{>>}. }.
+\begin{code}
 instance
   Prog-RawMonad : RawMonad (Prog effs)
   Prog-RawMonad = record { return = var ; _>>=_ = bind 0 }
 \end{code}
+The record (which is used as a type class) is part of the Agda standard library.
+It is named \AgdaDatatype{RawMonad}, because it does not enforce the monad laws.
+We will prove the laws in section \ref{subsec:scoped-algebra:monad-laws} using
+a technique from section \ref{subsec:scoped-algebra:ind}.
+
 
 \subsection{Induction Schemes for Nested Data Types}
+\label{subsec:scoped-algebra:ind}
 
 \begin{code}
 ind : (P : (n : ℕ) → (Prog effs ^ n) A → Set) → ∀ n →
@@ -332,22 +326,327 @@ ind P (suc n) a v o s (scp  (c , κ))  = s c  (ind P (suc (suc n))  a v o s ∘ 
 \end{code}
 
 
-\subsection{The Monad Laws for \texttt{Prog}}
+\subsection{Proving the Monad Laws}
+\label{subsec:scoped-algebra:monad-laws}
+
+\paragraph{Left Identity}
+First we will prove the left identitiy law.
+Because the value passed \AgdaFunction{>>=} constructed using
+\AgdaFunction{return} i.e. \AgdaInductiveConstructor{var} both sides of the
+equality can be directly evaluated to
+\AgdaArgument{k}\AgdaSpace{}\AgdaArgument{a}.
 
 \begin{code}
 bind-identˡ : ∀ {A B : Set} {a} {k : A → Prog effs B} →
-  (var a >>= k) ≡ k a
+  (return a >>= k) ≡ k a
 bind-identˡ = refl
-
-bind-identʳ : {A : Set} (ma : Prog effs A) →
-  (ma >>= var) ≡ ma
-bind-identʳ {effs} {A} = ind (λ where
-    0        p → ⊤
-    (suc n)  p → bind n p var ≡ p
-  ) 1 _ (λ where
-    {0}      p → refl
-    {suc n}  p → cong var p
-  )
-  (λ s → cong (op   ∘ (s ,_)) ∘ extensionality)
-  (λ s → cong (scp  ∘ (s ,_)) ∘ extensionality)
 \end{code}
+
+\paragraph{Right Identity}
+When proving the right identity the value passed to \AgdaFunction{>>=} can be an
+arbitrarily complex program. Therefore the proposition is not ``obvious'' as it
+was the case with \AgdaFunction{bind-identˡ}.
+
+\begin{AgdaAlign}
+\begin{code}
+bind-identʳ : {A : Set} (ma : Prog effs A) →
+  (ma >>= return) ≡ ma
+\end{code}
+\AgdaFunction{>>=} is recursive in its first argument, therefore we will prove
+the proposition by induction on \AgdaArgument{ma}.
+To use the induction scheme we have to define a proposition for every layer.
+Since \AgdaFunction{>>=} does not change values we simply produce a value of
+type \AgdaDatatype{⊤} at layer zero.
+For all other we proof the proposition for the appropriate
+\AgdaFunction{bind} i.e. the one called by \AgdaFunction{fold} to handle a value
+for the given \AgdaArgument{n}.
+
+\begin{code}
+bind-identʳ {effs} {A} = ind (λ{ 0 _ → ⊤ ; (suc n) p → bind n p var ≡ p })
+\end{code}
+We call the induction scheme with the given value with one layer, therefore the
+initial \AgdaArgument{n} is \AgdaNumber{1}.
+The ``proof'' for values can be inferred, because fr each value it's just a
+value of the unit type.
+
+\begin{code}
+  1 _
+\end{code}
+To proof that the proposition holds for values constructed using
+\AgdaInductiveConstructor{var} we have to case split on the number of layers
+\AgdaArgument{n}.
+For \AgdaNumber{0} we have to proof that
+\AgdaInductiveConstructor{var}\AgdaSpace{}\AgdaArgument{x} is equal to itself,
+because \AgdaFunction{>>=} leaves values unchanged.
+This proof forms the basis for our induction.
+
+For the second case we are given a program \AgdaArgument{x} with
+\AgdaInductiveConstructor{suc}\AgdaSpace{}\AgdaArgument{n} layers and an
+induction hypothesis \AgdaArgument{IH} that the proposition holds for a call to
+\AgdaFunction{bind}\AgdaSpace{}\AgdaArgument{n}.
+We have to prove that the proposition holds for
+\AgdaFunction{bind}\AgdaSpace{}$($\AgdaInductiveConstructor{suc}\AgdaSpace\AgdaArgument{n}$)$
+and the new program \AgdaInductiveConstructor{var}\AgdaSpace{}\AgdaArgument{x}.
+By applying the \AgdaFunction{>>=} rule for \AgdaInductiveConstructor{var} (for
+\AgdaArgument{n} greater than zero) we can move \AgdaInductiveConstructor{var}
+to the outside.
+The new proposition is
+\AgdaInductiveConstructor{var}\AgdaSpace{}$($\AgdaFunction{bind}\AgdaSpace{}\AgdaArgument{n}$)$\AgdaSpace{}\AgdaDatatype{≡}\AgdaSpace{}\AgdaInductiveConstructor{var}\AgdaSpace{}\AgdaArgument{x}.
+This proposition is equal to the induction hypothesis with
+\AgdaInductiveConstructor{var} applied to both sides.
+Therefore we can proof it using congruence.
+
+\begin{code}
+  (λ{ {0} (tt) → refl ; {suc n} IH → cong var IH })
+\end{code}
+The proofs for the \AgdaInductiveConstructor{op} and
+\AgdaInductiveConstructor{scp} are identical and similar to the
+\AgdaInductiveConstructor{var} case. For each shape \AgdaArgument{s} we are
+given a proof for each position of the given shape.
+We have to proof that the proposition holds for a new program constructed using
+either \AgdaInductiveConstructor{op} or \AgdaInductiveConstructor{scp}.
+For both constrcutors \AgdaFunction{bind}\AgdaSpace{}\AgdaArgument{n} calls
+itself recusrivly on the all contained values i.e. the results of the position
+function.
+Using congruence we can simplify the equality to the equality of the position
+functions.
+By invoking the axiom of extensionality we can prove the equality for each
+position.
+This equality is exactly the one given by the induction hypothesis.
+
+\begin{code}
+  (λ s IH → cong (op   ∘ (s ,_)) (extensionality IH))
+  (λ s IH → cong (scp  ∘ (s ,_)) (extensionality IH))
+\end{code}
+\end{AgdaAlign}
+
+\paragraph{Associativity}
+The proof for associativity follows the same pattern as the one for the right
+identity.
+\AgdaFunction{>>=} is defined by recursion on its first argument.
+We therefore proof the proposition by induction on \AgdaArgument{ma}.
+In all cases the left-hand side reduces to the induction hypothesis in the same
+manner as before.
+Therefore these cases look identical.
+
+\begin{code}
+bind-assoc : ∀ {A B C}
+  (f : A → Prog effs B) (g : B → Prog effs C) (ma : Prog effs A) →
+  (ma >>= f >>= g) ≡ (ma >>= λ a → f a >>= g)
+bind-assoc f g = ind
+  (λ where
+    0 p        → ⊤
+    (suc n) p  → bind n (bind n p f) g ≡ bind n p λ a → bind 0 (f a) g
+  ) 1 _
+  (λ{ {0} _ → refl ; {suc n} IH → cong var IH})
+  (λ s IH → cong (op   ∘ (s ,_)) (extensionality IH))
+  (λ s IH → cong (scp  ∘ (s ,_)) (extensionality IH))
+\end{code}
+
+\paragraph{Functor and Applicative Laws}
+The monad laws imply the functor and applicative laws.
+We can proof them without using explicit induction by just rewriting equations
+involving \AgdaFunction{>>=}.
+These proofs are simpler than the ones explicitly involving the definition of
+\AgdaFunction{>>=} using \AgdaFunction{fold}.
+We can write them using the chain reasoning operators as described by
+Norell~\cite{norell:thesis}.
+
+\begin{code}
+fmap-id : ∀ {effs} {A B : Set} → (ma : Prog effs A) → (id <$> ma) ≡ ma
+fmap-id ma = begin
+  (id <$> ma)                ≡⟨⟩ -- definition of <$>
+  (ma >>= λ a → var (id a))  ≡⟨⟩ -- definition of id and η-conversion
+  (ma >>= var)               ≡⟨ bind-identʳ ma ⟩
+  ma                         ∎
+\end{code}
+
+
+\section{Combining Effects}
+
+\begin{code}
+variable
+  C  : Container
+  Cs : List Container
+  e : Effect
+
+infix 3 _∈_
+_∈_ : ∀ {a} {A : Set a} → A → List A → Set a
+x ∈ xs = Any (_≡_ x) xs
+
+instance
+  ∈-head : ∀ {a} {A : Set a} {x : A} {xs} → x ∈ x ∷ xs
+  ∈-head = here refl
+
+  ∈-tail : ∀ {a} {A : Set a} {x y : A} {xs} → ⦃ x ∈ xs ⦄ → x ∈ y ∷ xs
+  ∈-tail ⦃ p ⦄ = there p
+
+inj : C ∈ Cs → ⟦ C ⟧ A → ⟦ sum Cs ⟧ A
+inj (here refl) (s , κ) = inj₁ s , κ
+inj (there p)   q       with inj p q
+... | s , κ = inj₂ s , κ
+
+prj : C ∈ Cs → ⟦ sum Cs ⟧ A → Maybe (⟦ C ⟧ A)
+prj (here refl) (inj₁ s , κ) = just (s , κ)
+prj (here refl) (inj₂ s , κ) = nothing
+prj (there p)   (inj₁ s , κ) = nothing
+prj (there p)   (inj₂ s , κ) = prj p (s , κ)
+
+opsInj : (e ∈ effs) → Ops e ∈ mapᴸ Ops effs
+opsInj (here refl) = here refl
+opsInj (there p)   = there (opsInj p)
+
+scpsInj : (e ∈ effs) → Scps e ∈ mapᴸ Scps effs
+scpsInj (here refl) = here refl
+scpsInj (there p)   = there (scpsInj p)
+
+Op : ⦃ e ∈ effs ⦄ → ⟦ Ops e ⟧ (Prog effs A) → Prog effs A
+Op ⦃ p ⦄ = op ∘ inj (opsInj p)
+
+Scp : ⦃ e ∈ effs ⦄ → ⟦ Scps e ⟧ (Prog effs (Prog effs A)) → Prog effs A
+Scp ⦃ p ⦄ = scp ∘ inj (scpsInj p)
+\end{code}
+
+
+\section{Nondet}
+
+\begin{code}
+data Choiceˢ  : Set where ⁇ˢ failˢ  : Choiceˢ
+data Onceˢ    : Set where onceˢ     : Onceˢ
+
+Nondet : Effect
+Ops   Nondet = Choiceˢ  ▷ λ{ ⁇ˢ → Bool ; failˢ → ⊥ }
+Scps  Nondet = Onceˢ    ▷ const ⊤
+\end{code}
+
+\subsection{As Scoped Algebra}
+
+\begin{code}
+record ScopedAlgebra (E : Effect) (C : ℕ → Set) : Set where
+  constructor ⟨_,_,_⟩
+  field
+    p : ∀ {n} → C n                      → C (1 + n)
+    d : ∀ {n} → ⟦ Scps  E ⟧ (C (2 + n))  → C (1 + n)
+    a : ∀ {n} → ⟦ Ops   E ⟧ (C (1 + n))  → C (1 + n)
+open ScopedAlgebra
+
+foldᴾ : ∀ {C : Set → ℕ → Set} → ScopedAlgebra e (C A) → Prog (e ∷ []) (C A 0) → C A 1
+foldᴾ {C = C} ⟨ p , d , a ⟩ = fold (C _) 1 id p
+  (λ{ (inj₁ s , κ) → a (s , κ) }) λ{ (inj₁ s , κ) → d (s , κ) }
+
+NondetAlg : ScopedAlgebra Nondet (λ i → List ^ i $ A)
+p NondetAlg              = _∷ []
+a NondetAlg (⁇ˢ    , κ)  = κ true ++ κ false
+a NondetAlg (failˢ , κ)  = []
+d NondetAlg (onceˢ , κ)  with κ tt
+... | []     = []
+... | x ∷ _  = x
+
+runNondetᴾ : Prog (Nondet ∷ []) A → List A
+runNondetᴾ = foldᴾ {C = λ A i → List ^ i $ A} NondetAlg
+\end{code}
+
+
+\subsection{As Modular Handler}
+
+\begin{code}
+pattern Other s κ  = (inj₂ s , κ)
+pattern Choice κ   = (inj₁ ⁇ˢ , κ)
+pattern Fail       = (inj₁ failˢ , _)
+pattern Once κ     = (inj₁ onceˢ , κ)
+
+runNondet : Prog (Nondet ∷ effs) A → Prog effs (List A)
+runNondet {effs} {A} = fold (λ i → (Prog effs ∘ List) ^ i $ A) 1 id
+  (pure ∘ (_∷ []))
+  (λ where
+    (Choice κ)   → ⦇ κ true ++ κ false ⦈
+    Fail         → pure []
+    (Other s κ)  → op (s , κ)
+  ) λ where
+    (Once κ)    → κ tt >>= λ where
+      []       → var []
+      (x ∷ _)  → x
+    (Other s κ) → scp (s , λ p → hdl <$> κ p)
+  where
+    hdl : ∀ {A} → List (Prog effs (List A)) → Prog effs (List A)
+    hdl []          = pure []
+    hdl (mx ∷ mxs)  = ⦇ mx ++ hdl mxs ⦈
+\end{code}
+
+\section{Exceptions}
+
+\begin{code}
+data Throwˢ (E : Set)  : Set where throwˢ : (e : E) → Throwˢ E
+data Catchˢ            : Set where catchˢ : Catchˢ
+data Catchᵖ (E : Set)  : Set where
+  mainᵖ    : Catchᵖ E
+  handleᵖ  : (e : E) → Catchᵖ E
+
+Exc : Set → Effect
+Ops   (Exc E) = Throwˢ E  ▷ const ⊥
+Scps  (Exc E) = Catchˢ    ▷ const (Catchᵖ E)
+
+pattern Throw  e = (inj₁ (throwˢ e) , _)
+pattern Catch  κ = (inj₁ catchˢ , κ)
+
+runExc : Prog (Exc E ∷ effs) A → Prog effs (E ⊎ A)
+runExc {E} {effs} {A} = fold (λ i → (Prog effs ∘ (E ⊎_)) ^ i $ A) 1 id
+  (pure ∘ inj₂)
+  ( λ where
+    (Throw e)    → pure (inj₁ e)
+    (Other s κ)  → op (s , κ)
+  ) λ where
+    (Catch κ) → κ mainᵖ >>= λ where
+      (inj₂ x)  → x
+      (inj₁ e)  → κ (handleᵖ e) >>= λ where
+        (inj₁ e)  → pure (inj₁ e)
+        (inj₂ x)  → x
+    (Other s κ) → scp (s , λ p → [ pure ∘ inj₁ , id ] <$> κ p)
+
+throw : ⦃ Exc E ∈ effs ⦄ → E → Prog effs A
+throw e = Op (throwˢ e , λ())
+
+_catch_ : ⦃ Exc E ∈ effs ⦄ → Prog effs A → (E → Prog effs A) → Prog effs A
+p catch h = Scp $ catchˢ , λ where
+  mainᵖ        → pure <$> p
+  (handleᵖ e)  → pure <$> h e
+\end{code}
+
+
+\section{State}
+
+\begin{code}
+data Stateˢ (S : Set) : Set where
+  putˢ : (s : S) → Stateˢ S
+  getˢ : Stateˢ S
+
+State : Set → Effect
+Ops   (State S) = (Stateˢ S) ▷ λ{ (putˢ s) → ⊤ ; getˢ → S }
+Scps  (State S) = Void
+
+pattern Get κ     = (inj₁ getˢ , κ)
+pattern Put s₁ κ  = (inj₁ (putˢ s₁) , κ)
+
+eval : A × (A → B) → B
+eval (a , f) = f a
+
+runState : Prog (State S ∷ effs) A → S → Prog effs (S × A)
+runState {S} {effs} {A} = fold (λ i → (λ X → S → Prog effs (S × X)) ^ i $ A) 1 id
+  (λ x s₀ → pure (s₀ , x))
+  (λ where
+    (Put s₁ κ) _    → κ tt s₁
+    (Get κ) s₀      → κ s₀ s₀
+    (Other s κ) s₀  → op (s , λ p → κ p s₀)
+  ) λ where
+    (Other s κ) s₀ → scp (s , λ p → eval <$> κ p s₀)
+
+get : ⦃ State S ∈ effs ⦄ → Prog effs S
+get = Op (getˢ , pure)
+
+put : ⦃ State S ∈ effs ⦄ → S → Prog effs ⊤
+put s = Op (putˢ s , pure)
+\end{code}
+
+
+\section{Share}
+
