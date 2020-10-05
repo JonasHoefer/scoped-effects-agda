@@ -46,7 +46,7 @@ postulate
     varₙ (suc n) x = cong var x
 
 >>=-assoc : ∀ {effs A B C} → (f : A → Prog effs B) → (g : B → Prog effs C) → (ma : Prog effs A) →
-  (ma >>= f >>= g) ≡ (ma >>= (λ x → f x >>= g))
+  (ma >>= f >>= g) ≡ (ma >>= λ x → f x >>= g)
 >>=-assoc {effs} {A} {B} {C} f g = inP P 1
     (const refl)
     (λ {n} → varₙ n)
