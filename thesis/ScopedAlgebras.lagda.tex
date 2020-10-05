@@ -149,7 +149,7 @@ proving the monad laws\footnote{As in chapter \ref{chapter:higher-order} the
   The \AgdaInductiveConstructor{scp} constructor can produce an arbitrary number
   of \AgdaDatatype{Prog}\AgdaSpace{}\AgdaArgument{effs} layers.
   This forces us to use our induction hypothesis on not obviously smaller terms,
-  but size annotation is assumed to be $\infty$.}.
+  but the size annotation is assumed to be $\infty$.}.
 Instead we will define a generic \texttt{fold}, which we can reuse for all
 functions traversing elements of
 \AgdaDatatype{Prog}\AgdaSpace{}\AgdaArgument{effs}\AgdaSpace{}\AgdaArgument{A}.
@@ -177,8 +177,8 @@ the one type variable is either instantiated with the value type $A$
 the current type variable (\AgdaInductiveConstructor{op},
 \AgdaInductiveConstructor{scp}).
 Our index type therefore just counts the number of
-\AgdaDatatype{Prog}\AgdaSpace{}\AgdaArgument{effs} layers, i.e. natural numbers
-are sufficient.
+\AgdaDatatype{Prog}\AgdaSpace{}\AgdaArgument{effs} layers.
+Natural numbers are sufficient.
 
 Next Fu and Selinger define a type level function, which translates a value of
 the index type to its corresponding type.
@@ -366,7 +366,7 @@ bind-identʳ {effs} {A} = ind (λ{ 0 _ → ⊤ ; (suc n) p → bind n p var ≡ 
 \end{code}
 We call the induction scheme with the given value with one layer, therefore the
 initial \AgdaArgument{n} is \AgdaNumber{1}.
-The ``proof'' for values can be inferred, because fr each value it's just a
+The ``proof'' for values can be inferred, because for each value it's just a
 value of the unit type.
 
 \begin{code}
@@ -445,8 +445,8 @@ bind-assoc f g = ind
 
 \paragraph{Functor and Applicative Laws}
 The monad laws imply the functor and applicative laws.
-We can proof them without using explicit induction by just rewriting equations
-involving \AgdaFunction{>>=}.
+We can proof them without using explicit induction by rewriting equations
+involving \AgdaFunction{>>=} using the above law.
 These proofs are simpler than the ones explicitly involving the definition of
 \AgdaFunction{>>=} using \AgdaFunction{fold}.
 We can write them using the chain reasoning operators as described by
