@@ -2,6 +2,7 @@
 
 \usepackage[english]{babel}
 \usepackage[a4paper,width=150mm,top=25mm,bottom=25mm]{geometry}
+% \usepackage[twoside, inner=28mm, outer=37mm, top=35mm, bottom=49mm]{geometry}
 
 \usepackage{fontspec}
 \usepackage{unicode-math}
@@ -39,6 +40,7 @@
 \newunicodechar{≡}{\ensuremath{\mathnormal{\equiv}}}
 \newunicodechar{⁇}{\ensuremath{\mathnormal{?\!?}}}
 \newunicodechar{∎}{\ensuremath{\mathnormal{\QED}}}
+\newunicodechar{↝}{\ensuremath{\mathnormal{\leadsto{}}}}
 % see https://tex.stackexchange.com/questions/511401/newunicodechar-fails-for-prime-only
 \AtBeginDocument{\newunicodechar{′}{\makebox[\fontcharwd\font`a]{$\prime$}}}
 \newunicodechar{⊥}{\ensuremath{\mathnormal{\bot}}}
@@ -96,6 +98,13 @@
 
 \usepackage{graphicx}
 \graphicspath{{images/}}
+
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric,arrows,fit,matrix,positioning}
+\tikzset
+{
+  treenode/.style = {align=center, anchor=center}
+}
 
 \usepackage{fancyhdr}
 \pagestyle{fancy}
