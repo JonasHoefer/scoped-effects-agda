@@ -1,7 +1,10 @@
 \begin{code}[hide]
+{-# OPTIONS --overlapping-instances #-}
+
 module ScopedAlgebras where
 
-open import Function using (id; _∘_; _$_; const)
+open import Size using (Size; ↑_)
+open import Function using (id; _∘_; _$_; const; case_of_)
 open import Level using (Level)
 
 open import Category.Monad using (RawMonad)
@@ -11,12 +14,17 @@ open import Data.Bool using (Bool; true; false; if_then_else_)
 open import Data.Product using (Σ-syntax; _,_) renaming (proj₁ to π₁; proj₂ to π₂)
 open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Nat using (ℕ; suc; _+_)
+open import Data.Nat.Properties using (<-strictTotalOrder)
 open import Data.Product using (_×_; _,_)
+open import Data.Product.Relation.Binary.Lex.Strict using (×-strictTotalOrder)
 open import Data.Sum using (_⊎_; inj₁; inj₂; [_,_])
 open import Data.Empty using (⊥)
 open import Data.List using (List; _∷_; []; _++_; foldr) renaming (map to mapᴸ)
 open import Data.List.Relation.Unary.Any using (Any; here; there) renaming (map to map∈)
 open import Data.Unit using (⊤; tt)
+
+order = ×-strictTotalOrder (×-strictTotalOrder <-strictTotalOrder <-strictTotalOrder) <-strictTotalOrder
+open import Data.Tree.AVL.Map order using (Map; empty; insert; lookup)
 
 import Relation.Binary.PropositionalEquality as Eq
 open   Eq using (_≡_; refl; cong; sym; trans)
@@ -623,6 +631,13 @@ Scp : ⦃ e ∈ effs ⦄ → ⟦ Scps e ⟧ (Prog effs (Prog effs A)) → Prog e
 Scp ⦃ p ⦄ = scp ∘ inj (scpsInj p)
 \end{code}
 
+To escpe the monad after interpreting all effects we again add the
+\AgdaFunction{run} handler.
+
+\begin{code}
+run : Prog [] A → A
+run (var x) = x
+\end{code}
 
 \section{Nondet}
 
@@ -639,8 +654,9 @@ The signature for the two algebraic operations is the same as before.
 Furthermore we define a signature for the scoped operations \AgdaFunction{once}.
 
 \begin{code}[hide]
-CID : Set
-CID = (ℕ × ℕ) × ℕ
+SID CID : Set
+SID = ℕ × ℕ
+CID = SID × ℕ
 \end{code}
 \begin{code}
 data Choiceˢ  : Set where ⁇ˢ : (Maybe CID) → Choiceˢ ; failˢ : Choiceˢ
@@ -839,10 +855,75 @@ The carrier type can be thought of as the context for the computation.
 By having contexts of contexts it's possible to differentiate between the state
 of the computation in scope and the whole computation.
 
+Lastly we will define a smartconstructor for the \AgdaFunction{once} operation.
+To capture the program \AgdaArgument{p} in scope, \AgdaFunction{pure} is mapped
+over it.
+The orignial program is now the outher
+\AgdaDatatype{Prog}\AgdaSpace{}\AgdaArgument{effs} layer i.e. the first and
+second layers of the first term in figure \ref{scoped-algebra:fig:reduction}.
+The original \AgdaInductiveConstructor{var}\AgdaSpace{}\AgdaArgument{x} nodes
+are now
+\AgdaInductiveConstructor{var}$($\AgdaInductiveConstructor{var}\AgdaSpace{}\AgdaArgument{x}$)$
+nodes.
+Since \AgdaFunction{>>=} just effects the lowest layer it won't change the
+captured program and just act on it's results.
+
+\begin{code}
+onceᵖ : ⦃ Nondetᵖ ∈ effs ⦄ → Prog effs A → Prog effs A
+onceᵖ p = Scp (onceˢ , λ _ → pure <$> p)
+\end{code}
 
 \subsection{As Modular Handler}
 \label{scoped-algebra:nondet:modular}
 
+Piróg et al. just present handlers for single effects.
+This section presents an idea for adapting the handlers from the paper to
+modular ones.
+
+As in the earlier chapters, when working with modular effects, the general
+approach is to execute the handlers for each effect one after
+another~\cite{DBLP:conf/haskell/SchrijversPWJ19}.
+Each handler interprets the syntax for its effect and leaves the rest in place
+(or in case of non-orthogonal effects manipulates syntax of certain other
+effects).
+The carrier type for these handlers consists of the usual carrier type for these
+handlers, which is post composed with the type of the program without the
+interpreted syntax.
+For example, a handler for exceptions would produce values of type
+\AgdaArgument{E}\AgdaSpace{}\AgdaDatatype{⊎}\AgdaSpace{}\AgdaArgument{A},
+therefore the modular handler produces value of type 
+\AgdaDatatype{Prog}\AgdaSpace{}\AgdaArgument{effs}\AgdaSpace{}$($\AgdaArgument{E}\AgdaSpace{}\AgdaDatatype{⊎}\AgdaSpace{}\AgdaArgument{A}$)$.
+
+In the context of scoped algebras, the \AgdaDatatype{ℕ} indexed carrier type is
+usually the $n$-fold of some simpler type $C$.
+It seems reasonable to choose an $n$-fold of
+\AgdaDatatype{Prog}\AgdaSpace{}\AgdaArgument{effs}\AgdaSpace{}$\circ\; C$ as
+carrier type, because the structure of $n$ layers of $C$s has to be preserved to
+reuse the non modular handler.
+Simply lifting the $n$-fold carrier type in the monad is not sufficient.
+The interleaved monad layers are needed to preserve non-interpreted syntax.
+
+Consider the following implementation of modular handler for nondeterminism.
+This version of the nondeterminism effect does not support the
+\AgdaFunction{once} operation, because the semantics of the above definition is
+not the expected one when interacting with other effects.
+Similar to earlier chapter we introduce \AgdaKeyword{pattern}s to simplify
+the handler.
+
+\begin{code}[hide]
+data Tree (A : Set) : Set where
+  branch : Maybe CID → (l r : Tree A) → Tree A
+  leaf   : A → Tree A
+  failed : Tree A
+
+dfs : {A : Set} → Map Bool → Tree A → List A
+dfs mem failed                   = []
+dfs mem (leaf x)                 = x ∷ []
+dfs mem (branch nothing    l r)  = dfs mem l ++ dfs mem r
+dfs mem (branch (just id)  l r) with lookup id mem
+... | nothing  = dfs (insert id true mem) l ++ dfs (insert id false mem) r
+... | just d   = if d then dfs mem l else dfs mem r
+\end{code}
 \begin{code}
 Nondet : Effect
 Ops   Nondet = Choiceˢ ▷ λ{ (⁇ˢ _) → Bool ; failˢ → ⊥ }
@@ -851,23 +932,100 @@ Scps  Nondet = Void
 pattern Other s κ     = (inj₂ s , κ)
 pattern Choice cid κ  = (inj₁ (⁇ˢ cid) , κ)
 pattern Fail          = (inj₁ failˢ , _)
+\end{code}
+The new handler has the expected signature, which follows from the above
+described carrier type.
 
-runNondet : Prog (Nondet ∷ effs) A → Prog effs (List A)
-runNondet {effs} {A} = fold (λ i → (Prog effs ∘ List) ^ i $ A) 1 id
-  (pure ∘ (_∷ []))
+\begin{AgdaAlign}
+\begin{code}
+runNondet′ : Prog (Nondet ∷ effs) A → Prog effs (Tree A)
+runNondet′ {effs} {A} = fold (λ i → (Prog effs ∘ Tree) ^ i $ A) 1 id
+\end{code}
+Values are now not only injected into the context, but also into the monad.
+
+\begin{code}
+  (pure ∘ leaf)
+\end{code}
+The algebraic operations are interpreted as before, except that all results are
+lifted into the monad.
+When an operation from a foreign effect is encountered the syntax is just
+reconstructed.
+The outer container coproduct is removed by interpreting the
+\AgdaDatatype{Nondet} syntax, therefore \AgdaArgument{s} already has the correct
+type (note that \AgdaInductiveConstructor{Other} hides the
+\AgdaInductiveConstructor{inj₂}).
+\AgdaArgument{κ} produces result for the positions of the given shape, because
+the recursion is handled by \AgdaFunction{fold}.
+Therefore the implementation is the same as in chapter \ref{chapter:first-order}
+except that the recursion is hidden.
+
+\begin{code}
   (λ where
-    (Choice _ κ) → ⦇ κ true ++ κ false ⦈
-    Fail         → pure []
-    (Other s κ)  → op (s , κ)
+    (Choice id κ)  → branch id <$> κ true <*> κ false
+    Fail           → pure failed
+    (Other s κ)    → op (s , κ)
+\end{code}
+The interesting case is the one for scoped operations of foreign effects.
+Similar to the algebraic operations we have to reconstruct the scoped operation,
+but the position function has the wrong type.
+It produces values of type
+\AgdaDatatype{Prog}\AgdaSpace{}\AgdaArgument{effs}\AgdaSpace{}\AgdaFunction{∘}\AgdaSpace{}\AgdaDatatype{Tree}\AgdaSpace{}\AgdaFunction{\textasciicircum}\AgdaSpace{}\AgdaInductiveConstructor{suc}\AgdaSpace{}\AgdaArgument{n}\AgdaSpace{}\AgdaFunction{\$}\AgdaSpace{}\AgdaArgument{A}
+but expected are values of type
+\AgdaDatatype{Prog}\AgdaSpace{}\AgdaArgument{effs}\AgdaSpace{}\AgdaFunction{\$}
+\AgdaDatatype{Prog}\AgdaSpace{}\AgdaArgument{effs}\AgdaSpace{}\AgdaFunction{∘}\AgdaSpace{}\AgdaDatatype{Tree}\AgdaSpace{}\AgdaFunction{\textasciicircum}\AgdaSpace{}\AgdaArgument{n}\AgdaSpace{}\AgdaFunction{\$}\AgdaSpace{}\AgdaArgument{A}.
+
+To remove the intermediate \AgdaDatatype{Tree} layer we map the function{hdl}
+over the result of the postion function.
+\AgdaFunction{hdl} traverses the outer tree and recombines the inner trees under
+the monad i.e. by interleaiving binds it orders the results.
+On a term level, we are given a list of possible continuations, which we execute
+on after another, appending their reults.
+
+\begin{code}
   ) λ where
     (Other s κ)  → scp (s , λ p → hdl <$> κ p)
   where
-    hdl : ∀ {A} → List (Prog effs (List A)) → Prog effs (List A)
-    hdl []          = pure []
-    hdl (mx ∷ mxs)  = ⦇ mx ++ hdl mxs ⦈
+    hdl : ∀ {A} → Tree (Prog effs (Tree A)) → Prog effs (Tree A)
+    hdl (branch cid l r)  = branch cid <$> hdl l <*> hdl r
+    hdl (leaf v)          = v -- no recursive call due to fold
+    hdl failed            = var failed
+\end{code}
+\end{AgdaAlign}
+In terms of Haskell typeclass the above implementation generalizes if $C$ is a
+traversable monad, because \AgdaFunction{hdl} corresponds to
+\mintinline{haskell}{fmap join . sequence}.
+This is quite a strong condition, but it does not seems necessary, because we
+will see another example in section \ref{scoped-algebra:state}, which does not
+follow this pattern.
+Furthermore, the carrier types of effects are often simple data structures like
+products, coproducts, lists or trees, which are usually traversable and often
+monads.
+Its also unclear if a monad or just a notion of flattening is needed.
+
+Notice that the \AgdaFunction{hdl} is similar to the handler function from
+chapter \ref{chapter:higher-order}.
+Because the \AgdaFunction{fold} already interpreted parts of the program we do
+not call the handler recursively, but just join the results.
+
+\begin{code}
+runNondet : Prog (Nondet ∷ effs) A → Prog effs (List A)
+runNondet p = dfs empty <$> runNondet′ p
+
+fail : ⦃ Nondet ∈ effs ⦄ → Prog effs A
+fail = Op (failˢ , λ())
+
+_⁇_ : ⦃ Nondet ∈ effs ⦄ → Prog effs A → Prog effs A → Prog effs A
+p ⁇ q = Op (⁇ˢ nothing , (if_then p else q))
 \end{code}
 
 \section{Exceptions}
+
+As our first example for a scoped effect in the modular setting we will take a
+look at exceptions.
+The syntax for \AgdaFunction{throw} is the same as before.
+Similar to chapter \ref{chapter:higher-order} \AgdaFunction{catch} has two
+sub-computations, the program in scope and the handler.
+The boilerplate code for the syntax is given below.
 
 \begin{code}
 data Throwˢ (E : Set)  : Set where throwˢ : (e : E) → Throwˢ E
@@ -877,12 +1035,29 @@ data Catchᵖ (E : Set)  : Set where
   handleᵖ  : (e : E) → Catchᵖ E
 
 Exc : Set → Effect
-Ops   (Exc E) = Throwˢ E  ▷ const ⊥
-Scps  (Exc E) = Catchˢ    ▷ const (Catchᵖ E)
+Ops   (Exc E) = Throwˢ E  ↝ ⊥
+Scps  (Exc E) = Catchˢ    ↝ Catchᵖ E
 
 pattern Throw  e = (inj₁ (throwˢ e) , _)
 pattern Catch  κ = (inj₁ catchˢ , κ)
+\end{code}
+The first part of the handler is the same as in the higher order setting.
+To interpret the scoped operation \AgdaFunction{catch} we first execute scoped
+program in the \AgdaInductiveConstructor{mainᵖ} position.
+It produces either an exception or the result for the rest of the program.
+In the later case we just return the result.
+Notice that the recursive call was taken care of by the \AgdaFunction{fold}.
+In the other case we obtain an exception \AgdaArgument{e} with which we can
+obtain the result of the continuation in the \AgdaInductiveConstructor{handleᵖ}
+position i.e. handle the exception.
+The result of the exception handler is again wrapped in \AgdaDatatype{\_⊎\_}.
+We pass the result along by either unwrapping the program or re-injecting the
+exception in the program using \AgdaFunction{pure}.
+The same function is used to traverse foreign scopes.
+Again the function corresponds to the handler from chapter
+\ref{chapter:higher-order}, but without the recursive call.
 
+\begin{code}
 runExc : Prog (Exc E ∷ effs) A → Prog effs (E ⊎ A)
 runExc {E} {effs} {A} = fold (λ i → (Prog effs ∘ (E ⊎_)) ^ i $ A) 1 id
   (pure ∘ inj₂)
@@ -891,12 +1066,13 @@ runExc {E} {effs} {A} = fold (λ i → (Prog effs ∘ (E ⊎_)) ^ i $ A) 1 id
     (Other s κ)  → op (s , κ)
   ) λ where
     (Catch κ) → κ mainᵖ >>= λ where
+      (inj₁ e)  → κ (handleᵖ e) >>= [ pure ∘ inj₁ , id ]
       (inj₂ x)  → x
-      (inj₁ e)  → κ (handleᵖ e) >>= λ where
-        (inj₁ e)  → pure (inj₁ e)
-        (inj₂ x)  → x
     (Other s κ) → scp (s , λ p → [ pure ∘ inj₁ , id ] <$> κ p)
+\end{code}
+The smart constructors for the operations follow the known pattern.
 
+\begin{code}
 throw : ⦃ Exc E ∈ effs ⦄ → E → Prog effs A
 throw e = Op (throwˢ e , λ())
 
@@ -908,6 +1084,11 @@ p catch h = Scp $ catchˢ , λ where
 
 
 \section{State}
+\label{scoped-algebra:state}
+
+To implement the sharing effect as described by Bunkenburg we also need to
+implement the \AgdaDatatype{State} effect.
+The syntax is the same as before.
 
 \begin{code}
 data Stateˢ (S : Set) : Set where
@@ -915,25 +1096,44 @@ data Stateˢ (S : Set) : Set where
   getˢ : Stateˢ S
 
 State : Set → Effect
-Ops   (State S) = (Stateˢ S) ▷ λ{ (putˢ s) → ⊤ ; getˢ → S }
+Ops   (State S) = Stateˢ S ▷ λ{ (putˢ s) → ⊤ ; getˢ → S }
 Scps  (State S) = Void
 
 pattern Get κ     = (inj₁ getˢ , κ)
 pattern Put s₁ κ  = (inj₁ (putˢ s₁) , κ)
+\end{code}
+When traversing a foreign scope we have to eliminate the intermediate context.
+\AgdaArgument{κ} produces a value of type
+\AgdaDatatype{Prog}\AgdaSpace{}\AgdaArgument{effs}\AgdaSpace{}$($%
+\AgdaArgument{S}\AgdaSpace{}\AgdaSymbol{×}\AgdaSpace{}$($%
+\AgdaArgument{S}\AgdaSpace{}\AgdaSymbol{→}\AgdaSpace{}%
+\AgdaDatatype{Prog}\AgdaSpace{}\AgdaArgument{effs}\AgdaSpace{}\AgdaSymbol{⋯}$)$$)$.
+The lifted pair consists of the final state of the program in scope and the
+function mapping an initial state to the result of the corresponding result of
+the continuation.
+To remove the inner context we simply pass the state along, by applying the
+function to the given state using \AgdaFunction{eval}.
 
-eval : A × (A → B) → B
-eval (a , f) = f a
-
+\begin{code}
 runState : Prog (State S ∷ effs) A → S → Prog effs (S × A)
 runState {S} {effs} {A} = fold (λ i → (λ X → S → Prog effs (S × X)) ^ i $ A) 1 id
   (λ x s₀ → pure (s₀ , x))
   (λ where
-    (Put s₁ κ) _    → κ tt s₁
-    (Get κ) s₀      → κ s₀ s₀
-    (Other s κ) s₀  → op (s , λ p → κ p s₀)
+    (Put s₁ κ)   _   → κ tt s₁
+    (Get κ)      s₀  → κ s₀ s₀
+    (Other s κ)  s₀  → op (s , λ p → κ p s₀)
   ) λ where
-    (Other s κ) s₀ → scp (s , λ p → eval <$> κ p s₀)
+    (Other s κ)  s₀  → scp (s , λ p → eval <$> κ p s₀)
+  where
+    eval : ∀ {A B} → A × (A → B) → B
+    eval (a , f) = f a
 
+evalState : Prog (State S ∷ effs) A → S → Prog effs A
+evalState s₀ p = π₂ <$> runState s₀ p
+\end{code}
+The operations are just the usual generic operations for the effect.
+
+\begin{code}
 get : ⦃ State S ∈ effs ⦄ → Prog effs S
 get = Op (getˢ , pure)
 
@@ -944,3 +1144,166 @@ put s = Op (putˢ s , pure)
 
 \section{Share}
 
+Lastly we will implement the sharing effect.
+The signature contains just the single, unary, scoped operation, \AgdaFunction{share}
+which creates new sharing scope.
+
+\begin{code}
+data Shareˢ : Set where shareˢ : SID → Shareˢ
+
+Share : Effect
+Ops   Share = Void
+Scps  Share = Shareˢ ↝ ⊤
+
+pattern ShareScp sid κ = (inj₁ (shareˢ sid) , κ)
+\end{code}
+In the handler the passed along choice id is handled similar to the initial state
+in the \AgdaDatatype{State} effect.
+It's part of the iterated carrier type, which allows it to be changed between
+layers\footnote{This is a general pattern with this approach. Handler arguments
+are turned into function arguments for the carrier type, because the recursion
+is done via \AgdaFunction{fold}. The same can be observed in a setting without
+algebraic effects and folding handlers~\cite{DBLP:conf/haskell/SchrijversPWJ19}.
+}.
+When handling a sharing scope the captured program is handled with the id of the
+stored in the shape of the scoping operation.
+The continuation is accessed via \AgdaFunction{>>=} and continuous with the
+outside i.e. the initial id.
+Scopes of foreign effects don't effect sharing.
+In contrast to \AgdaDatatype{State}, the captured program does not influence the
+continuation, therefore both use the same, initial id.
+
+\begin{code}
+runShare′ : ⦃ Nondet ∈ effs ⦄ → Prog (Share ∷ effs) A → SID → ℕ → Prog effs A
+runShare′ {effs} {A} ⦃ p ⦄ = fold (λ i → ((λ X → SID → ℕ → Prog effs X) ^ i) A) 1 id
+  (λ z _ _ → var z)
+  (λ{ (Other s pf) → case prj (opsInj p) (s , pf) of λ where
+    nothing              sid n → op (s , λ p → pf p sid n)
+    (just (failˢ  , κ))  sid n → fail
+    (just (⁇ˢ _   , κ))  sid n → Op (⁇ˢ (just (sid , n)) , λ p → κ p sid (suc n))
+  }) λ where
+    (ShareScp sid′ κ) sid n → κ tt sid′ 0 >>= λ r → r sid n
+    (Other    s    κ) sid n → scp (s , λ p → (λ k → k sid n) <$> κ p sid n)
+
+runShare : ⦃ Nondet ∈ effs ⦄ → Prog (Share ∷ effs) A → Prog effs A
+runShare p = runShare′ p (0 , 0) 0
+\end{code}
+For simplicity the handler is initial invoked with choice id $(0,0,0)$.
+This should not be a problem if the numbering of scopes starts with a higher ID,
+because after calling the \AgdaDatatype{Share} handler no scopes are duplcaited.
+If such a situation should arrise the ID passed around by the handler can simply
+be made optional via \AgdaDatatype{Maybe}, allowing no IDs for the outside
+choices.
+
+\begin{code}[hide]
+record Shareable (effs : List Effect) (A : Set) : Set where
+  field
+    shareArgs : A → Prog effs A
+open Shareable ⦃...⦄ public
+
+instance
+  ℕ-Shareable : Shareable effs ℕ
+  Shareable.shareArgs ℕ-Shareable = var
+
+  Bool-Shareable : Shareable effs Bool
+  Shareable.shareArgs Bool-Shareable = var
+
+record Normalform (effs : List Effect) (A B : Set) : Set where
+  field
+    nf : A → Prog effs B
+
+  infix 10 !_
+  !_ : Prog effs A → Prog effs B
+  !_ = _>>= nf
+open Normalform ⦃...⦄ public
+
+instance
+  ℕ-Normalform : Normalform effs ℕ ℕ
+  Normalform.nf ℕ-Normalform = var
+
+  Bool-Normalform : Normalform effs Bool Bool
+  Normalform.nf Bool-Normalform = var
+
+  ⊤-Normalform : Normalform effs ⊤ ⊤
+  Normalform.nf ⊤-Normalform = var
+\end{code}
+The \AgdaDatatype{Shareable} and \AgdaDatatype{Normalform} infrastructure from
+chapter \ref{chapter:first-order} can be reused to define the
+\AgdaFunction{Ágda} operator.
+
+The program in the scope is again captured by mapping \AgdaFunction{pure} over it.
+The constrcution of scope ids follow again the implementation by Bunkenburg.
+
+\begin{code}
+share⟨_⟩ : ⦃ Share ∈ effs ⦄ → SID → Prog effs A → Prog effs A
+share⟨_⟩ {Scps} {Ops} sid p = Scp (shareˢ sid , λ _ → pure <$> p)
+
+share : ⦃ State SID ∈ effs ⦄ → ⦃ Share ∈ effs ⦄ → ⦃ Shareable effs A ⦄ →
+  Prog effs A → Prog effs (Prog effs A)
+share {Ops} {Scps} p = do
+    (i , j) ← get
+    put (i + 1 , j)
+    let p′ = do
+          put (i , j + 1)
+          x  ← p
+          x′ ← shareArgs x
+          put (i + 1 , j)
+          pure x′
+    pure $ share⟨ i , j ⟩ p′
+\end{code}
+Using \AgdaFunction{Nondet}, \AgdaFunction{State} and \AgdaFunction{Share} we
+can again simulate call-time choice semantics.
+As expected, doubling a shared coin yields the results $0$ and $2$.
+
+\begin{code}
+runCTC : ⦃ Normalform (State SID ∷ Share ∷ Nondet ∷ []) A B ⦄ →
+  Prog (State SID ∷ Share ∷ Nondet ∷ []) A → List B
+runCTC p = run $ runNondet $ runShare $ evalState (! p) (1 , 1)
+
+coin : ⦃ Nondet ∈ effs ⦄ → Prog effs ℕ
+coin = pure 0 ⁇ pure 1
+
+doubleCoin : ⦃ Nondet ∈ effs ⦄ → ⦃ Share ∈ effs ⦄ → ⦃ State SID ∈ effs ⦄ →
+  Prog effs ℕ
+doubleCoin = do c ← share coin
+                ⦇ c + c ⦈
+
+runDoubleCoin : runCTC doubleCoin ≡ 0 ∷ 2 ∷ []
+runDoubleCoin = refl
+\end{code}
+In contrast to chapter \ref{chapter:higher-order} this approach can also model
+deep effects without involving universe levels.
+The definition of an effectful list as well as its typeclass instances from
+chapter \ref{chapter:first-order} can be reused.
+
+\begin{code}[hide]
+data Listᴹ (effs : List Effect) (A : Set) : {Size} → Set where
+  nilᴹ  : ∀ {i} → Listᴹ effs A {i}
+  consᴹ : ∀ {i} → Prog effs A → Prog effs (Listᴹ effs A {i}) → Listᴹ effs A {↑ i}
+
+pattern []ᴹ         = var nilᴹ
+pattern _∷ᴹ_ mx mxs = var (consᴹ mx mxs)
+
+headᴹ : ⦃ Nondet ∈ effs ⦄ → Prog effs (Listᴹ effs A) → Prog effs A
+headᴹ = _>>= λ where
+  nilᴹ         → fail
+  (consᴹ mx _) → mx
+
+instance
+  Listᴹ-Normalform : ∀ {i} → ⦃ Normalform effs A B ⦄ → Normalform effs (Listᴹ effs A {i}) (List B)
+  Normalform.nf Listᴹ-Normalform nilᴹ           = var []
+  Normalform.nf Listᴹ-Normalform (consᴹ mx mxs) = ⦇ ! mx ∷ ! mxs ⦈
+
+  Listᴹ-Shareable : ∀ {i} → ⦃ Shareable effs A ⦄ → ⦃ State SID ∈ effs ⦄ → ⦃ Share ∈ effs ⦄ → Shareable effs (Listᴹ effs A {i})
+  Shareable.shareArgs Listᴹ-Shareable nilᴹ           = []ᴹ
+  Shareable.shareArgs Listᴹ-Shareable (consᴹ mx mxs) = ⦇ consᴹ (share mx) (share mxs) ⦈
+\end{code}
+\begin{code}
+doubleHead : ⦃ Nondet ∈ effs ⦄ → ⦃ Share ∈ effs ⦄ → ⦃ State SID ∈ effs ⦄ →
+  Prog effs ℕ
+doubleHead = do mxs ← share (coin ∷ᴹ []ᴹ)
+                ⦇ headᴹ mxs + headᴹ mxs ⦈
+
+runDoubleHead : runCTC doubleHead ≡ 0 ∷ 2 ∷ []
+runDoubleHead = refl
+\end{code}
