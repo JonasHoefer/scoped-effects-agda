@@ -159,8 +159,71 @@ Position in der Arbeit.
 \tableofcontents
 
 \chapter{Introduction}
+
+Algebraic effects and their handlers, first introduced by Plotkin, Powers and
+Pretnar~\cite{TODO,DBLP:conf/esop/PlotkinP09}, are a theoretical well studied
+representation for certain computational effects.
+
+Algebraic effects are generally more modular than traditional monad
+transformers.
+Wu et al. noticed a lack of modularity when combining multiple operations with
+scopes.
+They introduced several solutions for the problem, by using new syntax to
+delimit scopes.
+
+
 \section{Goals}
+
+The goal of this thesis is the implementation of an effect library based on the
+work by Wu et al.~\cite{DBLP:conf/haskell/WuSH14,DBLP:conf/lics/PirogSWJ18} in
+the dependently typed, functional programming language
+Agda~\cite{norell:thesis}.
+To allow use as a proof assistant, Agda programs are subject to constraints not
+present in other functional languages such as Haskell.
+All Agda programs have to be total (and therefore terminate), all data types
+have to be strictly positive and all universe levels have to be consistent.
+These restrictions prevent a direct translation of Haskell code to Agda.
+
+This thesis will explore multiple Haskell implementations of scoped effects and
+study how well these translate to Agda.
+Furthermore it will present a set of standard solutions for common problems,
+arising during the implementation of the three approaches.
+
+Agda's builtin theorem proving capabilities allow direct, machine checked
+correctness proofs for the implemented library.
+Alongside the implementation of scoped effects, the library should contain
+proofs for common properties of these effects.
+Furthermore, the library itself can be used to simulate semantics of other
+programming languages, such as Curry's call-time choice, and allow verification
+of equivalent programs written in these languages in Agda.
+To allow the latter, these library should be able to represent deep effects i.e.
+data structures with effectful components.
+
+
+\section{Structure}
+
+Chapter \ref{chapter:preliminaries} contains short introductions to Agda and
+dependent types, Curry and its call-time choice semantics (which are a central
+example for a scoped effect throughout the thesis) and algebraic effects.
+
+Chapter \ref{chapter:first-order} and \ref{chapter:higher-order} explore the two
+approached based on ``Effect Handlers in Scope'' by Wu et al.
+The former of the two approaches was already partially explored by Bunkeburg in
+Coq and can also be implemented easily in Agda.
+The latter of the two approaches tries to fix some inherent problems of the
+first one, but sadly cannot fully be implemented in Agda due to some inherent
+problems with universe consistency.
+
+Chapter \ref{chapter:scoped-algebras} describes an implementation of a novel
+representation for scoped effects by Piróg et
+al.~\cite{DBLP:conf/lics/PirogSWJ18} which also fixes the problems of the first
+approach, while avoiding the universe inconsistencies of the second one.
+Furthermore, the implementation explores some ideas to modularize the exemplary
+Haskell implementation by Piróg et al.
+
+
 \chapter{Preliminaries}
+\label{chapter:preliminaries}
 \section{Agda}
 
 Agda is a dependently typed functional programming language.

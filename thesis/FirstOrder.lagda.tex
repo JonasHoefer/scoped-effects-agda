@@ -953,18 +953,19 @@ This change allows to choose the evaluation strategy, e.g. depth first or breath
 first search, independent of the handler.
 
 
-\subsection{Effectful Data Structures}
+\subsection{Deep Effects}
 
 In Haskell and Curry ambient effects, like partiality, tracing and
 nondeterminism, can occur in components of data structures.
-Each argument of a constructor could be an effectful computation
+Each argument of a constructor could be an effectful computation.
 For example, in Curry the tail of a list could be a nondeterministic choice
 between two possible tails.
+Such effects are sometimes called \textit{deep effects}.
 
 We want to simulate this behavior with algebraic effects.
 The effects have to be modelled explicitly using the \AgdaDatatype{Free} type.
 We will lift data types using a standard construction, which is commonly used
-to simulate ambient
+to simulate ambient deep
 effects~\cite{DBLP:conf/haskell/AbelBBHN05,DBLP:journals/programming/DylusCT19,DBLP:conf/haskell/ChristiansenDB19}.
 The following example of an effectful \AgdaDatatype{List} demonstrates the
 the general construction\footnote{In the following code effectful data
@@ -1073,7 +1074,6 @@ pattern EShare  n κ = impure (inj₁ (eshareˢ n) , κ)
 Share : Container
 Share = Shareˢ ▷ λ _ → ⊤
 \end{code}
-
 \begin{code}[hide]
 -- ID in earlier definition (Nondet is the first example without parameters) or
 -- redefine here (maybe hidden)?
@@ -1114,6 +1114,22 @@ runNonDet (Choice′ cid κ)  = branch cid <$> runNonDet (κ true) <*> runNonDet
 runNonDet Fail′            = pure failed
 runNonDet (Other s κ)      = impure (s , runNonDet ∘ κ)
 \end{code}
+The handler has the same structure as other handlers for scoped effects like
+\AgdaDatatype{Cut}.
+The \AgdaFunction{bshare} handler searches for opening delimiters, which are
+subsequently handled by \AgdaFunction{eshare}.
+\AgdaFunction{ehsare} handles the part of the program in scope and returns the
+unhandled continuations, which is again handled using \AgdaFunction{bshare}.
+Nested scopes are handled uisng recursive \AgdaFunction{eshare} calles.
+To implement sharing the handler modifies the program in scope.
+Using \AgdaFunction{prj}, \AgdaFunction{NonDet} syntax is extracted and
+reinjected.
+Choice nodes are modified to now include the unique choice id.
+The identifer is generated from the scope id of the current shareing scope and a
+counter, which is managed by the handler.
+When ever a choice is tagged with an id the counter is increased.
+The uniquenes of the scope identifiers is not managed by the handler, but the
+share operator.
 
 \begin{code}
 bshare  : ⦃ NonDet ∈ ops ⦄ → Free (Share ∷ ops) A {i} → Free ops A
@@ -1133,10 +1149,23 @@ eshare next sid p@(Other s κ) with prj {NonDet} p
 ... | just (failˢ , κ′)  = inj $ failˢ , λ()
 ... | nothing            = impure (s , eshare next sid ∘ κ)
 \end{code}
+
+
+\subsection{Share Operator}
+
 Next we will define the \AgdaFunction{share} operator as described by
 Bunkenburg.
-The operator generates new unique identifiers using a \AgdaDatatype{State}
+The operator generates new unique scope identifiers using a \AgdaDatatype{State}
 effect.
+Furthermore, it shares all choices in the components of effectful data
+structures.
+
+To map the operator over arbitrary structures the \AgdaDatatype{Shareable} type
+class is introduced.
+The \AgdaFunction{shareArgs} function calls \AgdaFunction{share} recursively on
+the components of the shared data structure.
+Similar to \AgdaDatatype{Normalform}, trivial instances for simple data types
+are introduced.
 
 \begin{code}
 record Shareable (ops : List Container) (A : Set) : Set₁ where
@@ -1144,28 +1173,39 @@ record Shareable (ops : List Container) (A : Set) : Set₁ where
     shareArgs : A → Free ops A
 open Shareable ⦃...⦄ public
 
-begin end : ⦃ Share ∈ ops ⦄ → ℕ × ℕ → Free ops ⊤
-begin  id = op (bshareˢ id)
-end    id = op (eshareˢ id)
-
-share : ⦃ Shareable ops A ⦄ → ⦃ Share ∈ ops ⦄ → ⦃ State (ℕ × ℕ) ∈ ops ⦄ →
-  Free ops A → Free ops (Free ops A)
-share p = do
-  (i , j) ← get
-  put (1 + i , j)
-  pure do
-    begin (i , j)
-    put (i , 1 + j)
-    x  ← p
-    x′ ← shareArgs x
-    put (1 + i , j)
-    end (i , j)
-    pure x′
-
 instance
   shareable-ℕ : Shareable ops ℕ
   Shareable.shareArgs shareable-ℕ = pure
 \end{code}
+
+\begin{code}
+share : ⦃ Shareable ops A ⦄ → ⦃ Share ∈ ops ⦄ → ⦃ State (ℕ × ℕ) ∈ ops ⦄ →
+  Free ops A → Free ops (Free ops A)
+share p = do (i , j) ← get
+             put (1 + i , j)
+             pure do op $ bshareˢ (i , j)
+                     put (i , 1 + j)
+                     x   ← p
+                     x′  ← shareArgs x
+                     put (1 + i , j)
+                     op $ eshareˢ (i , j)
+                     pure x′
+\end{code}
+Using \AgdaFunction{share} we can implement a shareable instance for effectful
+lists.
+In the original Haskell implementation \AgdaFunction{shareArgs} is a higher
+order function, which takes \AgdaFunction{share} as an additional argument.
+For simplicity and to avoid termination problems this is not the case in the
+Agda implementation.
+
+\begin{code}
+instance
+  Listᴹ-shareable : ⦃ Shareable ops A ⦄ → ⦃ Share ∈ ops ⦄ → ⦃ State (ℕ × ℕ) ∈ ops ⦄
+      → Shareable ops (Listᴹ ops A {i})
+  Shareable.shareArgs Listᴹ-shareable nil           = []ᴹ
+  Shareable.shareArgs Listᴹ-shareable (cons mx mxs) = cons <$> share mx <*> share mxs
+\end{code}
+
 
 \subsection{Examples}
 
