@@ -533,6 +533,7 @@ fmap f (s , pf) = (s , f ∘ pf)
 \end{code}
 
 \section{Curry}
+\label{preliminaries:curry}
 
 Curry \cite{Hanus95curry} is a functional logic programming language.
 It combines paradigms from functional programming languages like Haskell
@@ -697,7 +698,10 @@ An interpretation for $T$ is called $T$-model if it validates all equations in $
 \subsubsection{Free Model}
 
 For each algebraic theory $T$ we can generate a so called free model
-$\mathrm{Free}_T(\mathbb{X})$, which validates all equations.
+$\mathrm{Free}_T(\mathbb{X})$.
+The free model is the optimal model for the theory i.e. it validates just
+equations from $\mathcal{E}_T$ and the ones directly following from them and no
+more.
 
 The set $\mathrm{Tree}_T(\mathbb{X})$ contains term trees, built from the
 variables in $\mathbb{X}$ and the operations of the signature $\Sigma_T$.
@@ -719,10 +723,13 @@ of the signature i.e.
   \forall i\in\{1,\dots ,n\}. x_i\sim_T y_i \Rightarrow \mathrm{op}(x_1,\dots , x_i)
   \sim_T \mathrm{op}(y_1,\dots , y_i)
 \]
+In section \ref{preliminaries:free-monad} we will see that the free model forms
+the basis for implementing algebraic effects.
 
 \subsection{Effect Handler}
 
 \subsection{Free Monad}
+\label{preliminaries:free-monad}
 
 The syntax of an algebraic effect is described using the free monad.
 The usual definition of the free monad in Haskell is the following.

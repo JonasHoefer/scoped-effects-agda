@@ -44,11 +44,12 @@ The scoped effects are implemented using explicit scope delimiters as described
 by Wu et al. \cite{DBLP:conf/haskell/WuSH14}.
 
 
-\subsection{Functors {\`{a}} la carte}
+\section{Functors {\`{a}} la carte}
+\label{first-order:functor}
 
 When modelling effects each functor represents the syntax i.e. the operations of
 an effect.
-For containers each shape corresponds to an operation symbol and the
+For containers each shape constructor corresponds to an operation symbol and the
 type of position for a shape corresponds to the arity set for the operation.
 The additional parameter of an operation is embedded in the shape.
 The free monad over a container describes a program using the effects syntax
@@ -56,20 +57,25 @@ i.e. its the free model for the algebra without the equations.
 To combine the syntax of multiple effects we can combine the underlying
 functors, because the free monad preserves coproducts.
 
-
 The approach described by Wu et al. is based on ``Data types {\`{a}} la
 carte''\cite{DBLP:journals/jfp/Swierstra08}.
-The functor coproduct is modelled as the data type \texttt{data (f :+: g) a =
-  Inl (f a) | Inr (g a)}, which is again a \texttt{Functor} in \texttt{a}.
-
+The functor coproduct is modelled as the data type \mintinline{haskell}{data (f
+:+: g) a = Inl (f a) | Inr (g a)}, which is again a \texttt{Functor} in
+\texttt{a}.
 In Agda functors are represented as containers, a concrete data type not a type
 class.
+We could use a similar data type to combine the extensions of two containers,
+but we would loose the advantages of containers i.e. a container extension is a
+strictly positive functor.
+Therefore, we will combine containers directly.
 Containers are closed under multiple operations, coproducts being one of
 them~\cite{DBLP:conf/fossacs/AbbottAG03}.
 The coproduct of two containers $F$ and $G$ is the container whose
 \AgdaFunction{shape} is the disjoint union of $F$s and $G$s shapes and whose
 position function \AgdaFunction{pos} is the coproduct mediator of $F$s and $G$s
-position functions.
+position functions\footnote{The function \AgdaFunction{[\_,\_]} corresponds to
+  the Haskell function \mintinline{haskell}{either :: (a -> c) -> (b -> c) ->
+    Either a b -> c}.}.
 
 \begin{code}[hide]
 infixr 1 _⊕_
@@ -122,7 +128,6 @@ in the right-hand side (in the tail).
 The two instances overlap resulting in possible slower instance resolution.
 Furthermore, \texttt{:+:} is assumed to be right associative and only to be
 used in a right associative way to avoid backtracking.
-
 Because in Agda the result of \AgdaFunction{\_⊕\_} is another container, not
 just a value of a simple data type, instance resolution using
 \AgdaFunction{\_⊕\_} is not as straight forward as in Haskell and in some cases
@@ -145,8 +150,8 @@ infix 4 _∈_
 \begin{code}
 data _∈_ {ℓ : Level} {A : Set ℓ} (x : A) : List A → Set ℓ where
   instance
-    here : ∀ {xs} → x ∈ x ∷ xs
-    there : ∀ {y xs} → ⦃ x ∈ xs ⦄ → x ∈ y ∷ xs
+    here   : ∀ {xs} → x ∈ x ∷ xs
+    there  : ∀ {y xs} → ⦃ x ∈ xs ⦄ → x ∈ y ∷ xs
 \end{code}
 The type
 \AgdaArgument{x}\AgdaSpace{}\AgdaDatatype{∈}\AgdaSpace{}\AgdaArgument{xs}
@@ -165,7 +170,7 @@ Using Agdas internal instance resolution can be avoided by using a tactic to
 infer \AgdaDatatype{\_∈\_} arguments.
 For simplicity the following code will still use instance arguments.
 This version can easily be adapted to one using macros, by replacing the
-instance arguments with correctly annotated hidden ones.
+instance arguments with hidden ones with \AgdaKeyword{tactic} annotations.
 
 Using this proposition we can define functions for injection into and maybe projection
 out of coproducts.
@@ -202,7 +207,8 @@ type.
 \AgdaFunction{project} functions similarly.
 By pattern matching on the proof we either know that the value we found has
 the correct type or we obtain a proof for the tail of the list allowing us to
-make a recursive call.
+either make a recursive call or stop the search.
+
 
 \subsection{The Free Monad for Effect Handling}
 
@@ -217,8 +223,8 @@ prematurely.
 
 \begin{code}
 data Free (ops : List Container) (A : Set) : {Size} → Set where
-  pure : ∀ {i} → A → Free ops A {i}
-  impure : ∀ {i} → ⟦ sum ops ⟧ (Free ops A {i}) → Free ops A {↑ i}
+  pure    : ∀ {i} → A → Free ops A {i}
+  impure  : ∀ {i} → ⟦ sum ops ⟧ (Free ops A {i}) → Free ops A {↑ i}
 \end{code}
 % switch names for inj and inject / prj and project?
 Next we define utility functions for working with the free monad.
@@ -265,6 +271,7 @@ monad\footnote{in the following code $A$, $B$ and $C$ are arbitrary types}.
 \begin{code}[hide]
 variable
   ℓᵃ ℓᵇ ℓᶜ : Level
+  i : Size
   A : Set ℓᵃ
   B : Set ℓᵇ
   C : Set ℓᶜ
@@ -350,11 +357,11 @@ bind-assoc f g (impure (s , pf))  = cong (impure ∘ (s ,_)) (extensionality (bi
 
 \section{Handler}
 
-An effect handler interprets and removes the syntax of an effect and injects
-corresponding code into the program.
+Usually, an effect handler interprets and removes the syntax of an effect and
+injects corresponding code into the program.
 Some handlers manipulate syntax of other effects or the structure of the program
 itself.
-The handler for an algebraic effect defines it's semantics.
+The handler for an algebraic effect defines its semantics.
 
 All handlers will have the same basic structure.
 They will take a program i.e. a variable of type
@@ -371,15 +378,24 @@ either an exception or a result.
 A simple but important handler is the one handling the empty effect stack and
 therefore the \AgdaDatatype{Void} effect.
 A program containing just \AgdaDatatype{Void} syntax contains no impure
-constructors, because \AgdaDatatype{Void} has no operations.
+constructors, because \AgdaDatatype{Void} has no operations i.e. its
+\AgdaField{Shape} type has no constructors.
+Pattern matching on the impure constructor therefore yields $()$.
+
 Therefore, we can always produce a value of type \AgdaArgument{A}.
 This handler is important, because it can be used to escape the
-\AgdaDatatype{Free} context after all other effects are handled.
+\AgdaDatatype{Free} context after all other effects have been handled.
 
 \begin{code}
 run : Free [] A → A
 run (pure x) = x
 \end{code}
+
+The following two sections will describe the implementation of handlers for
+\AgdaDatatype{State} and \AgdaDatatype{Nondeterminism}.
+They will exemplary describe the construction of a handler as well as lay ground
+work for more complex handlers.
+
 
 \subsection{Nondeterministic Choice}
 \label{nondeterminism}
@@ -620,12 +636,89 @@ module StateLaws (S : Set) (ops : List Container) (s₀ : S) where
 \end{code}
 
 
-\section{Scoped Effects}
+\subsection{Handling Combined Effects}
 
-- Modularity
-- Combination of Effects
-- Semantics choosen by order of handlers
-- problem with scoping operations and syntax of different effects
+As described in section \ref{first-order:functor}, signatures can be combined by
+combining the underlying functors.
+Handlers can be used to partially evaluate programs over a combined signature.
+Consider the following program using nondeterminism and state.
+
+\begin{code}[hide]
+variable
+  S : Set
+  ops : List Container
+\end{code}
+\begin{code}
+chooseTick : ⦃ Nondet ∈ ops ⦄ → ⦃ State ℕ ∈ ops ⦄ → Free ops ℕ
+chooseTick = tick >> ((tick >> get) ⁇ (tick >> tick >> get))
+\end{code}
+For the interaction of \AgdaDatatype{State} and \AgdaDatatype{Nondet} two
+semantics are conceivable.
+\paragraph{Local State}
+Each branch in the nondeterministic calculation has its own state.
+When \AgdaFunction{⁇} is used to choose between two reuslts both branches
+continue with own states, which initialy have the same value.
+\paragraph{Global State}
+All branches share a single, global state.
+Based on the evaluation strategy for the nondeterminism (first result/all
+results; depth first search/breath first search/fair search) an ordering for all
+operations in the tree is induced.
+The state operations are executed in this order an all act on the same state.
+
+The handlers for the two effects define semantics for their operations.
+Operations of the other siganture are just traversed.
+The interaction smeantics are induced by the ordering of the handlers.
+We obtain two combined handlers, each corresponding to one of the two cases
+above.
+
+\begin{code}
+localState : S → Free (State S ∷ Nondet ∷ []) A → List (S × A)
+localState s₀ = run ∘ solutions ∘ runState s₀
+
+globalState : S → Free (Nondet ∷ State S ∷ []) A → S × List A
+globalState s₀ = run ∘ runState s₀ ∘ solutions
+\end{code}
+Let us consider the above example under both combined handlers with initial
+state \AgdaNumber{0}.
+
+\paragraph{Local State}
+The first \AgdaFunction{tick} increases the state to \AgdaNumber{1}.
+Both branches are executed independently with initial state \AgdaNumber{1}.
+The first ticks once, therefore the \AgdaFunction{get} yields \AgdaNumber{2}.
+The second ticks twice, therefore the \AgdaFunction{get} yields \AgdaNumber{3}.
+
+\begin{center}
+\begin{code}[inline,hide]
+runChooseTickLocal :
+\end{code}
+\begin{code}[inline]
+ localState 0 chooseTick ≡ (2 , 2) ∷ (3 , 3) ∷ []
+\end{code}
+\begin{code}[inline,hide]
+runChooseTickLocal = refl
+\end{code}
+\end{center}
+
+\paragraph{Global State}
+The nondet handler executes the banches from left to right.
+The final state of one branch is the inital one for the next branch.
+Therefore, the second branch continues with state \AgdaNumber{2} increasing it
+twice.
+
+\begin{center}
+\begin{code}[inline,hide]
+runChooseTickGlobal :
+\end{code}
+\begin{code}[inline]
+ globalState 0 chooseTick ≡ (4 , 2 ∷ 4 ∷ [])
+\end{code}
+\begin{code}[inline,hide]
+runChooseTickGlobal = refl
+\end{code}
+\end{center}
+
+
+\section{Scoped Effects using Brackets}
 
 To correctly handle operations with local scopes Wu et al. introduced scoped
 effects \cite{DBLP:conf/haskell/WuSH14}.
@@ -637,7 +730,10 @@ The central idea is to add new effect syntax, representing explicit scope
 delimiters.
 Whenever an opening delimiter is encountered the handler can be run again on the
 scoped program.
-
+Thanks to a closing delimiters the end of a scope can be found.
+Therefore, calling \AgdaFunction{>>=} on a scoped operation to extend the
+continuation isn't a problem, because the continuation can be separated in the
+part inside and outside the scope.
 
 \subsection{Cut and Call}
 
@@ -658,15 +754,8 @@ Call  = Callˢ   ▷ λ _ → ⊤
 The \AgdaDatatype{Cut} effect has just a single operation, \AgdaFunction{cutfail}.
 \AgdaFunction{cutfail} can only be used in a context with nondeterminism.
 When \AgdaFunction{cutfail} is called it will prunes all unexplored branches and
-call \AgdaFunction{fail}.
+calls \AgdaFunction{fail}.
 The Agda implementation of the handlers is identical to the one by Wu et al.
-
-\begin{code}[hide] % TODO: introduce earlier
-private
-  variable
-    ops : List Container
-    i : Size
-\end{code}
 
 \begin{AgdaAlign}
 The handler itself calls the function \AgdaFunction{go}, which accumulates the
@@ -818,7 +907,7 @@ As explained in section \ref{call-time-choice}, call-time choice semantics
 describe the interaction between sharing and nondeterminism.
 The current implementation of \AgdaDatatype{Nondet} does not support sharing
 i.e. it is not possible for two choice to be linked.
-Based on Bunkenburgs implementation we will make two changes to the
+Based on Bunkenburg's implementation we will make two changes to the
 nondeterminism effect.
 Each choice is augmented with an optional identifier consisting of a triple of
 natural numbers, called \textit{choice id}.
@@ -844,7 +933,8 @@ We want to simulate this behavior with algebraic effects.
 The effects have to be modelled explicitly using the \AgdaDatatype{Free} type.
 We will lift data types using a standard construction, which is commonly used
 to simulate ambient deep
-effects~\cite{DBLP:conf/haskell/AbelBBHN05,DBLP:journals/programming/DylusCT19,DBLP:conf/haskell/ChristiansenDB19}.
+effects~\cite{DBLP:conf/haskell/AbelBBHN05, DBLP:journals/programming/DylusCT19,
+DBLP:conf/haskell/ChristiansenDB19}.
 The following example of an effectful \AgdaDatatype{List} demonstrates the
 the general construction\footnote{In the following code effectful data
   structures and lifted versions of functions are marked with a suffix
@@ -895,7 +985,6 @@ open Normalform ⦃...⦄ public
 !_ : ⦃ Normalform ops A B ⦄ → Free ops A → Free ops B
 ! mx = mx >>= nf
 \end{code}
-
 The type class allow to normalize elements of type \AgdaArgument{A} (intuitively
 containing effectful calculations) to computations producing of elements of type
 \AgdaArgument{B} (intuitively a version of \AgdaArgument{B} without the effects).
@@ -1003,11 +1092,15 @@ To implement sharing the handler modifies the program in scope.
 Using \AgdaFunction{prj}, \AgdaFunction{NonDet} syntax is extracted and
 reinjected.
 Choice nodes are modified to now include the unique choice id.
-The identifer is generated from the scope id of the current shareing scope and a
+The identifier is generated from the scope id of the current shareing scope and a
 counter, which is managed by the handler.
 When ever a choice is tagged with an id the counter is increased.
 The uniquenes of the scope identifiers is not managed by the handler, but the
 share operator.
+
+Due to the size annotations termination is proven on the type level.
+To implement the sharing handler it's not necessary to combine the two cases,
+as done by Bunkeburg in his Coq implementation.
 
 \begin{code}
 bshare  : ⦃ NonDet ∈ ops ⦄ → Free (Share ∷ ops) A {i} → Free ops A
@@ -1055,6 +1148,20 @@ instance
   shareable-ℕ : Shareable ops ℕ
   Shareable.shareArgs shareable-ℕ = pure
 \end{code}
+Using the instances for data we can implement Bunkenburg's version of the
+operator.
+The operator itself relies on a \AgdaDatatype{State} effect, which is later
+executed as first effect in the stack, to generate the identifiers.
+Given a computation producing values of type \AgdaArgument{A} the operator
+returns a computation of computations of type \AgdaArgument{A} i.e. the result
+has two \AgdaDatatype{Free}\AgdaSpace{}\AgdaArgument{ops} layers.
+The outer layer is usually execute (injected at into the larger program at the
+current point) immediately using \AgdaFunction{>>=}.
+The outer computation generates a new identifier.
+The inner computation captures the identifier, therefore binding the inner
+computation multiple times yields multiple scopes with the same id.
+An in depth explanation can be found in ``Modeling Call-Time Choice as Effect
+using Scoped Free Monads''~\cite{bunkenburg2019modeling}.
 
 \begin{code}
 share : ⦃ Shareable ops A ⦄ → ⦃ Share ∈ ops ⦄ → ⦃ State (ℕ × ℕ) ∈ ops ⦄ →
@@ -1080,35 +1187,69 @@ Agda implementation.
 instance
   Listᴹ-shareable : ⦃ Shareable ops A ⦄ → ⦃ Share ∈ ops ⦄ → ⦃ State (ℕ × ℕ) ∈ ops ⦄
       → Shareable ops (Listᴹ ops A {i})
-  Shareable.shareArgs Listᴹ-shareable nil           = []ᴹ
-  Shareable.shareArgs Listᴹ-shareable (cons mx mxs) = cons <$> share mx <*> share mxs
+  Shareable.shareArgs Listᴹ-shareable nil            = []ᴹ
+  Shareable.shareArgs Listᴹ-shareable (cons mx mxs)  = cons <$> share mx <*> share mxs
 \end{code}
 
 
 \subsection{Examples}
 
+Using the handler we can simulate call-time choice semantics using effects in
+Agda.
+Call-time choice can be simulated with the following effect stack
+
 \begin{code}
 CTC : List Container
 CTC = State (ℕ × ℕ) ∷ Share ∷ NonDet ∷ []
+\end{code}
+Before calling any handlers the data is normalized, so that not only surface,
+but also deep effects are evaluated.
+State is evaluated first to generate the identifiers for sharing.
+Sharing is evaluated next to tag all choices with their scopes identifiers.
+At last nondeterminism is evaluated to collect the results of all possible
+branches, taking the scope ids into account.
 
+\begin{code}
 runCTC : ⦃ Normalform CTC A B ⦄ → Free CTC A → List B
 runCTC p = dfs empty $ run $ runNonDet $ bshare $ evalState (0 , 0) (! p)
+\end{code}
+Now we can implement the \AgdaFunction{doubleCoin} example from section
+\ref{preliminaries:curry}.
 
+\begin{code}
 coin : ⦃ NonDet ∈ ops ⦄ → Free ops ℕ
 coin = pure 0 ⁇′ pure 1
 
 doubleCoin : ⦃ Share ∈ ops ⦄ → ⦃ State (ℕ × ℕ) ∈ ops ⦄ → ⦃ NonDet ∈ ops ⦄ →
   Free ops ℕ
 doubleCoin = share coin >>= λ c → ⦇ c + c ⦈
+\end{code}
+By calling \AgdaFunction{share} the choice in \AgdaFunction{coin} is shared.
+By binding the result of \AgdaFunction{share} the computation tree generating
+the ids (i.e. the outer layer) is expanded.
+The argument of the continuation \AgdaArgument{c} is itself a program, it's the
+original coin function wrapped into a sharing scope, which captures the
+generated id of the outer scope.
+By binding \AgdaArgument{c} this computation is injected into the whole
+computation.
+Binding \AgdaArgument{c} multiple times yields the same scope, because the scope
+identifier is captured.
+Equal scope identifier yield equal decisions during the evaluation of
+\AgdaDatatype{NonDet}.
 
-runDoubleCoin : runCTC doubleCoin ≡ 0 ∷ 2 ∷ []
+\begin{center}
+\begin{code}[inline,hide]
+runDoubleCoin : 
+\end{code}
+\begin{code}[inline]
+ runCTC doubleCoin ≡ 0 ∷ 2 ∷ []
+\end{code}
+\begin{code}[inline,hide]
 runDoubleCoin = refl
 \end{code}
+\end{center}
 
-% shareHelper : ⦃ Share ∈ ops ⦄ → ⦃ State (ℕ × ℕ) ∈ ops ⦄ → ⦃ Shareable ops A ⦄ →
-%   Free ops A → (Free ops A → Free ops B) → Free ops B
-% shareHelper p k = share p >>= k
-% syntax shareHelper e₁ (λ x → e₂) = share x ← e₁ here e₂
 
 \subsection{Laws of Sharing}
+
 
