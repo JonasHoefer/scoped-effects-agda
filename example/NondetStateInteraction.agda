@@ -29,3 +29,33 @@ foo = ((var tt ⁇ var tt) catch λ _ → throw tt) >>= λ (tt) → (get ⁇ inc
 
 runFoo : ⊤ ⊎ (List (ℕ × ℕ))
 runFoo = run $ runExc $ runNondet $ runState foo 0
+
+
+open import Data.String using (String; _++_)
+
+-- Bug: Global scopes over Nondet reorder other global operations, because the handler
+-- for ⁇ˢ already chains the operations using >>=
+-- https://github.com/polysemy-research/polysemy/issues/246
+-- Possbile fixes destroy generality of approach.
+
+tell : ⦃ State String ∈ effs ⦄ → String → Prog effs ⊤
+tell msg = get >>= λ s → put (s ++ msg)
+
+withScope : ⦃ State String ∈ effs ⦄ → ⦃ Exc ⊤ ∈ effs ⦄ → ⦃ Nondet ∈ effs ⦄ →
+  Prog effs ⊤
+withScope = do tell "a" ⁇ tell "b" catch λ _ → var tt
+               tell "c"
+
+withoutScope : ⦃ State String ∈ effs ⦄ → ⦃ Exc ⊤ ∈ effs ⦄ → ⦃ Nondet ∈ effs ⦄ →
+  Prog effs ⊤
+withoutScope = do tell "a" ⁇ tell "b"
+                  tell "c"
+
+runScopeTest : Prog (Nondet ∷ Exc ⊤ ∷ State String ∷ []) A → String × (⊤ ⊎ List A)
+runScopeTest = run ∘ flip runState "" ∘ runExc ∘ runNondet
+
+runWithScope : runScopeTest withScope ≡ ("abcc" , (inj₂ (tt ∷ tt ∷ [])))
+runWithScope = refl
+
+runWithoutScope : runScopeTest withoutScope ≡ ("acbc" , (inj₂ (tt ∷ tt ∷ [])))
+runWithoutScope = refl
