@@ -34,6 +34,20 @@ knapsack w vs | w == 0 = return []
 runKnapsack :: [[Integer]]
 runKnapsack = run . runNondet $ knapsack 3 [3, 2, 1]
 
+tell :: (HState String :<: sig) => String -> Free sig ()
+tell msg = get >>= \s -> put (s ++ msg)
+
+withScope :: (HState String :<: sig, HNondet :<: sig, HExc () :<: sig) => Free sig ()
+withScope = do catch (tell "a" ? tell "b") (\(()) -> pure ())
+               tell "c"
+
+withoutScope :: (HState String :<: sig, HNondet :<: sig, HExc () :<: sig) => Free sig ()
+withoutScope = do tell "a" ? tell "b"
+                  tell "c"
+
+runScopeTest :: Free (HNondet :+: HExc e :+: HState String :+: HVoid) a -> (String , Either e [a])
+runScopeTest = run . runState "" . runExc . runNondet
+
 main :: IO ()
 main = print globalUpdate >> print localUpdate >> print runKnapsack
 
