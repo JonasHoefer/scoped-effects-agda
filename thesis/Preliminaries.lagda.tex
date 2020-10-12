@@ -623,3 +623,181 @@ As expected this function yields the results $0$ and $2$.
 \subsection{Permutation Sort}
 
 Introduce Free Variables + Explain for Later Example
+
+
+\section{Algebraic Computational Effects}
+
+Giving a concrete definition for computational effects is hard.
+Examples include I/O, exceptions, nondeterminism, state and delimited
+continuations~\cite{DBLP:journals/corr/abs-1807-05923}.
+Algebraic effects are computational effects, which can be described using an
+algebraic theory.
+They were first presented by Plotkin and
+Power~\cite{DBLP:conf/fossacs/PlotkinP02}.
+
+Handlers for algebraic effects were first presented by Plotkin and Pretnar
+as a generalization of exception handlers~\cite{DBLP:conf/esop/PlotkinP09}.
+Handlers can be used to describe non-algebraic operations, which include
+operations with scopes such as \texttt{catch} and \texttt{once}.
+
+Wu et al. describe a problem with this approach when multiple handlers
+interact.
+The ordering of handlers induces a semantic for the program, but simultaneously
+the handlers also delimit scopes.
+The correct ordering for scoping and semantics maybe not coincide.
+Wu et al. fix this problem by introducing new syntactic constructs to delimit
+scopes, removing the responsibility from the
+handler~\cite{DBLP:conf/haskell/WuSH14,DBLP:conf/lics/PirogSWJ18}.
+
+
+\subsection{Algebraic Theories}
+
+The following definition is similar to the one given by Bauer
+\cite{DBLP:journals/corr/abs-1807-05923}.
+
+An algebraic theory consists of a signature describing the syntax of the
+operations together with a set of equations.
+A signature is a set of operation symbols together with an arity set and an
+additional parameter.
+Operations of this form are usually denoted with a colon and $\rightsquigarrow$
+between the three sets, suggesting that they describe special functions.
+\[
+  \Sigma = \{ \mathrm{op}_i : P_i \rightsquigarrow A_i  \}_{i\in \mathbf{N}}
+\]
+Given a signature $\Sigma$ we can build terms over a set of variables $\mathbb{X}$.
+\[
+  x \in \mathrm{Term}_\Sigma(\mathbb{X}) \quad\text{for}\quad x\in\mathbb{X} \qquad
+  \mathrm{op}_i(p, \kappa) \in \mathrm{Term}_\Sigma(\mathbb{X}) \quad\text{for}\quad
+  p\in P_i, \kappa : A_i \rightarrow \mathrm{Term}_\Sigma(\mathbb{X})
+\]
+Terms can be used to form equations of the form $x\;|\;l=r$.
+Each equation consists of two terms $l$ and $r$ over a set of variables $x$.
+A signature $\Sigma_T$ together with a set of equations $\mathcal{E}_T$ forms an
+algebraic theory $T$.
+\[
+  T = (\Sigma_T, \mathcal{E}_T)
+\]
+An interpretation $I$ of a signature is given by a carrier set $|I|$ and an
+interpretation for each operation $\lBrack\cdot\rBrack_I$.
+An interpretation of an operation $\mathrm{op}_i$ is given by a functions to the
+carrier set $|I|$, that takes an additional parameter from $P_i$ and $|A_i|$
+parameters as a function from the arity set to the carrier set $|I|$.
+\[
+  \lBrack \mathrm{op}_i \rBrack_I : P_i \times |I|^{A_i} \rightarrow |I|
+\]
+Given a function $\iota : \mathbb{X} \rightarrow |I|$, assigning each variable
+a value, we can give an interpretation for terms $\lBrack\cdot\rBrack_{(I,\iota)}$.
+\begin{align*}
+  \lBrack x \rBrack_{(I,\iota)} &= \iota(x) \\
+  \lBrack \mathrm{op}_i(p, \kappa)\rBrack_{(I,\iota)} &= \lBrack op_i \rBrack_I (p, \lambda p. \lBrack\kappa(p)\rBrack_{(I, \iota)})
+\end{align*}
+An interpretation for $T$ is called $T$-model if it validates all equations in $\mathcal{E}_T$.
+
+
+\subsubsection{Free Model}
+
+For each algebraic theory $T$ we can generate a so called free model
+$\mathrm{Free}_T(\mathbb{X})$, which validates all equations.
+
+The set $\mathrm{Tree}_T(\mathbb{X})$ contains term trees, built from the
+variables in $\mathbb{X}$ and the operations of the signature $\Sigma_T$.
+\[
+  \mathrm{pure}\;x \in \mathrm{Tree}_T(\mathbb{X}) \qquad \mathrm{op}_i(p,\kappa)
+  \in \mathrm{Tree}_T(\mathbb{X}) \quad\text{for}\quad p\in P_i \quad \kappa :
+  A_i \rightarrow \mathrm{Tree}_T(\mathbb{X})
+\]
+The free model for $T$ is given by
+
+\[
+  \mathrm{Free}_T(\mathbb{X}) = \mathrm{Tree}_T(\mathbb{X})\; /\;\sim_T
+\]
+where $\sim_T$ is the least equivalence relation, such that for all equations
+$x\;|\;l=r\in\mathcal{E}_T$, $l\sim_T r$.
+Furthermore $\sim_T$ is required to be a congruence relation for the operations
+of the signature i.e.
+\[
+  \forall i\in\{1,\dots ,n\}. x_i\sim_T y_i \Rightarrow \mathrm{op}(x_1,\dots , x_i)
+  \sim_T \mathrm{op}(y_1,\dots , y_i)
+\]
+
+\subsection{Effect Handler}
+
+\subsection{Free Monad}
+
+The syntax of an algebraic effect is described using the free monad.
+The usual definition of the free monad in Haskell is the following.
+
+\begin{minted}{haskell}
+    data Free f a = Pure a | Impure (f (Free f a))
+
+    instance (Functor f) => Monad (Free f) where
+      return = Pure
+
+      Pura x    >>= k = k x
+      Impure fa >>= k = Impure (fmap (>>= k) fa)
+\end{minted}
+The free monad corresponds to the free model for an algebraic theory $T$ without
+equations i.e. the equivalence relation $\sim_T$ is just the identity relation on
+$\mathrm{Tree}_T(\mathbb{X})$.
+As a result some trees which should be equal aren't.
+When the syntax is interpreted by a correct handler these trees should be equal
+again and the equations should hold.
+
+When defining the free monad in Agda we cannot use an arbitrary functor as in
+Haskell, because it would violate the strict positivity requirement.
+Instead we will represent the functor as the extension of a container as
+described in section \ref{container}.
+
+\begin{code}
+data Free (C : Container) (A : Set) : Set where
+  pure    : A → Free C A
+  impure  : ⟦ C ⟧ (Free C A) → Free C A
+\end{code}
+The free monad represents an arbitrary branching tree with values of type
+\AgdaArgument{A} in its leafs.
+The \AgdaInductiveConstructor{pure} constructor builds leafs containing just
+a value of type \AgdaArgument{A}.
+The \AgdaInductiveConstructor{impure} constructor takes a value of the
+\AgdaDatatype{Free} monad lifted by the container functor of \AgdaArgument{C}.
+Based on the choice of container the actual value could contain an arbitrary
+number of values i.e. \AgdaDatatype{Free} monads or subtrees.
+Furthermore for each shape from the \AgdaFunction{Shape} type the number of
+subtrees can differ or contain additional arbitrary values.
+The container has no access to the type parameter of the free monad.
+
+\AgdaDatatype{Container}s correspond to operations.
+The constructors for \AgdaField{Shape} correspond to the operations
+$\mathrm{op}_i$ and simultaneously store the parameter $P_i$.
+A constructor without extra arguments corresponds to the an operation with
+parameter set $\mathbb{1}$.
+The type of positions corresponds to the arity set $A_i$.
+The \AgdaField{Pos} type depends on a value of type \AgdaField{Shape} i.e. it
+assigns an arity to each shape/operation.
+In the free model the parameters/child trees are given by a function mapping
+from the arity to the carrier set.
+This function corresponds to the position function in the
+\AgdaDatatype{Container} extension, which maps from the type of positions to the
+held type, in this case the free monad i.e. the carrier type.
+
+The \AgdaFunction{>>=} operator for free monads traverses the trees and applies
+the continuation to the values stored in the leafs, replacing them.
+\AgdaFunction{>>=} therefore substitutes leafs with new subtrees generated from
+the values stored in each leaf.
+It corresponds to variable substitution.
+Algebraic operations are those which commute with \AgdaFunction{>>=} i.e. for an
+$n$-ary algebraic operations the following holds.
+
+\[
+  \mathbf{op}(x_1,\dots ,x_n) \bind{} \kappa = \mathbf{op}(x_1\bind \kappa,\dots
+  ,x_n\bind \kappa)
+\]
+For common scoping operations like \texttt{once}, \texttt{catch} or
+\texttt{fork} this does obviously not hold.
+They are not algebraic but can be represented as an effect handler.
+Representing these operations as a handler moves the syntactic problem of
+scoping to the level of the handler i.e. to a semantics level.
+Decoupling the two leads to the idea of scoped effects.
+
+
+\subsection{Scoped Effects}
+

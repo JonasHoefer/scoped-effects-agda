@@ -25,120 +25,7 @@ open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong)
 postulate
   extensionality : ∀ {ℓ ℓ′ : Level} {A : Set ℓ} {B : A → Set ℓ′} {f g : (x : A) → B x}
       → (∀ (x : A) → f x ≡ g x) → f ≡ g
-\end{code}
 
-
-Algebraic effects are computational effects, which can be described using an
-algebraic theory.
-Examples of effects include I/O, exceptions, nondeterminism, state, delimited
-continuations and more~\cite{DBLP:journals/corr/abs-1807-05923}.
-Handlers for algebraic effects were first presented by Gordon and Plotkin
-as a generalization of exception handlers \cite{}. % \cite{DBLP:conf/esop/PlotkinP09} <- handler? definitely not first one, see Wu
-Handlers can be used to describe non-algebraic operations, which include
-operations with scopes such as \texttt{catch} and \texttt{once}.
-Wu et al. describe a problem with this approach when multiple handlers
-interact.
-The ordering of handlers induces a semantic for the program, but simultaneously
-the handlers also delimit scopes.
-The correct ordering for scoping and semantics maybe not coincide.
-Wu et al. fix this problem by introducing new syntactic constructs to delimit
-scopes, removing the responsibility from the
-handler~\cite{DBLP:conf/haskell/WuSH14,DBLP:conf/lics/PirogSWJ18}.
-
-Section \ref{fo-definition} gives a concrete definition for algebraic effects.
-Section \ref{fo-free-monads} describes the implementation using free monads in
-Agda.
-The following sections describe the implementation of unscoped and scoped
-effects in the first order setting.
-They focus on implementation details specific to Agda like termination checks.
-The scoped effects are implemented using explicit scope delimiters as described
-by Wu et al. \cite{DBLP:conf/haskell/WuSH14}.
-
-\section{Definition}
-\label{fo-definition}
-
-The following definition is similar to the one given by Bauer
-\cite{DBLP:journals/corr/abs-1807-05923}.
-
-An algebraic theory consists of a signature describing the syntax of the
-operations together with a set of equations.
-A signature is a set of operation symbols together with an arity set and an
-additional parameter.
-Operations of this form are usually denoted with a colon and $\rightsquigarrow$
-between the three sets, suggesting that they describe special functions.
-\[
-  \Sigma = \{ \mathrm{op}_i : P_i \rightsquigarrow A_i  \}_{i\in \mathbf{N}}
-\]
-Given a signature $\Sigma$ we can build terms over a set of variables $\mathbb{X}$.
-\[
-  x \in \mathrm{Term}_\Sigma(\mathbb{X}) \quad\text{for}\quad x\in\mathbb{X} \qquad
-  \mathrm{op}_i(p, \kappa) \in \mathrm{Term}_\Sigma(\mathbb{X}) \quad\text{for}\quad
-  p\in P_i, \kappa : A_i \rightarrow \mathrm{Term}_\Sigma(\mathbb{X})
-\]
-Terms can be used to form equations of the form $x\;|\;l=r$.
-Each equation consists of two terms $l$ and $r$ over a set of variables $x$.
-A signature $\Sigma_T$ together with a set of equations $\mathcal{E}_T$ forms an
-algebraic theory $T$.
-\[
-  T = (\Sigma_T, \mathcal{E}_T)
-\]
-An interpretation $I$ of a signature is given by a carrier set $|I|$ and an
-interpretation for each operation $\lBrack\cdot\rBrack_I$.
-An interpretation of an operation $\mathrm{op}_i$ is given by a functions to the
-carrier set $|I|$, that takes an additional parameter from $P_i$ and $|A_i|$
-parameters as a function from the arity set to the carrier set $|I|$.
-\[
-  \lBrack \mathrm{op}_i \rBrack_I : P_i \times |I|^{A_i} \rightarrow |I|
-\]
-Given a function $\iota : \mathbb{X} \rightarrow |I|$, assigning each variable
-a value, we can give an interpretation for terms $\lBrack\cdot\rBrack_{(I,\iota)}$.
-\begin{align*}
-  \lBrack x \rBrack_{(I,\iota)} &= \iota(x) \\
-  \lBrack \mathrm{op}_i(p, \kappa)\rBrack_{(I,\iota)} &= \lBrack op_i \rBrack_I (p, \kappa \circ \lBrack\cdot\rBrack_{(I, \iota)})
-\end{align*}
-An interpretation for $T$ is called $T$-model if it validates all equations in $\mathcal{E}_T$.
-
-\subsection{Free Model}
-
-For each algebraic theory $T$ we can generate a so called free model
-$\mathrm{Free}_T(\mathbb{X})$, which validates all equations.
-
-
-\section{Free Monads}
-\label{fo-free-monads}
-
-The syntax of an algebraic effect is described using the free monad.
-The usual definition of the free monad in Haskell is the following.
-
-\begin{minted}{haskell}
-data Free f a = Pure a | Impure (f (Free f a))
-
-instance (Functor f) => Monad (Free f) where
-  return = Pure
-
-  Pura x    >>= k = k x
-  Impure fa >>= k = Impure (fmap (>>= k) fa)
-\end{minted}
-As the name suggests, the free monad is the free object in the category of
-monads, therefore the following holds.
-
-\begin{enumerate}
-  \item For every (endo)functor $F$ the functor $\mathrm{Free}\;F$ is a monad
-  \item For every natural transformation from an (endo)functor $F$ to a monad $G$
-    exists a monad homomorphism from $\mathrm{Free}\;F$ to $G$
-  \item As a consequence of (2) taking the natural transformation to be the
-    identity on $F$, for every monad exists a monad homomorphism from a
-    Free monad.
-  \item The $\mathrm{Free}$ functor is left adjoint and therefore preserves
-    coproducts i.e. $\mathrm{Free}\;F \oplus \mathrm{Free}\; G \cong \mathrm{Free}\;
-    (F \oplus G)$
-\end{enumerate}
-When defining the free monad in Agda we cannot use an arbitrary functor as in
-Haskell, because it would violate the strict positivity requirement.
-Instead we will represent the functor as the extension of a container as
-described in section \ref{container}.
-
-\begin{code}[hide]
 record Container : Set₁ where
   constructor _▷_
   field
@@ -149,27 +36,13 @@ open Container public
 ⟦_⟧ : {ℓ : Level} → Container → Set ℓ → Set ℓ
 ⟦ S ▷ P ⟧ A = Σ[ s ∈ S ] (P s → A)
 \end{code}
-\begin{code}
-data Free′ (C : Container) (A : Set) : Set where
-  pure : A → Free′ C A
-  impure : ⟦ C ⟧ (Free′ C A) → Free′ C A
-\end{code}
-The free monad represents an arbitrary branching tree with values of type
-\AgdaArgument{A} in its leafs.
-The \AgdaInductiveConstructor{pure} constructor builds leafs containing just
-a value of type \AgdaArgument{A}.
-The \AgdaInductiveConstructor{impure} constructor takes a value of the
-\AgdaDatatype{Free} monad lifted by the container functor of \AgdaArgument{C}.
-Based on the choice of container the actual value could contain an arbitrary
-number of values i.e. \AgdaDatatype{Free} monads or subtrees.
-Furthermore for each shape from the \AgdaFunction{Shape} type the number of
-subtrees can differ or contain additional arbitrary values.
-The container has no access to the type parameter of the free monad.
 
-The \AgdaFunction{>>=} operator for free monads traverses the trees and applies
-the continuation to the values stored in the leafs, replacing them.
-\AgdaFunction{>>=} therefore substitutes leafs with new subtrees generated from
-the values stored in each leaf.
+The following sections describe the implementation of unscoped and scoped
+effects in the first order setting.
+They focus on implementation details specific to Agda like termination checks.
+The scoped effects are implemented using explicit scope delimiters as described
+by Wu et al. \cite{DBLP:conf/haskell/WuSH14}.
+
 
 \subsection{Functors {\`{a}} la carte}
 
@@ -397,7 +270,7 @@ variable
   C : Set ℓᶜ
 
 infixl 1 _>>=_ _>>_
-infixl 4 _<$>_ _⊛_ _<*>_
+infixl 4 _<$>_ _<*>_
 \end{code}
 \begin{code}
 fmap _<$>_ : {F : List Container} {i : Size} → (A → B) → Free F A {i} → Free F B {i}
@@ -433,11 +306,9 @@ ma >> mb = ma >>= λ _ → mb
 To complete our basic set of monadic functions we also define \AgdaFunction{ap}.
 
 \begin{code}
-_⊛_ _<*>_ : ∀ {ops} → Free ops (A → B) → Free ops A → Free ops B
-pure f          ⊛ ma = f <$> ma
-impure (s , pf) ⊛ ma = impure (s , (_⊛ ma) ∘ pf)
-
-_<*>_ = _⊛_
+_<*>_ : ∀ {ops} → Free ops (A → B) → Free ops A → Free ops B
+pure f           <*> ma = f <$> ma
+impure (s , pf)  <*> ma = impure (s , (_<*> ma) ∘ pf)
 \end{code}
 
 \subsection{Properties}
@@ -521,7 +392,8 @@ We therefore have a nullary and a binary operation, both without additional
 parameters.
 
 $$
-\Sigma_{\text{Nondet}} = \{ ?\!? : \mathbf{1} \rightsquigarrow \mathbf{2}, \mathrm{fail} : \mathbf{1} \rightsquigarrow \mathbf{0} \}
+\Sigma_{\text{Nondet}} = \{ ?\!? : \mathbf{1} \leadsto \mathbf{2}, \mathrm{fail}
+: \mathbf{1} \leadsto \mathbf{0} \}
 $$
 Expressed as a container we have a shape with two constructors, one for each
 operation and both without parameters.
@@ -559,8 +431,8 @@ those who are not part of the currently handled signature.
 
 \begin{code}
 pattern Other s κ  = impure (inj₂ s , κ)
-pattern Fail κ  = impure (inj₁ failˢ , κ)
-pattern Choice κ  = impure (inj₁ ⁇ˢ , κ)
+pattern Fail κ     = impure (inj₁ failˢ , κ)
+pattern Choice κ   = impure (inj₁ ⁇ˢ , κ)
 \end{code}
 \begin{AgdaAlign}
   The handler interprets \AgdaDatatype{Nondet} syntax and removes it from the
@@ -589,8 +461,14 @@ solutions (Fail κ)     = pure []
   arbitrary number of results.
   We execute both programs recursively using \AgdaFunction{solutions} and
   collect the results in a single \AgdaDatatype{List}.
+
+  $\llparenthesis$ and $\rrparenthesis$ are \textit{idiom brackets} and denote
+  applicative functor style function application i.e.
+  \AgdaInductiveConstructor{pure}\AgdaSpace{}\AgdaArgument{f}\AgdaSpace{}\AgdaFunction{<*>}$\dots$\AgdaFunction{<*>}$\dots$\AgdaFunction{<*>}$\dots$.
+  In this case the function \AgdaArgument{f} is the mixfix operator
+  \AgdaFunction{\_++\_} which can still be written in infix notation.
   \begin{code}
-solutions (Choice κ)   = _++_ <$> solutions (κ true) ⊛ solutions (κ false)
+solutions (Choice κ)   = ⦇ solutions (κ true) ++ solutions (κ false) ⦈
   \end{code}
   In case of syntax from another effect we just execute \AgdaFunction{solutions}
   on every subtree by mapping the function over the container.
@@ -617,16 +495,15 @@ parameter of the continuation being a value of type \AgdaArgument{s}.
 
 \AgdaFunction{put} updates the current state.
 The operation takes an additional parameter, the new state.
-The operation itself is unary i.e. there is no return value, therefore % maybe
-                                % better: that handler chooses no continuation
-                                % (no return value would imply bottom)
-\AgdaInductiveConstructor{tt} is passed to the rest of the program.
+The operation itself is unary i.e. the continuation is called with
+\AgdaInductiveConstructor{tt} to start the rest of the program.
 
 $$
 \Sigma_{State} = \{ \mathrm{get} : \mathbf{1} \rightsquigarrow s, \mathrm{put} :
 s \rightsquigarrow \mathbf{1} \}
 $$
-As before we will translate this definition in a corresponding container.
+As before we will translate this definition in a corresponding container and
+define \AgdaKeyword{pattern}s to simplify the handler.
 
 \begin{code}
 data Stateˢ (S : Set) : Set where
@@ -638,19 +515,20 @@ State S = Stateˢ S ▷ λ where
   getˢ      → S
   (putˢ _)  → ⊤
 
-pattern Get κ  = impure (inj₁ getˢ , κ)
+pattern Get κ    = impure (inj₁ getˢ , κ)
 pattern Put s κ  = impure (inj₁ (putˢ s) , κ)
 \end{code}
 To simplify working with the \AgdaDatatype{State} effect we add smart
 constructors.
-These correspond to the generic operations.
+These correspond to the generic operations, which we can implement using
+\AgdaFunction{op}.
 
 \begin{code}
 get : ∀ {ops S} → ⦃ State S ∈ ops ⦄ → Free ops S
-get = inj (getˢ , pure)
+get = op getˢ
 
 put : ∀ {ops S} → ⦃ State S ∈ ops ⦄ → S → Free ops ⊤
-put s = inj (putˢ s , pure)
+put s = op (putˢ s)
 \end{code}
 Using these defintions for the syntax we can define the handler for
 \AgdaDatatype{State}.
