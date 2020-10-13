@@ -88,6 +88,12 @@
   {\fmap}
   {\ifthenelse{\equal{#1}{++}}
   {\ensuremath{+\!+}}
+  {\ifthenelse{\equal{#1}{\AgdaUnderscore{}++\AgdaUnderscore{}}}
+  {\ensuremath{\AgdaUnderscore{}+\!+\AgdaUnderscore{}}}
+  {\ifthenelse{\equal{#1}{\AgdaUnderscore{}++}}
+  {\ensuremath{\AgdaUnderscore{}+\!+}}
+  {\ifthenelse{\equal{#1}{++\AgdaUnderscore{}}}
+  {\ensuremath{+\!+\AgdaUnderscore{}}}
   {\ifthenelse{\equal{#1}{\$}}
   {\ensuremath{\$}}
   {\ifthenelse{\equal{#1}{<\$>\AgdaUnderscore{}}}
@@ -98,7 +104,7 @@
   {\AgdaUnderscore{}\ap\AgdaUnderscore{}}
   {\ifthenelse{\equal{#1}{<*>}}
   {\ap}
-  {#2}}}}}}}}}}}}}}
+  {#2}}}}}}}}}}}}}}}}}
 
 \usepackage{graphicx}
 \graphicspath{{images/}}
@@ -230,7 +236,7 @@ Haskell implementation by Piróg et al.
 \label{chapter:first-order}
 \input{FirstOrder}
 
-\chapter{Higher Order}
+\chapter{Higher Order Syntax}
 \label{chapter:higher-order}
 \input{HigherOrder}
 

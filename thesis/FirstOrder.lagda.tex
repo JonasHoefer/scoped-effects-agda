@@ -9,6 +9,7 @@ open import Size using (Size; ↑_)
 open import Data.Bool using (Bool; true; false; if_then_else_)
 open import Data.Empty using (⊥)
 open import Data.List using (List; []; _∷_; _++_; foldr)
+open import Data.List.Properties using (++-identityʳ)
 open import Data.Nat using (ℕ; _+_)
 open import Data.Nat.Properties using (<-strictTotalOrder)
 open import Data.Maybe using (Maybe; just; nothing)
@@ -20,7 +21,9 @@ open import Data.Unit using (⊤; tt)
 order = ×-strictTotalOrder (×-strictTotalOrder <-strictTotalOrder <-strictTotalOrder) <-strictTotalOrder
 open import Data.Tree.AVL.Map order using (Map; empty; insert; lookup)
 
-open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong)
+import Relation.Binary.PropositionalEquality as Eq
+open Eq using (_≡_; refl; cong; sym)
+open Eq.≡-Reasoning using (begin_; _≡⟨⟩_; step-≡; _∎)
 
 postulate
   extensionality : ∀ {ℓ ℓ′ : Level} {A : Set ℓ} {B : A → Set ℓ′} {f g : (x : A) → B x}
@@ -211,6 +214,7 @@ either make a recursive call or stop the search.
 
 
 \subsection{The Free Monad for Effect Handling}
+\label{first-order:free-monad}
 
 Using the coproduct machinery we can now define a version of the free monad,
 suitable for working with effects.
@@ -275,6 +279,7 @@ variable
   A : Set ℓᵃ
   B : Set ℓᵇ
   C : Set ℓᶜ
+  ops : List Container
 
 infixl 1 _>>=_ _>>_
 infixl 4 _<$>_ _<*>_
@@ -319,6 +324,7 @@ impure (s , pf)  <*> ma = impure (s , (_<*> ma) ∘ pf)
 \end{code}
 
 \subsection{Properties}
+\label{first-order:free-monad:properties}
 
 This definition of the free monad is a functor because it satisfies the two
 functor laws.
@@ -336,6 +342,20 @@ fmap-∘ : ∀ {ops} (f : B → C) (g : A → B) (p : Free ops A) →
          fmap (f ∘ g) p ≡ (fmap f ∘ fmap g) p
 fmap-∘ f g (pure x)           = refl
 fmap-∘ f g (impure (s , pf))  = cong (impure ∘ (s ,_)) (extensionality (fmap-∘ f g ∘ pf))
+\end{code}
+Later we will need the interchange law for applicative functors.
+
+\begin{code}
+interchange : ∀ a (f : Free ops (A → B)) →
+  (f <*> pure a) ≡ (pure (_$ a) <*> f)
+interchange a (pure f)          = refl
+interchange a (impure (s , κ))  = cong (impure ∘ (s ,_)) (extensionality (interchange a ∘ κ))
+\end{code}
+\begin{code}[hide]
+-- composition : (f : Free ops (B → C)) (g : Free ops (A → B)) (a : Free ops A) →
+--    (f <*> (g <*> a)) ≡ (pure _∘′_ <*> f <*> g <*> a)
+-- composition f g (pure x) = {!!}
+-- composition f g (impure x) = {!!}
 \end{code}
 This definition of the free monad also satisfies the three monad laws.
 
@@ -498,6 +518,112 @@ solutions (Other s κ)  = impure (s , solutions ∘ κ)
 \end{AgdaAlign}
 
 
+\subsubsection{Properties}
+\label{first-order:nondet:properties}
+
+As explained in section \ref{preliminaries:free-monad}, the free monad
+represents the free model for the theory without equations i.e. some terms
+should be equal but aren't.
+The handler for an algebraic effect defines its semantics by removing and
+interpreting its syntax.
+The result of a handler should again be a model for the effect i.e. the
+equations characterizing the effect should hold.
+We can proof that our handler produces a valid (but not necessarily free) model
+for our equations by verifying that the laws holds after interpreting the terms.
+The ability to rigorously proof these laws about the program is one of the main
+advantages of Agda.
+
+We have four laws governing our \AgdaDatatype{Nondet} effect.
+The first law states that \AgdaFunction{const}\AgdaSpace{}\AgdaFunction{fail}
+should be an absorbing element for the Kleisli composition.
+
+\begin{code}[number=fail-annihilating]
+bind-fail : {k : A → Free (Nondet ∷ ops) B} → 
+  solutions (fail >>= k) ≡ solutions fail
+bind-fail = refl
+\end{code}
+The proof is trivial.
+Simplifying both sides yields \AgdaFunction{fail}.
+
+The other three laws state that \AgdaFunction{⁇} and \AgdaFunction{fail} form a
+monoid.
+The proofs for all three are similar.
+By using monad functor, applicative and monad laws one can reduce the proof to
+one for pure lists and simply use the corresponding equality from the standard
+library.
+
+\begin{code}
+⁇-identˡ : (q : Free (Nondet ∷ ops) A) → solutions (fail ⁇ q) ≡ solutions q
+⁇-identˡ q = begin
+  solutions (fail ⁇ q)                      ≡⟨⟩ -- definition of handler for ⁇
+  _++_ <$> solutions fail  <*> solutions q  ≡⟨⟩ -- definition of handler for fail
+  _++_ <$> pure []         <*> solutions q  ≡⟨⟩ -- definition of <$>
+  pure ([] ++_)            <*> solutions q  ≡⟨⟩ -- definition of <*> / ap-ident-left
+  [] ++_                   <$> solutions q  ≡⟨⟩ -- definition of ++ / ++-ident-left
+  id                       <$> solutions q  ≡⟨ fmap-id (solutions q) ⟩
+  solutions q                               ∎
+\end{code}
+The proof for the left identity is straight forward.
+No standard library equality is needed, because \AgdaFunction{++} is recursive
+in it's first argument.
+to eliminate the \AgdaFunction{<\$>} a functor law is needed.
+
+\begin{code}
+⁇-identʳ : (p : Free (Nondet ∷ ops) A) → solutions (p ⁇ fail) ≡ solutions p
+⁇-identʳ p = begin
+  solutions (p ⁇ fail)                          ≡⟨⟩ -- definition of handler
+  _++_ <$> solutions p        <*> pure []       ≡⟨ interchange [] (_++_ <$> solutions p) ⟩
+  pure (_$ [])    <*>  (_++_  <$> solutions p)  ≡⟨⟩ -- definition of <*> / ap-ident-left
+  (_$ [])         <$>  (_++_  <$> solutions p)  ≡⟨ sym (fmap-∘ (_$ []) _++_ (solutions p)) ⟩
+  (_$ [])         ∘    _++_   <$> solutions p   ≡⟨⟩ -- definition of ∘ and $
+  (_++ [])                    <$> solutions p   ≡⟨ cong  (_<$> solutions p)
+                                                         (extensionality ++-identityʳ) ⟩
+  id                          <$> solutions p   ≡⟨ fmap-id (solutions p) ⟩
+  solutions p                                   ∎
+\end{code}
+Proofing the right idientity is more complicated, because \AgdaFunction{fail} is
+on the right-hand side of \AgdaFunction{⁇}.
+All monad functions from section \ref{first-order:free-monad} are recursive in
+their left argument, therefore most propositions involving right argument don't
+follow trivially from the definition and need own proofs.
+
+This is a common pattern.
+Because \AgdaFunction{++} is recursive in it's first argument, the left
+identity is given by definitional equality, while the right one is not, but
+follows from the definition.
+Notice that partially applying \AgdaFunction{++} with
+\AgdaInductiveConstructor{[]} is only equal to \AgdaFunction{id} on the left
+without invoking \AgdaFunction{extensionality}.
+
+Using the proofs from section \ref{first-order:free-monad:properties} we
+can simplify the equations and reduce them to a problem for normal
+\AgdaDatatype{List}.
+The proof for associativity is longer, but follows the same patterns.
+
+\begin{code}[hide]
+-- ⁇-assoc : (p q r : Free (Nondet ∷ ops) A) →
+--   solutions ((p ⁇ q) ⁇ r) ≡ solutions (p ⁇ (q ⁇ r))
+-- ⁇-assoc p q r = begin
+--     solutions ((p ⁇ q) ⁇ r)
+--   ≡⟨⟩
+--     _++_ <$> (_++_ <$> solutions p <*> solutions q) <*> solutions r
+--   ≡⟨ cong (_<*> solutions r) (composition (pure _++_) (_++_ <$> solutions p) (solutions q)) ⟩
+--     (_++_ ∘′_) <$> (_++_ <$> solutions p) <*> solutions q <*> solutions r
+--   ≡⟨ cong (λ t → t <*> solutions q <*> solutions r) (sym (fmap-∘ (_++_ ∘′_) _++_ (solutions p))) ⟩
+--     (λ x y z → (x ++ y) ++ z) <$> (solutions p) <*> solutions q <*> solutions r
+--   ≡⟨ {!!} ⟩
+--     (λ x y z → x ++ (y ++ z)) <$> (solutions p) <*> solutions q <*> solutions r
+--   ≡⟨ cong (_<*> solutions r) (sym (composition ({!(_∘′_ ∘ _++_) <$> solutions p!}) (pure _++_) (solutions q))) ⟩
+--     (_∘′_ ∘ _++_) <$> solutions p <*> (_++_ <$> solutions q) <*> solutions r
+--   ≡⟨ cong (λ t → t <*> (_++_ <$> solutions q) <*> solutions r) (fmap-∘ _∘′_ _++_ (solutions p)) ⟩
+--     _∘′_ <$> (_++_ <$> solutions p) <*> (_++_ <$> solutions q) <*> solutions r
+--   ≡⟨ sym (composition (_++_ <$> solutions p) (_++_ <$> solutions q) (solutions r)) ⟩
+--     _++_ <$> solutions p <*> (_++_ <$> solutions q <*> solutions r)
+--   ≡⟨⟩
+--     solutions (p ⁇ (q ⁇ r)) ∎
+\end{code}
+
+
 \subsection{State}
 
 The state effect has two operations \AgdaFunction{get} and \AgdaFunction{put}.
@@ -646,7 +772,6 @@ Consider the following program using nondeterminism and state.
 \begin{code}[hide]
 variable
   S : Set
-  ops : List Container
 \end{code}
 \begin{code}
 chooseTick : ⦃ Nondet ∈ ops ⦄ → ⦃ State ℕ ∈ ops ⦄ → Free ops ℕ
@@ -718,7 +843,7 @@ runChooseTickGlobal = refl
 \end{center}
 
 
-\section{Scoped Effects using Brackets}
+\section{Effects with Scopes using Brackets}
 
 To correctly handle operations with local scopes Wu et al. introduced scoped
 effects \cite{DBLP:conf/haskell/WuSH14}.
@@ -1239,7 +1364,7 @@ Equal scope identifier yield equal decisions during the evaluation of
 
 \begin{center}
 \begin{code}[inline,hide]
-runDoubleCoin : 
+runDoubleCoin :
 \end{code}
 \begin{code}[inline]
  runCTC doubleCoin ≡ 0 ∷ 2 ∷ []
@@ -1252,4 +1377,75 @@ runDoubleCoin = refl
 
 \subsection{Laws of Sharing}
 
+\begin{figure}
+  \begin{align*}
+    \tag{ident-left}
+    \mathrm{pure} x\bind k &= k\; x \\
+    \tag{ident-right}
+    mx \bind \mathrm{pure} &= mx \\
+    \tag{assoc}
+    mx \bind f \bind g &= mx \bind \lambda x\rightarrow f x \bind g \\\\
+    \tag{fail-absorb}
+    \mathrm{fail} \bind  k &= \mathrm{fail} \\
+    \tag{⁇-algebraic}
+    (p\; ⁇\; q) \bind k &= (p \bind k)\; ⁇\; (q \bind k) \\\\
+    \tag{share-fail}
+    \mathrm{share}\;\mathrm{fail} &= \mathrm{pure}\;\mathrm{fail}\\
+    \tag{share-$\bot$}
+    \mathrm{share}\;\bot &= \mathrm{pure}\;\bot\\
+    \tag{share-⁇}
+    \mathrm{share}\;(p\; ⁇\; q) &= \mathrm{share}\;p\; ⁇\; \mathrm{share}\;q \\
+    \tag{HNF}
+    \mathrm{share}\;(\mathrm{c}\;x_1\dots x_n) &= \mathrm{share}\; x_1 \bind \lambda y_1 \dots \mathrm{share}\; x_n \bind\lambda y_n \rightarrow \mathrm{pure}\;(\mathrm{pure}\;(c\;y_1\dots y_n))
+  \end{align*}
+  \caption{laws for a monad with sharing by Fischer et al.}
+  \label{first-order:sharing:properties:laws}
+\end{figure}
 
+Fischer et al. introduced a set of equations characterizing
+call-time choice semantics~\cite{DBLP:conf/icfp/FischerKS09}.
+The equations can be found in figure \ref{first-order:sharing:properties:laws}.
+The first three laws are just the monad laws, which were proven in section
+\ref{first-order:free-monad:properties}.
+Section \ref{first-order:nondet:properties} contains a proof for the fourth law.
+The fifth law is the algebraicity of \AgdaFunction{⁇}, which follows for any operation
+directly from the definition of \AgdaFunction{>>=}.
+
+\begin{code}
+⁇-algebraic : ⦃ _ : Normalform CTC B C ⦄ → ⦃ _ : Shareable CTC B ⦄ →
+  (p q : Free CTC A) (k : A → Free CTC B) →
+  runCTC ((p ⁇′ q) >>= k) ≡ runCTC ((p >>= k) ⁇′ (q >>= k))
+⁇-algebraic p q k = refl
+\end{code}
+In addition to the monad laws and equations for \AgdaFunction{⁇} they introduced
+equations involving \AgdaFunction{share}.
+
+\begin{code}
+share-fail : ⦃ _ : Normalform CTC A B ⦄ → ⦃ _ : Shareable CTC A ⦄ →
+  runCTC {A} {B} (share fail′ >>= id) ≡ runCTC {A} {B} (pure fail′ >>= id)
+share-fail = refl
+\end{code}
+The second law involving \AgdaFunction{share} does not apply to our effect
+stack, because we have no notion of \mintinline{Haskell}{undefined}.
+Partiality can be implemented identical to \AgdaFunction{fail} with carrier
+\AgdaDatatype{Maybe}.
+The effect would be placed last in the stack to allow canceling all running
+calculations.
+The law can be proven analogous to the one for \AgdaFunction{fail}.
+
+The third law involving \AgdaFunction{share} states that \AgdaFunction{share}
+distributes over \AgdaFunction{⁇}.
+This law doesn't hold for this implementation, because there is no guarantee
+that \AgdaFunction{get} or \AgdaFunction{put} aren't called outside the sharing
+operator.
+Developing another implementation satisfying the laws in all cases is outside
+the scope of this thesis.
+
+The last law states that share distributes over the components of effectful
+data structures.
+Since our representation for effectful data isn't uniform this law has to be
+proven on a case by case basis.
+One could try to automate this proves using tactics, find an equivalent
+formulation which doesn't refer to constructors directly or use a different
+representation for effectful data (e.g. fixed points of polynomial functors,
+since they can be made effectful generically).
