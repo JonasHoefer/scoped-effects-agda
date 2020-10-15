@@ -1,5 +1,18 @@
 \begin{code}[hide]
+{-# OPTIONS --allow-unsolved-metas #-}
+
 module HigherOrder where
+
+open import Function using (_∘_; id; case_of_)
+
+open import Data.Product using (Σ-syntax; _,_)
+open import Data.Maybe using (Maybe; fromMaybe; nothing; just)
+
+open import Relation.Unary using (_⊆_)
+open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong; sym; trans)
+
+variable
+  A B C : Set
 \end{code}
 
 % \begin{itemize}
@@ -49,7 +62,7 @@ In the first order approach the functors, which describe the syntax, are applied
 to types of the form \texttt{Free F A} i.e. programs consisting of syntax as
 described by \texttt{Free F}, which produce values of type \texttt{A}.
 In the higher order approach these functors are generalized to higher order
-functors i.e. in Haskell a data type of kind \texttt{(* -> *) -> * -> *}.
+functors i.e. in Haskell a data type of kind \texttt{(* -> *) -> (* -> *)}.
 These functors are applied to \texttt{Free F} and \texttt{A} separately.
 
 Because the program type is separated in syntax and result type it is possible
@@ -59,7 +72,7 @@ Consider the following definition of the higher order exception syntax as given
 by Wu et al.
 
 \begin{minted}{haskell}
-  data HExc e m a = Throw e | forall x. Catch (m x) (e -> m x) (x -> m a)
+    data HExc e m a = Throw e | forall x. Catch (m x) (e -> m x) (x -> m a)
 \end{minted}
 The catch operation stores the computation in the scope of the catch block
 \texttt{m x}, the handler producing an alternative value in case of an error
@@ -67,8 +80,114 @@ The catch operation stores the computation in the scope of the catch block
 The three programs agree on an arbitrary, but per \texttt{catch} fixed type
 \texttt{x}.
 
+Calling \AgdaFunction{>>=} on a higher order term just extends the continuation
+i.e. just substitutes the variables in the trees of type \texttt{m a}.
+See figure \ref{higher-order:syntax:bind} for an example.
+Therefore these operations aren't algebraic but also capture the notation of
+scopes.
+
+\begin{figure}
+  \begin{tikzpicture}
+    \node[] {$\bind$};
+  \end{tikzpicture}
+  \caption{calling \bind{} on operations with and without scopes (TODO)}
+  \label{higher-order:syntax:bind}
+\end{figure}
+
 
 \section{Representing Strictly Positive Higher Order Functors}
+
+In Haskell the generalization to higher order syntax is straight forward.
+In Agda we again have to find an appropriate representation for functor to
+guaranty strict positivity, which leads to the idea of an indexed container as
+described by Altenkirch et al.~\cite{DBLP:journals/jfp/AltenkirchGHMM15}
+\footnote{Note that this is not the first publication related to indexed
+  containers. Papers of the same name, by the same author(s) exist, as well as
+  data types, known as ``Interaction Structures'' with essentially the same shape.}.
+
+Indexed containers from the paper as well in the Agda standard library are
+defined as follows\footnote{The names of the fields are changed to highlight
+  differences between the different definitions.}.
+
+\begin{code}
+record IndexedContainer (I O : Set₁) : Set₁ where
+  field
+    Shape : O → Set
+    Pos : ∀ {o} → Shape o → Set
+    Ctx : ∀ {o} → (s : Shape o) → Pos s → I
+
+  ⟦_⟧ : (I → Set) → (O → Set)
+  ⟦_⟧ F A = Σ[ s ∈ Shape A ] ((p : Pos s) → F (Ctx s p))
+\end{code}
+Allowing indicies of arbitrary levels and instantiating \AgdaArgument{I} and
+\AgdaArgument{O} with \AgdaDatatype{Set} gives rise to a container extension
+of the correct shape.
+
+% \begin{AgdaAlign}
+The above definition is similar to Bunkenburg's first definition of a container
+representation for a higher order functor.
+His definition is given below.
+\begin{code}
+record HContainer : Set₂ where
+  field
+    Shape : Set₁
+    Pos : Shape → Set
+    Ctx : (s : Shape) → Pos s → Set → Set
+
+  ⟦_⟧ : (Set → Set₁) → (Set → Set₁)
+  ⟦_⟧ F A = Σ[ s ∈ Shape ] ((p : Pos s) → F (Ctx s p A))
+\end{code}
+In the second definition the \AgdaField{Shape} and \AgdaField{Pos} types cannot
+depend on the given index i.e. the argument for the returned functor.
+Otherwise, the both definitions are quite similar.
+All stored elements are lifted by the given functor \AgdaArgument{F}.
+The type of the \AgdaArgument{F}'s argument is generated using \AgdaField{Ctx}.
+\AgdaField{Ctx} has access to the chosen shape, accessed position and the 
+argument type \AgdaArgument{A}.
+Conceptually, \AgdaField{Ctx} is used to choose between the stored
+\AgdaArgument{X} and the argument type \AgdaArgument{A} i.e. programs inside or
+outside the operations scope.
+
+% TODO: explain ⊆
+We can define \AgdaFunction{hmap} for both, which preserves identity and
+composition.
+As noted by Bunkenburg, we cannot define \AgdaFunction{emap} for all extensions
+of a such a higher-order functor i.e. the produced type constructor is not
+necessarily a functor.
+
+\begin{code}
+  hmap : {F G : Set → Set₁} → (F ⊆ G) → (⟦_⟧ F ⊆ ⟦_⟧ G)
+  hmap α (s , pf) = s , α ∘ pf
+
+  emap : {F : Set → Set₁} → (F A → F B) → ⟦_⟧ F A → ⟦_⟧ F B
+  emap f (s , pf) = s , λ p → {! it's not clear if the type of pf p involves A!}
+\end{code}
+% \end{AgdaAlign}
+Similar to the Haskell implementation by Wu et al. we could define a type class
+to implement \AgdaFunction{emap} for all valid higher-order functors.
+Both representations share another problem, the produced type constructor is not
+necessarily strictly positive.
+This is a necessary requirement to define inductive, effectful data structures.
+
+Bunkenburg fixed this problem by switching to version of a Bi-Container.
+A Bi-Container has two position types for each shape.
+Its extension is a Bifunctor, which is strictly positive in both arguments.
+One set of positions can be used to store computations producing values of type
+\AgdaArgument{A}, while the (using the indexing mechanism from above) stores
+computations producing values involving the captured type \AgdaArgument{X}.
+Defining inductive, effectful data types with this approach isn't a problem,
+because the positions for \AgdaArgument{A} are used identical to the first-order
+approach.
+
+Alternatively, one could fix the positivity problem by returning a first order
+container instead of a type constructor from \AgdaField{Ctx}.
+In most effects \AgdaArgument{A} is only used directly i.e. the Haskell functor
+contains \texttt{a} only as \texttt{m a}.
+For the following simple examples we can therefore simplify \AgdaField{Ctx}
+further to avoid complicated representations, which aren't needed.
+Alternatively, we could use the indexed Bi-Container.
+Going forward we will use the simplified indexed container, because it resembles
+the Haskell implementation more closely.
 
 \begin{code}
 record Container : Set₂ where
@@ -76,6 +195,107 @@ record Container : Set₂ where
   field
     Shape : Set₁
     Pos : Shape → Set
-    Ctx : (s : Shape) → Pos s → Set → Set
+    Ctx : (s : Shape) → Pos s → Maybe Set₁
+
+  ⟦_⟧ : (Set₁ → Set₁) → Set₁ → Set₁
+  ⟦_⟧ F A = Σ[ s ∈ Shape ] ((p : Pos s) → F (fromMaybe A (Ctx s p)))
+
+  hmap : {F G : Set₁ → Set₁} → (F ⊆ G) → (⟦_⟧ F ⊆ ⟦_⟧ G)
+  hmap α (s , pf) = s , α ∘ pf
+
+  emap : {F : Set₁ → Set₁} {X Y : Set₁} → (F X → F Y) → ⟦_⟧ F X → ⟦_⟧ F Y
+  emap {F} {X} {Y} f (s , pf) = s , λ p → helper s p (pf p)
+    where helper : (s : Shape) (p : Pos s) → 
+            F (fromMaybe X (Ctx s p)) → F (fromMaybe Y (Ctx s p))
+          helper s p x with Ctx s p
+          ... | nothing = f x
+          ... | just _  = x
+open Container
 \end{code}
+Ultimately the choice of representation for the functor doesn't matter, because
+all approaches based on storing a type directly encounter the problem described
+in section \ref{higher-order:eff-data-ext-types}.
+
+Using our choice of functor representation we can define the free monad for
+higher order syntax.
+As in Haskell, the argument for the functor in the
+\AgdaInductiveConstructor{impure} case is split.
+
+\begin{code}
+data Prog (C : Container) (A : Set₁) : Set₁ where
+  pure    : A → Prog C A
+  impure  : ⟦ C ⟧ (Prog C) A → Prog C A
+\end{code}
+Notice that due to the potentially captured type in the \AgdaField{Shape},
+stored in the container extension, the universe level for \AgdaDatatype{Prog}
+increased to $1$.
+This allows us to increase the universe level of \AgdaArgument{A} to one,
+allowing us to define effectful data structures.
+
+
+\section{Effectful Data and Existential Types}
+\label{higher-order:eff-data-ext-types}
+
+A central problem with this approach is that it cannot model deep effects
+without involving variable levels.
+Consider the the following definition of an effectful list.
+
+\begin{code}
+data Listᴹ (C : Container) (A : Set₁) : Set₁ where
+  nil   : Listᴹ C A
+  cons  : Prog C A → Prog C (Listᴹ C A) → Listᴹ C A
+\end{code}
+\AgdaDatatype{Listᴹ}\AgdaSpace{}\AgdaArgument{C}\AgdaSpace{}\AgdaArgument{A} is
+an element of \AgdaDatatype{Set₁}, because it stores elements of type
+\AgdaDatatype{Prog}\AgdaSpace{}\AgdaArgument{C}\AgdaSpace{}\AgdaArgument{X},
+which is an element of \AgdaDatatype{Set₁}.
+\AgdaDatatype{Prog}\AgdaSpace{}\AgdaArgument{C}\AgdaSpace{}\AgdaArgument{X} is
+an element of \AgdaDatatype{Set₁}, because it holds values of the container
+extension i.e. elements of the \AgdaField{Shape} type, which is an element
+\AgdaDatatype{Set₁}, because it has to store the result type of the
+subcomputation \AgdaArgument{X}.
+Therefore the
+\AgdaDatatype{Listᴹ}\AgdaSpace{}\AgdaArgument{C}\AgdaSpace{}\AgdaArgument{A} is
+to large to be stored as result type of a subcomputation.
+Therefore it is not possible to call a scoped operation (such as
+\AgdaFunction{share}) on an effectful data structure.
+
+More generally speaking, let us fix the universe level of the result type $X$ of
+the subcomputation $\ell_X = l$.
+The type is stored in the \AgdaField{Shape}, therefore the universe level of the
+\AgdaField{Shape} type is given by $\ell_S = l + 1$.
+Because the \AgdaDatatype{Prog} stores an element of the \AgdaField{Shape} its
+level is given by $\ell_P = \ell_S$.
+Effectful data structures live in the same universe as \AgdaDatatype{Prog}, but
+are simultaneously required to be stored in the subcomputation.
+We obtain the contradictory requirements $\ell_E = \ell_P = \ell_S = l + 1$ and
+$\ell_E  \leqslant l$.
+
+Holding on to the idea of storing types in the \AgdaField{Shape}, the only way to
+fix this problem is to let all levels vary as needed.
+This leads to different levels across the program, which are different to unify.
+Furthermore, when mapping a scoped operation over a recursive data structure
+(e.g. \AgdaFunction{share}) the increase in the universe level depends on the
+depth of the structure.
+Both of these phenomena are hard to deal with and in a complex program
+potentially unsolvable.
+
+
+\section{The Problem with Indexing}
+
+One could try solving the problem of existential types by indexing the program
+over a typing context.
+The level of the index is independent from the level of the structure, therefore
+the chain of reasoning from section \ref{higher-order:eff-data-ext-types} does
+not apply.
+The typing context needs to have the same structure as the program.
+
+A central problem with this approach is that every call of \AgdaFunction{>>=}
+changes the structure of the program and therefore the context.
+These changes now have to be reflected on the type level, because the typing
+context has to reflect the programs shape.
+If \AgdaFunction{>>=} substitutes leaves differently, the changes to the context
+aren't simple substitutions, but depend on the stored value.
+As with increasing universe levels, this complications are increasingly hard to
+deal with and cannot be hidden from the user of the library.
 
