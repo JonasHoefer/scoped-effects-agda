@@ -974,8 +974,8 @@ but expected are values of type
 \AgdaDatatype{Prog}\AgdaSpace{}\AgdaArgument{effs}\AgdaSpace{}\AgdaFunction{\$}
 \AgdaDatatype{Prog}\AgdaSpace{}\AgdaArgument{effs}\AgdaSpace{}\AgdaFunction{∘}\AgdaSpace{}\AgdaDatatype{Tree}\AgdaSpace{}\AgdaFunction{\textasciicircum}\AgdaSpace{}\AgdaArgument{n}\AgdaSpace{}\AgdaFunction{\$}\AgdaSpace{}\AgdaArgument{A}.
 
-To remove the intermediate \AgdaDatatype{Tree} layer we map the function{hdl}
-over the result of the postion function.
+To remove the intermediate \AgdaDatatype{Tree} layer we map the function
+\AgdaFunction{hdl} over the result of the continuation.
 \AgdaFunction{hdl} traverses the outer tree and recombines the inner trees under
 the monad i.e. by interleaiving binds it orders the results.
 On a term level, we are given a list of possible continuations, which we execute
@@ -1020,7 +1020,7 @@ p ⁇ q = Op (⁇ˢ nothing , (if_then p else q))
 
 \section{Exceptions}
 
-As our first example for a scoped effect in the modular setting we will take a
+As our second example for a scoped effect in the modular setting we will take a
 look at exceptions.
 The syntax for \AgdaFunction{throw} is the same as before.
 Similar to chapter \ref{chapter:higher-order} \AgdaFunction{catch} has two

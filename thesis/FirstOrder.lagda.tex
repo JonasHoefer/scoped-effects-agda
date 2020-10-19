@@ -548,9 +548,8 @@ Simplifying both sides yields \AgdaFunction{fail}.
 The other three laws state that \AgdaFunction{⁇} and \AgdaFunction{fail} form a
 monoid.
 The proofs for all three are similar.
-By using monad functor, applicative and monad laws one can reduce the proof to
-one for pure lists and simply use the corresponding equality from the standard
-library.
+By using functor, applicative and monad laws one can reduce the proof to one for
+pure lists and simply use the corresponding equality from the standard library.
 
 \begin{code}
 ⁇-identˡ : (q : Free (Nondet ∷ ops) A) → solutions (fail ⁇ q) ≡ solutions q
