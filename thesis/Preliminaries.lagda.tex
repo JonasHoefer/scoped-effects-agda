@@ -13,7 +13,7 @@ of ``Propositions as types'' under which Agda can be used for theorem proving.
 
 \subsection{Basic Syntax}
 
-Agdas syntax is similar to Haskells.
+Agda's syntax is similar to Haskells.
 Data types are declared with syntax similar to Haskells GADTs.
 Functions declarations and definitions are also similar to Haskell, except that
 Agda uses a single colon for the typing relation.
@@ -25,7 +25,7 @@ data ℕ : Set where
   zero  : ℕ
   suc   : ℕ → ℕ
 \end{code}
-Ordinary function definition are syntactically similar to Haskell.
+Ordinary function definitions are syntactically similar to Haskell.
 Agda allows the definition of mixfix operators.
 A mixfix operator is an nearly arbitrary list of symbols (builtin symbols like
 colons are not allowed as part of operators).
@@ -46,23 +46,26 @@ suc n  + m = suc (n + m)
 \end{code}
 
 \subsection{Dependent Types}
+\label{preliminaries:dependent-types}
 The following type theoretic definitions are taken from the homotopy type theory
-book \cite{hottbook}.
+book~\cite{hottbook}.
 In type theory a type of types is called a universe.
 Universes are usually denoted $\mathcal{U}$.
-A function whose codomain is a universe is called a type family or dependent
+A function whose codomain is a universe is called a type family or a dependent
 type.
 $$
-F : A \rightarrow \mathcal{U} \quad\text{where}\quad B(a) : \mathcal{U}
+F : A \rightarrow \mathcal{U} \quad\text{where}\quad F(a) : \mathcal{U}
 \quad\text{for}\quad a : A
 $$
 To avoid Russell's paradox, a hierarchy of universes $\mathcal{U}_1 :
 \mathcal{U}_2 : \dots$ is introduced.
+In Agda the universes are named \AgdaDatatype{Setₙ}, where \AgdaDatatype{Set₀}
+can be abbreviated as \AgdaDatatype{Set}.
 Usually the universes are cumulative i.e. if $\tau : \mathcal{U}_n$ then
 $\tau : \mathcal{U}_k$ for $k>n$.
 by default this is not the case in Agda.
-Each type is member of a unique universe, forcing us to do additional
-bookkeeping.
+Each type is member of a unique universe, but it's possible to lift a type to a
+higher universe manually.
 Since Agda 2.6.1 an experimental \texttt{--cumulativity} flag exists.
 
 \paragraph{Dependent Function Types ($\Pi$-Types)} are a generalization of
@@ -77,14 +80,14 @@ $$
 $$
 An element of the above type is a function which maps every $a : A$ to a $b :
 B(a)$.
-In Agda the builtin function type $\Rightarrow$ is a $\Pi$-type.
+In Agda the builtin function type $\rightarrow$ is a $\Pi$-type.
 An argument can be named by replacing the type $\tau$ with $x : \tau$, allowing
 us to use the value as part of later types.
 
 \paragraph{Dependent Sum Types ($\Sigma$-Types)} are a generalization of product
 types.
-The type of the second component of the product is not fixed, but varies with
-the value of the first.
+The type of the second component is not fixed, but varies with the value of the
+first.
 $$
 \sum_{a : A} B(a) \quad \text{with}\quad B : A \rightarrow\mathcal{U}
 $$
@@ -107,7 +110,7 @@ Arguments on the left-hand side of the colon are called parameters and are the
 same for all constructors.
 Arguments on the right-hand side of the colon are called indices and can differ
 for each constructor.
-Therefore \AgdaDatatype{Vec}\AgdaSpace{}\AgdaArgument{A} is a family of types
+Therefore, \AgdaDatatype{Vec}\AgdaSpace{}\AgdaArgument{A} is a family of types
 indexed by \AgdaDatatype{ℕ}.
 
 The \AgdaInductiveConstructor{[]} constructor allows us to create an empty
@@ -115,7 +118,7 @@ vector of any type, but forces the index to be zero.
 The \AgdaInductiveConstructor{\_∷\_} constructor appends an element to the front
 of a vector of the same element type and increases the index by $1$.
 Only these two constructors can be used to construct vectors.
-Therefore the index is always equal to the amount of elements stored in the
+Therefore, the index is always equal to the amount of elements stored in the
 vector.
 
 By encoding more information about data in its type we can add extra constraints
@@ -166,7 +169,7 @@ So we can construct a $k<n$ of type
 \AgdaDatatype{Fin}\AgdaSpace{}$($\AgdaArgument{n - k}$)$ and applying
 \AgdaInductiveConstructor{suc} $k$ times.
 Using this definition of the bounded subsets of natural numbers we can define
-\AgdaFunction{\_!\_} for vectors.
+a non partial version of \AgdaFunction{\_!\_} for vectors.
 
 \begin{AgdaAlign}
 \begin{code}
@@ -183,7 +186,7 @@ therefore the type \AgdaDatatype{Fin}\AgdaSpace{}\AgdaInductiveConstructor{zero}
 is not inhabited and the cases for \AgdaInductiveConstructor{[]} do not apply.
 
 By case splitting on the vector first we could have obtained the term
-\AgdaInductiveConstructor{[]}\AgdaSpace{}\AgdaFunction{!}\AgdaArgument{i}.
+\AgdaInductiveConstructor{[]}\AgdaSpace{}\AgdaFunction{!}\AgdaSpace{}\AgdaArgument{i}.
 By case splitting on \AgdaArgument{i} we notice that no constructor for
 \AgdaDatatype{Fin zero} exists.
 Therefore, this case cannot occur, because the type of the argument is
@@ -195,7 +198,7 @@ argument is impossible to construct, by replacing it with $()$, allowing us to
 omit the definition of the right-hand side of the equation.
 
 \begin{code}
-[]         ! () -- no right-hand side
+[]         ! () -- no right-hand side, because it's impossible to reach this case
 \end{code}
 \end{AgdaAlign}
 The other two cases are straightforward.
@@ -207,23 +210,108 @@ Notice that the types for the recursive call change.
 The tail of the vector \AgdaArgument{xs} and the smaller index \AgdaArgument{i}
 are indexed over the predecessor of \AgdaArgument{n}.
 
+The above, quite simple examples can also be implemented in Haskell, for
+example using type level natural numbers.
+One of the advantages of Agda is the seamless and complete implementation of
+dependent types.
+For example, in contrast to a Haskell implementation we could simply reuse the
+normal type of natural numbers to index other types.
+Furthermore, we will later see more complex uses of dependent types, which
+cannot be translated as easily to Haskell.
+
+
 \subsection{Propositions as Types}
 
 An more in depth explanation and an overview over the history of the idea can be
 found in Wadlers paper of the same name \cite{DBLP:journals/cacm/Wadler15}.
 
-\begin{center}
-  \begin{tabular}{ccc}
-    FOL & MLTT & Agda \\\hline
-    $\forall x \in A: P(x)$ & $\Pi_{x:A}P(x)$ & \mintinline{agda}{(x : A) → P x} \\
-    $\exists x \in A: P(x)$ & $\Sigma_{x:A} P(x)$ & \mintinline{agda}{Σ[ x ∈ A ] P x} mit \mintinline{agda}{_,_ : (x : A) → P x → Σ A P} \\
-    $P \wedge Q$ & $P \times Q$ & \mintinline{agda}{A × B} \\
-    $P \vee Q$ & $P + Q$ & \mintinline{agda}{A ⊎ B} \\
-    $P \Rightarrow Q$ & $P \rightarrow Q$ & \mintinline{agda}{A → B} \\
-    $\mathbf t$ & $\mathbf 1$ & \mintinline{agda}{tt : ⊤} \\
-    $\mathbf f$ & $\mathbf 0$ & \mintinline{agda}{⊥}
-  \end{tabular}
-\end{center}
+The idea of propositions as types, also know as Curry-Howard correspondence,
+relates type theory to logic.
+As described by Wadler, it's a deep correspondents, relating \textit{propositions
+to types}, \textit{proofs to programs} and \textit{simplification of proofs to
+evaluation of programs}.
+We will first consider the connection between the simple typed lambda calculus
+(with product and sum types) and \textit{intuitionistic} propositional logic.
+The intuitionistic version of propositional logic uses weaker axioms than
+classical propositional logic.
+For example, the law of the excluded middle and double negation elimination do
+not hold in general.
+Intuitively speaking, in intuitionistic logic every proof has to be witnessed.
+When proving a disjunction one has to state which of the alternatives holds i.e.
+one cannot just proof existence.
+With this view point in mind it should be clear why intuitionists refute the law
+of the excluded middle, if $A \vee \neg A$ were true in general one would
+already have to know which alternative holds.
+
+A proposition corresponds to a type, while the elements of the type correspond
+to the proofs of the proposition.
+A proposition is true iff the type representing it is inhabited.
+Constructing a proof for a proposition means constructing a value of its type.
+Unit and bottom type correspond to true and false, because one can always deduce
+true (construct a value of the unit type $\top$) and there exist no proof of
+falsity i.e. $\bot$ the type representing false is not inhabited.
+Under the above interpretation the usual logical connectives like $\wedge$,
+$\vee$ and $\Rightarrow$ correspond product, sum and function types.
+
+For example, by the introduction rule for conjunctions, to construct a proof of
+$A\wedge B$ one has to construct a proof of $A$ and a proof of $B$.
+This corresponds to the construction of an element of the product type, because
+to construct an element of $A\times B$ one has to provide an element of $A$ and
+$B$.
+The elimination rules for conjunction, i.e. one can deduce a proof of $A$ and a
+proof of $B$ from the conjunction $A \wedge B$, corresponds to the projection
+functions for products $\pi_1$ and $\pi_2$.
+The argumentation for disjunction and sum/coproduct types is dual.
+
+Functions from $A$ to $B$ map element of $A$ to elements of $B$ i.e. they
+construct proofs of $B$ from proofs of $A$.
+They correspond to implications.
+Lambda abstracting of a value of type $A$ corresponds to assuming a proof of $A$
+i.e. implication introduction, while application function corresponds to
+implication elimination.
+
+As explained in section \ref{preliminaries:dependent-types}, Agda's type system
+has dependent types.
+With dependent types the construction of a type (and therefore whether the type
+is inhabited) can change based on a value.
+Dependent types therefore correspond to predicates.
+$\Sigma$ and $\Pi$ types correspond to existential and universal quantification.
+To proof an existential one has to provide a value and a proof that the
+proposition holds for this value.
+These two correspond to the two elements of a the $\Sigma$ type.
+The type of the second element depends on the first one i.e. it's a proof for a
+predicate on the first value.
+The prove a universal quantified proposition one has to proof that it holds for
+every possible value.
+A $\Pi$ type is a function whose return type depends on the given value i.e.
+given any value it returns a proof for the predicate on its argument.
+
+Extending the type system with dependent types corresponds to extending
+intuitionistic propositional logic to intuitionistic predicate logic.
+Using the above corresponds Agda can be used to state and proof theorems in
+predicate logic.
+An overview over the correspondences between certain types and connectives, as
+well as the corresponding syntax in Agda can be found in table
+\ref{preliminaries:propositions-as-types:table}.
+
+\begin{table}
+  \begin{center}
+    \begin{tabular}{ccc}
+      FOL & MLTT & Agda \\\hline
+      $\forall x \in A: P(x)$ & $\Pi_{x:A}P(x)$ & \mintinline{agda}{(x : A) → P x} \\
+      $\exists x \in A: P(x)$ & $\Sigma_{x:A} P(x)$ & \mintinline{agda}{Σ[ x ∈ A ] P x} \\
+      $\neg A$ & $A \rightarrow 0$ & \mintinline{agda}{A → ⊥} \\
+      $P \wedge Q$ & $P \times Q$ & \mintinline{agda}{A × B} \\
+      $P \vee Q$ & $P + Q$ & \mintinline{agda}{A ⊎ B} \\
+      $P \Rightarrow Q$ & $P \rightarrow Q$ & \mintinline{agda}{A → B} \\
+      $\mathbf t$ & $\mathbf 1$ & \mintinline{agda}{⊤} \\
+      $\mathbf f$ & $\mathbf 0$ & \mintinline{agda}{⊥}
+    \end{tabular}
+  \end{center}
+  \label{preliminaries:propositions-as-types:table}
+  \caption{correspondence between first order logic and types in mathematical
+    and Agda notation}
+\end{table}
 
 \subsection{Notions of Equality and Equality Types}
 
@@ -254,8 +342,6 @@ $0+(0+n)$ $\beta$-reduces to $n$.
 On the other hand $n+0$ and $n$ are not computational equal, because for a free
 variable $n$ none of the program rules for $+$ can be used to reduce the term
 further.
-Therefore computational equality is not the right notion of equality, because
-the later equality should also hold.
 
 To talk about the equality of two terms we have to use \textit{propositional
 equality} i.e. we have to define a proposition representing the fact that two
@@ -337,11 +423,38 @@ equality together with the analogs of proofs by exhaustion and induction.
 This proof can now be used to rewrite arbitrary terms containing terms
 corresponding to or containing the left- or right-hand of the equality.
 
+The above definition of propositional equality defines so called
+\textit{intentional} propositional equality.
+Intentional equality respects how objects are defined.
+Extensional equality just observes ob objects behave.
+This distinction is important when comparing functions, as we will do in nearly
+all later proofs.
+Two functions which behave identical but are defined differently are
+extensional but not intentional equal.
+In Agda one can use extensional equality be arguing in another setoid (i.e.
+using a different equivalence relation, which assumes that extensionality holds)
+or by adding an axiom to modify the underlying theory.
+For simplicity we will do the later and postulate the axiom of extensionality.
+
+\begin{code}
+postulate
+  extensionality : ∀ {A : Set} {B : A → Set} 
+    {f g : (x : A) → B x} → (∀ (x : A) → f x ≡ g x) → f ≡ g
+\end{code}
+The axiom simply states the two functions \AgdaArgument{f} and \AgdaArgument{g}
+are considered equal if they are equal point-wise.
+It extends the intentional propositional equality to the extensional one, while
+preserving Agda's consistency.
+
+
 \subsection{Termination Checking}
 \label{sec:termination-checking}
 
-The definition of non-terminating functions entails logical inconsistency.
-Agda therefore only allows the definition terminating functions.
+Non-terminating functions correspond to circular arguments.
+Therefore, allowing the definition of non-terminating functions entails logical
+inconsistency.
+When defining functions Agda allows general recursion, but only terminating
+functions are valid Agda programs.
 Due to the undecidability of the halting problem Agda uses a heuristic
 termination checker.
 The termination checker proofs termination by observing structural recursion.
@@ -365,23 +478,45 @@ In the \AgdaInductiveConstructor{\_∷\_} case the recursive call to
 Because elements of \AgdaDatatype{List A} are finite the function
 \AgdaFunction{map} terminates for every argument.
 
+
 \subsubsection{Sized Types}
+
 In more complex recursive functions the structural recursion can be obscured.
-Agda does not inline functions containing pattern matches during termination
-checking and therefore cannot proof the termination.
-A common example are recursive calls in lambdas, which are passed
-to higher order functions like \AgdaFunction{map} and \AgdaFunction{>>=}.
+For example, Agda does not inline functions containing pattern matches during
+termination checking.
+A common example are recursive calls in lambdas, which are passed to higher
+order functions like \AgdaFunction{map} and \AgdaFunction{>>=}.
 
-Consider a monad like \AgdaDatatype{List} or \AgdaDatatype{Maybe}.
-It is not obvious that the argument of the continuation of \AgdaFunction{>>=} is
-a subterm of the first argument.
+To still proof termination in such cases we can resort to type-based
+termination checking as described by Abel~\cite{DBLP:journals/lmcs/Abel08}.
+The fundamental idea is to represent the size of a recursive data structure in
+its type.
+Termination of recursive functions can be proven by observing a reduction in
+size on the type level.
+Abel noted as main advantages robustness with respect to small/local changes in
+code (which do not impact the type) as well as scaling to higher-order functions
+and polymorphism~\cite{DBLP:journals/lmcs/Abel08}.
+The later will be essential in future chapters, since representations of
+computational effects involve complex constructs, which obscure recursion on the
+value level.
 
-TODO: explain better via [SEMI-CONTINUOUS SIZED TYPES AND TERMINATION ABEL]
+Type-based termination is available in Agda in the form of \textit{sized types}.
+The special, builtin type \AgdaDatatype{Size} can be used to annotate data types
+with a value which represents an upper bound on there size. % :/
+A set of builtin functions and types can be used to establish relations between
+different sizes.
+The elements of \AgdaDatatype{Size} are well ordered.
+\AgdaFunction{↑\_} is the successor operation on \AgdaDatatype{Size} i.e. 
+\AgdaArgument{i}$\;<\;$\AgdaFunction{↑}\AgdaSpace{}\AgdaArgument{i}.
+\AgdaFunction{\_⊔ˢ\_} is the supremum w.r.t. the relation.
+\AgdaInductiveConstructor{∞} is the top element in \AgdaArgument{Size}.
+Given an \AgdaArgument{i} the type of all smaller sizes can be constructed using
+\AgdaDatatype{Size<\_}\footnote{We will not use this construction. It's usually
+  used when working with \AgdaKeyword{coinductive} data types.}.
+If the size decreases across all recursive call of a function termination
+follows from the well-ordering on \AgdaDatatype{Size}.
 
-A possibility to still proof termination are Sized Types.
-Agda has a special builtin, well-ordered type \AgdaDatatype{Size}.
-
-\begin{code}
+\begin{code}[hide]
 open import Agda.Builtin.Size public
   renaming ( SizeU to SizeUniv )  --  sort SizeUniv
   using    ( Size                 --  Size   : SizeUniv
@@ -390,11 +525,6 @@ open import Agda.Builtin.Size public
            ; _⊔ˢ_                 --  _⊔ˢ_   : Size → Size → Size
            ; ∞ )                  --  ∞      : Size
 \end{code}
-By augmenting a data type with an index of type \AgdaDatatype{Size} its
-size can be represented on the type level.
-If a value of type \AgdaDatatype{Size} decreases with every recursive call, the
-functions has to termination, because there exist no infinitely decreasing
-chains on elements of \AgdaDatatype{Size}.
 
 A common idiom for data types is to mark all non-inductive constructors and
 recursive occurrences with an arbitrary size \AgdaArgument{i} and all inductive
@@ -537,14 +667,16 @@ fmap f (s , pf) = (s , f ∘ pf)
 
 Curry \cite{Hanus95curry} is a functional logic programming language.
 It combines paradigms from functional programming languages like Haskell
-with those logical languages Prolog.
+with those from logical languages like Prolog.
 Curry is based on Haskell i.e. its syntax and semantics not involving
 nondeterminism closely resemble Haskell.
 Curry integrates logical features, such as nondeterminism and free variables
 with a few additional concepts.
 
-When defining a function with overlapping patterns on the left-hand side of
-equations all matching right-hand sides are executed.
+Like in Haskell, functions are defined using equations, but curry assigns
+different semantics to overlapping clauses.
+When calling a function all right-hand sides of matching left-hand sides are
+executed.
 This introduces non determinism.
 Nondeterminism is integrated as an ambient effect i.e. the effect is not
 represented at type level.
@@ -558,7 +690,7 @@ The simplest example of a nondeterministic function is the choice operator
 \end{minted}
 Both equations always match, therefore both arguments are returned i.e.
 \texttt{?} introduces a nondeterministic choice between its two arguments.
-Using choice we can define a simple nondeterministic program.
+Using choice we can define a simple nondeterministic programs.
 
 \begin{minted}{haskell}
      coin :: Int
@@ -568,7 +700,7 @@ Using choice we can define a simple nondeterministic program.
      twoCoins = coin + coin
 \end{minted}
 \texttt{coin} chooses non-deterministically between $0$ and $1$.
-Executing coin therefore yields these two results.
+Executing \texttt{coin} therefore yields these two results.
 When executing \texttt{twoCoins} the two calls of \texttt{coin} are independent.
 Both choose between $0$ and $1$, therefore \texttt{twoCoins} yields the results
 $0$, $1$, $1$ and $2$.
@@ -594,7 +726,7 @@ The second possibility is choosing a value before calling the function and
 choosing between the results for each possible argument.
 In this case both \texttt{x} have the same value, therefore the possible results
 are $0$ and $2$.
-This option is called Call-Time-Choice and it is the one implemented by Curry.
+The later option is called Call-Time choice and is the one implemented by Curry.
 
 Similar to Haskell, Curry programs are evaluated lazily.
 The evaluation of an expression is delayed until its result is needed and each
@@ -612,7 +744,7 @@ $$
 $$
 We therefore expect a variable bound by a \texttt{let} to behave similar to one
 bound by a function.
-This naturally extends Call-Time-Choice to \texttt{let}-bindings in lazily
+This naturally extends Call-Time choice to \texttt{let}-bindings in lazily
 evaluated languages.
 
 \begin{minted}{haskell}
@@ -620,10 +752,6 @@ evaluated languages.
      sumCoin = let x = coin in x + x
 \end{minted}
 As expected this function yields the results $0$ and $2$.
-
-\subsection{Permutation Sort}
-
-Introduce Free Variables + Explain for Later Example
 
 
 \section{Algebraic Computational Effects}
@@ -791,20 +919,24 @@ the continuation to the values stored in the leafs, replacing them.
 \AgdaFunction{>>=} therefore substitutes leafs with new subtrees generated from
 the values stored in each leaf.
 It corresponds to variable substitution.
-Algebraic operations are those which commute with \AgdaFunction{>>=} i.e. for an
-$n$-ary algebraic operations the following holds.
+
+In there categorical formulation, Plotkin et al. algebraic operations are
+required to have a certain natural condition.
+On the level of the free monad algebraic operations are those which commute with
+\AgdaFunction{>>=} i.e. for an $n$-ary algebraic operations the following holds.
 
 \[
   \mathbf{op}(x_1,\dots ,x_n) \bind{} \kappa = \mathbf{op}(x_1\bind \kappa,\dots
   ,x_n\bind \kappa)
 \]
 For common scoping operations like \texttt{once}, \texttt{catch} or
-\texttt{fork} this does obviously not hold.
-They are not algebraic but can be represented as an effect handler.
-Representing these operations as a handler moves the syntactic problem of
-scoping to the level of the handler i.e. to a semantics level.
-Decoupling the two leads to the idea of scoped effects.
+\texttt{fork} this does not hold.
+Dealing with this limitation leads to the general notion of scoped effects.
 
 
 \subsection{Scoped Effects}
 
+Not all operations, know from common monads can be represented as an algebraic
+effects.
+The most common example is \texttt{catch} as it was noted early by Plotkin and
+Powers~\cite{DBLP:journals/acs/PlotkinP03}.

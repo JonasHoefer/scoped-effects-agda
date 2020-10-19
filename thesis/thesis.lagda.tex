@@ -152,12 +152,6 @@
 \date{2020}
 
 \begin{document}
-Notiz: Der Code für alle 3 Ansätze ist quasi fertig.
-Aktuell schreibe ich also fast ausschließlich an der Arbeit an sich.
-Dieses PDF ist eine unfertige Arbeitsversion.
-Einige bereits geschriebene Abschnitte sind noch unfertig oder an der falschen
-Position in der Arbeit.
-
 \maketitle
 \begin{abstract}
 \end{abstract}
@@ -166,16 +160,26 @@ Position in der Arbeit.
 
 \chapter{Introduction}
 
-Algebraic effects and their handlers, first introduced by Plotkin, Powers and
-Pretnar~\cite{TODO,DBLP:conf/esop/PlotkinP09}, are a theoretical well studied
-representation for certain computational effects.
+Algebraic effects where first introduced by Plotkin and
+Powers~\cite{DBLP:journals/acs/PlotkinP03} as an alternative, educational
+representation for algebraic computational effects.
+Effect handlers were introduced by Plotkin and
+Pretnar~\cite{DBLP:conf/esop/PlotkinP09} as a generalization of exception
+handlers.
+They allow modelling non-algebraic effects and are used in conjunction with
+algebraic effects~\cite{DBLP:journals/corr/PlotkinP13}.
+Together they form a theoretical well understood representation for a large
+class of computational effects.
 
-Algebraic effects are generally more modular than traditional monad
-transformers.
-Wu et al. noticed a lack of modularity when combining multiple operations with
-scopes.
-They introduced several solutions for the problem, by using new syntax to
-delimit scopes.
+Algebraic effects and handlers have a wide field of applications e.g. in
+programming as a less boiler plate intensive alternative to monad transformers,
+as well as to simulate programming semantics in proof
+assistants~\cite{DBLP:journals/programming/DylusCT19,DBLP:conf/haskell/ChristiansenDB19}.
+
+Wu et al. noticed a lack of modularity when combining computational effects with
+scoping operations~\cite{DBLP:conf/haskell/WuSH14}.
+They introduced several solutions for the problem, by introducing new operations
+and generalizing syntax to delimit scopes.
 
 
 \section{Goals}
@@ -213,17 +217,19 @@ dependent types, Curry and its call-time choice semantics (which are a central
 example for a scoped effect throughout the thesis) and algebraic effects.
 
 Chapter \ref{chapter:first-order} and \ref{chapter:higher-order} explore the two
-approached based on ``Effect Handlers in Scope'' by Wu et al.
-The former of the two approaches was already partially explored by Bunkeburg in
-Coq and can also be implemented easily in Agda.
+approached based on ``Effect Handlers in Scope'' by Wu et
+al.~\cite{DBLP:conf/haskell/WuSH14}.
+The former of the two approaches was already partially explored by
+Bunkeburg~\cite{bunkenburg2019modeling} in Coq and can also be implemented
+easily in Agda.
 The latter of the two approaches tries to fix some inherent problems of the
 first one, but sadly cannot fully be implemented in Agda due to some inherent
 problems with universe consistency.
 
 Chapter \ref{chapter:scoped-algebras} describes an implementation of a novel
-representation for scoped effects by Piróg et
-al.~\cite{DBLP:conf/lics/PirogSWJ18} which also fixes the problems of the first
-approach, while avoiding the universe inconsistencies of the second one.
+representation for scoped effects by Piróg
+et~al.~\cite{DBLP:conf/lics/PirogSWJ18} which also fixes the problems of the
+first approach, while avoiding the universe inconsistencies of the second one.
 Furthermore, the implementation explores some ideas to modularize the exemplary
 Haskell implementation by Piróg et al.
 

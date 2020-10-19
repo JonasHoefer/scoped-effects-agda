@@ -1112,7 +1112,7 @@ open Normalform ⦃...⦄ public
 \end{code}
 The type class allow to normalize elements of type \AgdaArgument{A} (intuitively
 containing effectful calculations) to computations producing of elements of type
-\AgdaArgument{B} (intuitively a version of \AgdaArgument{B} without the effects).
+\AgdaArgument{B} (intuitively a version of \AgdaArgument{A} without the effects).
 Instead of \AgdaArgument{A} and \AgdaArgument{B} we could have parameterized the
 type class over a type family of an effect stack, with \AgdaFunction{nf}
 producing an element of the type family applied to an empty stack.
@@ -1371,6 +1371,64 @@ runDoubleCoin :
 \end{code}
 \begin{code}[inline,hide]
 runDoubleCoin = refl
+\end{code}
+\end{center}
+Thanks to the \AgdaDatatype{Shareable} type class it's also possible to share
+choice, which are embedded in data structures.
+The following simple example demonstrates this possibility.
+
+\begin{code}
+headᴹ : ⦃ NonDet ∈ ops ⦄ → Free ops (Listᴹ ops A) → Free ops A
+headᴹ mxs = mxs >>= λ where
+  nil         → fail′
+  (cons mx _) → mx
+
+doubleHead : ⦃ Share ∈ ops ⦄ → ⦃ State (ℕ × ℕ) ∈ ops ⦄ → ⦃ NonDet ∈ ops ⦄ →
+  Free ops ℕ
+doubleHead = share (coin ∷ᴹ []ᴹ) >>= λ mxs → ⦇ headᴹ mxs + headᴹ mxs ⦈
+\end{code}
+As expected, observing the value in the head twice yields the same value,
+because the choice was shared.
+
+\begin{center}
+\begin{code}[inline,hide]
+runDoubleHead :
+\end{code}
+\begin{code}[inline]
+ runCTC doubleHead ≡ 0 ∷ 2 ∷ []
+\end{code}
+\begin{code}[inline,hide]
+runDoubleHead = refl
+\end{code}
+\end{center}
+Using the \AgdaDatatype{Normalform} type class it's possible to embed effects
+deep into data structures.
+This allow to write programs operating on recursive data structures, which
+closely resemble their Curry version.
+Consider the example of nondeterministic insertion into a list.
+
+\begin{code}
+insertND : ⦃ NonDet ∈ ops ⦄ →
+  Free ops A → Free ops (Listᴹ ops A {i}) → Free ops (Listᴹ ops A {↑ i})
+insertND mx mxs = mxs >>= λ where
+  nil            → mx ∷ᴹ []ᴹ
+  (cons my mxs)  → (mx ∷ᴹ my ∷ᴹ mxs) ⁇′ (my ∷ᴹ insertND mx mxs)
+\end{code}
+When evaluating the result of \AgdaFunction{insertND} the \AgdaDatatype{Listᴹ}
+is normalized using the type class.
+As expected, insert \AgdaNumber{1} deterministically in the list with
+\AgdaNumber{2} and \AgdaNumber{3} yields three possible results.
+
+\begin{center}
+\begin{code}[inline,hide]
+runInsertND :
+\end{code}
+\begin{code}[inline]
+ runCTC (insertND (pure 1) (pure 2 ∷ᴹ pure 3 ∷ᴹ []ᴹ)) ≡
+   (1 ∷ 2 ∷ 3 ∷ []) ∷ (2 ∷ 1 ∷ 3 ∷ []) ∷ (2 ∷ 3 ∷ 1 ∷ []) ∷ []
+\end{code}
+\begin{code}[inline,hide]
+runInsertND = refl
 \end{code}
 \end{center}
 
