@@ -214,11 +214,11 @@ monad for higher order syntax as described by
 \textcite{DBLP:conf/haskell/WuSH14}.
 It is similar to the free monad in the first order case, except that the functor
 has access to the type parameter an the type constructor, not just the
-combined type. 
+combined type.
 
 \begin{code}
 ⟦_⟧′ : Effect → (Set₁ → Set₁) → Set₁ → Set₁
-⟦ S ◁ P + PX / C ⟧′ F A = Σ[ s ∈ S ] (((p : P s) → F A) × ((p : PX s) → F (C s p)))
+⟦ S ◁ P + PX / C ⟧′ F A = Σ[ s ∈ S ] (((p : P s) → F A) × ((p : PX s) → F (Lift _ $ C s p)))
 
 data Progᵂ (C : Effect) (A : Set₁) : Set₁ where
   pure    : A → Progᵂ C A
@@ -717,7 +717,7 @@ If the argument is already an error we simply produce a
 Otherwise it is a computation, which we can evaluate using \AgdaFunction{runExc}.
 Notice that the initial context always leads to the second case.
 \begin{code}
-runExc (Other s κ σ) = impure (handle (inj₂ tt) [ pure ∘ inj₁ , runExc ] (s , κ , σ))
+runExc (Other s κ σ) = impure (handle (inj₂ tt) [ (λ x → pure (inj₁ x)) , runExc ] (s , κ , σ))
 \end{code}
 Even tough we pass \AgdaFunction{runExc} to \AgdaFunction{handle}, Agda accepts this
 definition as terminating.
@@ -740,13 +740,13 @@ testExc = pure 1 >> throw "Foo"
 \end{code}
 As expected, evaluating it yields the error message.
 \begin{center}
-\begin{code}[hide]
-runTestExc : 
+\begin{code}[inline,hide]
+runTestExc :
 \end{code}
-\begin{code}
+\begin{code}[inline]
  run (runExc testExc) ≡ inj₁ "Foo"
 \end{code}
-\begin{code}[hide]
+\begin{code}[inline,hide]
 runTestExc = refl
 \end{code}
 \end{center}
@@ -759,13 +759,13 @@ catchTestExc = testExc catch λ _ → pure 42
 Evaluating the second function yields the value returned by the exception
 handler.
 \begin{center}
-\begin{code}[hide]
+\begin{code}[inline,hide]
 runCatchTestExc :
 \end{code}
-\begin{code}
+\begin{code}[inline]
  run (runExc catchTestExc) ≡ inj₂ 42
 \end{code}
-\begin{code}[hide]
+\begin{code}[inline,hide]
 runCatchTestExc = refl
 \end{code}
 \end{center}
