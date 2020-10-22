@@ -34,7 +34,7 @@ A mixfix operator can be applied partially by writing underscores for the
 omitted parameters.
 
 In the following definition of plus for natural numbers \AgdaFunction{+} is a
-binary operator and therefore containers two underscores.
+binary operator and therefore contains two underscores.
 
 \begin{code}
 _+_ : ℕ → ℕ → ℕ
@@ -331,7 +331,7 @@ we are making an \textit{equality judgement}.
 The symbol \AgdaFunction{truth} is \textit{definitional equal} to \AgdaNumber{42}.
 A judgment is always true.
 We define one term to be equal to another one i.e. we allow Agda to reduce the
-left hand side of the equality to the right hand side.
+left-hand side of the equality to the right-hand side.
 
 The next notion of equality is \textit{computational equality}.
 Two terms $t_1$ and $t_2$ are computational equal if they reduce to the same
@@ -360,7 +360,7 @@ The only way to construct evidence for the proposition is using the
 \AgdaInductiveConstructor{refl} constructor i.e. if $x$ and $y$ are actually the
 same.
 
-This notion of equality has the usualy expected properties like transitivity,
+This notion of equality has the usually expected properties like transitivity,
 symmetry and congruence.
 The definition of \AgdaFunction{cong} shows the typical way of working with
 equality proofs.
@@ -385,7 +385,7 @@ given by reflexivity.
 
 By pattern matching on variables used in the equality type we can obtain more
 information about the goal.
-Either because the constructors them self restrict the use of the variables or
+Either because the constructors them-self restrict the use of the variables or
 because the terms used in the equality type can be reduced further.
 Consider the following example.
 
@@ -401,7 +401,7 @@ In both cases the term
 can now be reduced further.
 In the \AgdaNumber{0} case we obtain
 \AgdaNumber{0}\AgdaSpace{}\AgdaFunction{+}\AgdaSpace{}\AgdaNumber{0}
-on the left hand side, which can be reduced to \AgdaNumber{0}.
+on the left-hand side, which can be reduced to \AgdaNumber{0}.
 The return type simplifies to 
 \AgdaNumber{0}\AgdaSpace{}\AgdaDatatype{≡}\AgdaSpace{}\AgdaNumber{0}
 for which we can simply construct evidence using
@@ -426,7 +426,7 @@ corresponding to or containing the left- or right-hand of the equality.
 The above definition of propositional equality defines so called
 \textit{intentional} propositional equality.
 Intentional equality respects how objects are defined.
-Extensional equality just observes ob objects behave.
+Extensional equality just observes how objects behave.
 This distinction is important when comparing functions, as we will do in nearly
 all later proofs.
 Two functions which behave identical but are defined differently are
@@ -441,8 +441,8 @@ postulate
   extensionality : ∀ {A : Set} {B : A → Set} 
     {f g : (x : A) → B x} → (∀ (x : A) → f x ≡ g x) → f ≡ g
 \end{code}
-The axiom simply states the two functions \AgdaArgument{f} and \AgdaArgument{g}
-are considered equal if they are equal point-wise.
+The axiom simply states that the two functions \AgdaArgument{f} and
+\AgdaArgument{g} are considered equal if they are equal point-wise.
 It extends the intentional propositional equality to the extensional one, while
 preserving Agda's consistency.
 
@@ -480,6 +480,7 @@ Because elements of \AgdaDatatype{List A} are finite the function
 
 
 \subsubsection{Sized Types}
+\label{preliminaries:sized-types}
 
 In more complex recursive functions the structural recursion can be obscured.
 For example, Agda does not inline functions containing pattern matches during
@@ -496,7 +497,7 @@ size on the type level.
 Abel noted as main advantages robustness with respect to small/local changes in
 code (which do not impact the type) as well as scaling to higher-order functions
 and polymorphism~\cite{DBLP:journals/lmcs/Abel08}.
-The later will be essential in future chapters, since representations of
+The latter will be essential in future chapters, since representations of
 computational effects involve complex constructs, which obscure recursion on the
 value level.
 
@@ -587,6 +588,7 @@ positive positions strong normalization is preserved.
 
 \subsubsection{Container}
 \label{container}
+% TODO: mention INLINE trick for map
 
 Because of the strict positivity requirement it is not allowed to apply generic
 type constructors to inductive occurrences of a data type in its definition.
@@ -935,8 +937,11 @@ Dealing with this limitation leads to the general notion of scoped effects.
 
 
 \subsection{Scoped Effects}
+\label{preliminaries:scoped-effects}
 
 Not all operations, know from common monads can be represented as an algebraic
 effects.
 The most common example is \texttt{catch} as it was noted early by Plotkin and
 Powers~\cite{DBLP:journals/acs/PlotkinP03}.
+
+% TODO: context of evaluating handler on subcomputations or change text in HO Exc

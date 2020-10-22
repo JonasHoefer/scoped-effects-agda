@@ -20,6 +20,7 @@
 \newunicodechar{⊔}{\ensuremath{\mathnormal{\sqcup}}}
 \newunicodechar{∀}{\ensuremath{\mathnormal{\forall}}}
 \newunicodechar{ℓ}{\ensuremath{\mathnormal{\ell}}}
+\newunicodechar{𝒰}{\ensuremath{\mathnormal{\mathcal{U}}}}
 \newunicodechar{▷}{\ensuremath{\mathnormal{\rhd}}}
 \newunicodechar{◁}{\ensuremath{\mathnormal{\lhd}}}
 \newunicodechar{∈}{\ensuremath{\mathnormal{\in}}}
@@ -32,10 +33,14 @@
 \newunicodechar{≅}{\ensuremath{\mathnormal{\cong}}}
 \newunicodechar{⊕}{\ensuremath{\mathnormal{\oplus}}}
 \newunicodechar{⊎}{\ensuremath{\mathnormal{\uplus}}}
+\newunicodechar{⊆}{\ensuremath{\mathnormal{\subseteq}}}
+\newunicodechar{α}{\ensuremath{\mathnormal{\alpha}}}
 \newunicodechar{η}{\ensuremath{\mathnormal{\eta}}}
+\newunicodechar{σ}{\ensuremath{\mathnormal{\sigma}}}
 \newunicodechar{κ}{\ensuremath{\mathnormal{\kappa}}}
 \newunicodechar{λ}{\ensuremath{\mathnormal{\lambda}}}
 \newunicodechar{π}{\ensuremath{\mathnormal{\pi}}}
+\newunicodechar{ω}{\ensuremath{\mathnormal{\omega}}}
 \newunicodechar{⊛}{\ensuremath{\mathnormal{\circledast}}}
 \newunicodechar{∘}{\ensuremath{\mathnormal{\circ}}}
 \newunicodechar{≡}{\ensuremath{\mathnormal{\equiv}}}
@@ -45,13 +50,16 @@
 \newunicodechar{↝}{\ensuremath{\mathnormal{\leadsto{}}}}
 % see https://tex.stackexchange.com/questions/511401/newunicodechar-fails-for-prime-only
 \AtBeginDocument{\newunicodechar{′}{\makebox[\fontcharwd\font`a]{$\prime$}}}
+\AtBeginDocument{\newunicodechar{″}{\makebox[\fontcharwd\font`a]{$\dprime$}}}
 \newunicodechar{⊥}{\ensuremath{\mathnormal{\bot}}}
 \newunicodechar{⊤}{\ensuremath{\mathnormal{\top}}}
+\newunicodechar{ᶜ}{\textsuperscript{c}}
 \newunicodechar{ˡ}{\textsuperscript{l}}
 \newunicodechar{ₙ}{\textsubscript{n}}
 \newunicodechar{ᵖ}{\textsuperscript{p}}
 \newunicodechar{ʳ}{\textsuperscript{r}}
 \newunicodechar{ˢ}{\textsuperscript{s}}
+\newunicodechar{ˣ}{\textsuperscript{x}}
 \newunicodechar{ᴸ}{\textsuperscript{L}}
 \newunicodechar{ᴹ}{\textsuperscript{M}}
 \newunicodechar{ᴾ}{\textsuperscript{P}}
@@ -68,9 +76,12 @@
 
 % nicer monadic operators
 \newcommand{\fmap}[0]{\ensuremath{<\hspace{.4pt}\mathclap{\raisebox{-0.85pt}{\scalebox{0.95}{$\$$}}}\hspace{.4pt}>}}
+\newcommand{\fmapconst}[0]{\ensuremath{<\hspace{.4pt}\mathclap{\raisebox{-0.85pt}{\scalebox{0.95}{$\$$}}}}}
 \newcommand{\ap}[0]{\ensuremath{<\hspace{.4pt}\mathclap{*}\hspace{.4pt}>}}
 \newcommand{\bind}[0]{\ensuremath{\mathbin{>\!\!\!>\mkern-6.7mu=}}}
+\newcommand{\kleisli}[0]{\ensuremath{\mathbin{>\!\!=\!\!\!>}}}
 
+% replace certain character sequences with the nicer operators
 \DeclareRobustCommand{\AgdaFormat}[2]{%
   \ifthenelse{\equal{#1}{>>=}}
   {\ensuremath{\mathbin{>\!\!\!>\mkern-6.7mu=}}}
@@ -86,6 +97,12 @@
   {\AgdaUnderscore{}\ensuremath{\mathbin{>\!\!\!>}}\AgdaUnderscore{}}
   {\ifthenelse{\equal{#1}{<\$>}}
   {\fmap}
+  {\ifthenelse{\equal{#1}{\AgdaUnderscore{}<\$\AgdaUnderscore{}}}
+  {\AgdaUnderscore{}\fmapconst{}\;\;\AgdaUnderscore{}}
+  {\ifthenelse{\equal{#1}{<\$}}
+  {\fmapconst\;}
+  {\ifthenelse{\equal{#1}{>=>}}
+  {\kleisli}
   {\ifthenelse{\equal{#1}{++}}
   {\ensuremath{+\!+}}
   {\ifthenelse{\equal{#1}{\AgdaUnderscore{}++\AgdaUnderscore{}}}
@@ -102,9 +119,11 @@
   {\AgdaUnderscore{}\fmap\AgdaUnderscore{}}
   {\ifthenelse{\equal{#1}{\AgdaUnderscore{}<*>\AgdaUnderscore{}}}
   {\AgdaUnderscore{}\ap\AgdaUnderscore{}}
+  {\ifthenelse{\equal{#1}{\AgdaUnderscore{}<*>}}
+  {\AgdaUnderscore{}\ap}
   {\ifthenelse{\equal{#1}{<*>}}
   {\ap}
-  {#2}}}}}}}}}}}}}}}}}
+  {#2}}}}}}}}}}}}}}}}}}}}}
 
 \usepackage{graphicx}
 \graphicspath{{images/}}
@@ -135,7 +154,7 @@
 
 \usepackage{minted}
 
-\usepackage[style=alphabetic,backend=biber]{biblatex}
+\usepackage[maxcitenames=2,style=numeric,backend=biber]{biblatex}
 \addbibresource{thesis.bib}
 \setcounter{biburllcpenalty}{7000}
 \setcounter{biburlucpenalty}{8000}
@@ -160,9 +179,9 @@
 
 \chapter{Introduction}
 
-Algebraic effects where first introduced by Plotkin and
-Powers~\cite{DBLP:journals/acs/PlotkinP03} as an alternative, educational
-representation for algebraic computational effects.
+Algebraic effects were first introduced by Plotkin and
+Powers~\cite{DBLP:journals/acs/PlotkinP03} as an alternative representation for
+algebraic computational effects.
 Effect handlers were introduced by Plotkin and
 Pretnar~\cite{DBLP:conf/esop/PlotkinP09} as a generalization of exception
 handlers.
@@ -176,16 +195,17 @@ programming as a less boiler plate intensive alternative to monad transformers,
 as well as to simulate programming semantics in proof
 assistants~\cite{DBLP:journals/programming/DylusCT19,DBLP:conf/haskell/ChristiansenDB19}.
 
-Wu et al. noticed a lack of modularity when combining computational effects with
-scoping operations~\cite{DBLP:conf/haskell/WuSH14}.
-They introduced several solutions for the problem, by introducing new operations
+\citeauthor{DBLP:conf/haskell/WuSH14} noticed a lack of modularity when
+combining computational effects with scoping
+operations~\cite{DBLP:conf/haskell/WuSH14}.
+They introduce several solutions for the problem, by introducing new operations
 and generalizing syntax to delimit scopes.
 
 
 \section{Goals}
 
 The goal of this thesis is the implementation of an effect library based on the
-work by Wu et al.~\cite{DBLP:conf/haskell/WuSH14,DBLP:conf/lics/PirogSWJ18} in
+work by \textcite{DBLP:conf/haskell/WuSH14,DBLP:conf/lics/PirogSWJ18} in
 the dependently typed, functional programming language
 Agda~\cite{norell:thesis}.
 To allow use as a proof assistant, Agda programs are subject to constraints not
@@ -194,19 +214,19 @@ All Agda programs have to be total (and therefore terminate), all data types
 have to be strictly positive and all universe levels have to be consistent.
 These restrictions prevent a direct translation of Haskell code to Agda.
 
-This thesis will explore multiple Haskell implementations of scoped effects and
-study how well these translate to Agda.
-Furthermore it will present a set of standard solutions for common problems,
-arising during the implementation of the three approaches.
+This thesis explores multiple Haskell implementations of scoped effects and
+studies how well these translate to Agda.
+Furthermore we presents a set of standard solutions for common problems, arising
+during the implementation of the Haskell approaches in Agda.
 
 Agda's builtin theorem proving capabilities allow direct, machine checked
 correctness proofs for the implemented library.
-Alongside the implementation of scoped effects, the library should contain
-proofs for common properties of these effects.
+Alongside the implementation of scoped effects, the library contains proofs for
+common properties of these effects.
 Furthermore, the library itself can be used to simulate semantics of other
-programming languages, such as Curry's call-time choice, and allow verification
-of equivalent programs written in these languages in Agda.
-To allow the latter, these library should be able to represent deep effects i.e.
+programming languages, such as Curry's~\cite{Hanus95curry} call-time choice, and
+allow verification of equivalent programs written in these languages in Agda.
+To allow the latter, the library has to be able to represent deep effects i.e.
 data structures with effectful components.
 
 
@@ -217,22 +237,24 @@ dependent types, Curry and its call-time choice semantics (which are a central
 example for a scoped effect throughout the thesis) and algebraic effects.
 
 Chapter \ref{chapter:first-order} and \ref{chapter:higher-order} explore the two
-approached based on ``Effect Handlers in Scope'' by Wu et
-al.~\cite{DBLP:conf/haskell/WuSH14}.
+approaches based on \citetitle{DBLP:conf/haskell/WuSH14} by
+~\textcite{DBLP:conf/haskell/WuSH14}.
 The former of the two approaches was already partially explored by
-Bunkeburg~\cite{bunkenburg2019modeling} in Coq and can also be implemented
+\textcite{bunkenburg2019modeling} in Coq and can also be implemented
 easily in Agda.
 The latter of the two approaches tries to fix some inherent problems of the
-first one, but sadly cannot fully be implemented in Agda due to some inherent
+first one, but sadly cannot fully be implemented in Agda due to some other
 problems with universe consistency.
 
 Chapter \ref{chapter:scoped-algebras} describes an implementation of a novel
-representation for scoped effects by Piróg
-et~al.~\cite{DBLP:conf/lics/PirogSWJ18} which also fixes the problems of the
-first approach, while avoiding the universe inconsistencies of the second one.
+representation for scoped effects by \textcite{DBLP:conf/lics/PirogSWJ18} which
+also fixes the problems of the first approach, while avoiding the universe
+inconsistencies of the second one.
 Furthermore, the implementation explores some ideas to modularize the exemplary
-Haskell implementation by Piróg et al.
+Haskell implementation by \citeauthor{DBLP:conf/lics/PirogSWJ18}.
 
+Chapter \ref{chapter:conclusion} summaries and compares the three approaches.
+Furthermore, it gives an overview over related and possible future work.
 
 \chapter{Preliminaries}
 \label{chapter:preliminaries}
@@ -251,6 +273,7 @@ Haskell implementation by Piróg et al.
 \input{ScopedAlgebras}
 
 \chapter{Conclusion}
+\label{chapter:conclusion}
 \section{Summary}
 \section{Related Work}
 
