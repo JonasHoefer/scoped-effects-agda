@@ -292,7 +292,7 @@ Next we define the basic monadic operations for the above monad.
 Usually \AgdaFunction{>>=} and \AgdaFunction{return} would be enough to define
 all the other functions, but \AgdaFunction{>>=} is not size preserving, while
 some other functions can be defined such that they are.
-For example, later we will rely on the fact that \AgdaFunction{<\$>} preserves
+For example, later we rely on the fact that \AgdaFunction{<\$>} preserves
 the size of its argument.
 Consider the following definition of \AgdaFunction{fmap} for the free
 monad\footnote{in the following code $A$, $B$ and $C$ are arbitrary types}.
@@ -725,7 +725,7 @@ $$
 \Sigma_{State} = \{ \mathrm{get} : \mathbf{1} \rightsquigarrow s, \mathrm{put} :
 s \rightsquigarrow \mathbf{1} \}
 $$
-As before we will translate this definition in a corresponding container and
+As before we translate this definition in a corresponding container and
 define \AgdaKeyword{pattern}s to simplify the handler.
 
 \begin{code}
@@ -863,13 +863,13 @@ semantics are conceivable.
 \paragraph{Local State}
 Each branch in the nondeterministic calculation has its own state.
 When \AgdaFunction{⁇} is used to choose between two reuslts both branches
-continue with own states, which initialy have the same value.
+continue with their own states with the same value.
 \paragraph{Global State}
 All branches share a single, global state.
 Based on the evaluation strategy for the nondeterminism (first result/all
 results; depth first search/breath first search/fair search) an ordering for all
 operations in the tree is induced.
-The state operations are executed in this order an all act on the same state.
+The state operations are executed in this order and all act on the same state.
 
 The handlers for the two effects define semantics for their operations.
 Operations of the other siganture are just traversed.
@@ -930,7 +930,7 @@ To correctly handle operations with local scopes Wu et al. introduced scoped
 effects \cite{DBLP:conf/haskell/WuSH14}.
 They presented two solutions to explicitly declare how far an operations scopes
 over a program using arbitrary syntax.
-In the following section we will implement the scoped effect
+In the following section we implement the scoped effect
 \AgdaDatatype{Cut} using the first order approach in Agda.
 The central idea is to add new effect syntax, representing explicit scope
 delimiters.
@@ -943,7 +943,7 @@ part inside and outside the scope.
 
 \subsection{Cut and Call}
 
-First we will define the syntax for the new effect and its delimiters.
+First we define the syntax for the new effect and its delimiters.
 
 \begin{code}
 data Cutˢ : Set where cutfailˢ : Cutˢ
@@ -959,22 +959,23 @@ Call  = Callˢ   ▷ λ _ → ⊤
 \end{code}
 The \AgdaDatatype{Cut} effect has just a single operation, \AgdaFunction{cutfail}.
 \AgdaFunction{cutfail} can only be used in a context with nondeterminism.
-When \AgdaFunction{cutfail} is called it will prunes all unexplored branches and
+When \AgdaFunction{cutfail} is called it prunes all unexplored branches and
 calls \AgdaFunction{fail}.
 The Agda implementation of the handlers is identical to the one by Wu et al.
 
 \begin{AgdaAlign}
 The handler itself calls the function \AgdaFunction{go}, which accumulates the
-unexplored alternatives in its second argument.
+unexplored alternatives in its second argument using \AgdaFunction{⁇}.
 \AgdaFunction{fail} is the neutral element for \AgdaFunction{⁇} and therefore
 the default argument.
 Since this handler is not orthogonal (i.e it interacts with another effect)
-\AgdaDatatype{Nondet} is required to be in scope, but its position is irrelevant.
+\AgdaDatatype{Nondet} is required to be in the effect stack, but its position is
+irrelevant.
 
 To prove termination we mark the second argument with an arbitrary but fixed size
 \AgdaArgument{i}.
-The position functions for each case return subterms indexed with a smaller size.
-Recursive calls to \AgdaFunction{go} with these terms as argument therefore
+The continuations for each operation return subterms indexed with a smaller size.
+Therefore, recursive calls to \AgdaFunction{go} with these terms as argument
 terminate.
 
 \begin{code}
@@ -1066,7 +1067,7 @@ In Agda we are not allowed to define partial functions, therefore we have to
 handle the error.
 We could either correct the error and just continue or short circuit the
 calculation using exceptions in form of e.g. a \AgdaDatatype{Maybe} monad.
-For simplicity we will use the former approach.
+For simplicity we use the former approach.
 In a real application it would be advisable to inform the programmer about the
 error, either using exceptions or at least trace the error.
 
@@ -1106,14 +1107,14 @@ call′ p = do op bcallˢ ; x ← p ; op ecallˢ ; pure x
 
 Bunkenburg presented an approach to model call-time choice as a stack of
 scoped algebraic effects \cite{bunkenburg2019modeling}.
-In this section we will extend the nondeterminism effect from section
+In this section we extend the nondeterminism effect from section
 \ref{nondeterminism} to one modelling call-time choice.
 
 As explained in section \ref{call-time-choice}, call-time choice semantics
 describe the interaction between sharing and nondeterminism.
 The current implementation of \AgdaDatatype{Nondet} does not support sharing
 i.e. it is not possible for two choice to be linked.
-Based on Bunkenburg's implementation we will make two changes to the
+Based on Bunkenburg's implementation we make two changes to the
 nondeterminism effect.
 Each choice is augmented with an optional identifier consisting of a triple of
 natural numbers, called \textit{choice id}.
@@ -1137,7 +1138,7 @@ Such effects are sometimes called \textit{deep effects}.
 
 We want to simulate this behavior with algebraic effects.
 The effects have to be modelled explicitly using the \AgdaDatatype{Free} type.
-We will lift data types using a standard construction, which is commonly used
+We lift data types using a standard construction, which is commonly used
 to simulate ambient deep
 effects~\cite{DBLP:conf/haskell/AbelBBHN05, DBLP:journals/programming/DylusCT19,
 DBLP:conf/haskell/ChristiansenDB19}.
@@ -1178,8 +1179,8 @@ mxs ++ᴹ mys = mxs >>= λ where
 
 \subsubsection{Normalization of Effectful Data}
 
-Based on Bunkenburg's code~\cite{bunkenburg2019modeling} we will introduce a
-type class for normalizing effectful data structures i.e. moving interleaved
+Based on Bunkenburg's code~\cite{bunkenburg2019modeling} we introduce a type
+class for normalizing effectful data structures i.e. moving interleaved
 \AgdaDatatype{Free} layers to the outside using \AgdaFunction{>>=}.
 
 \begin{code}
@@ -1330,7 +1331,7 @@ eshare next sid p@(Other s κ) with prj {NonDet} p
 
 \subsection{Share Operator}
 
-Next we will define the \AgdaFunction{share} operator as described by
+Next we define the \AgdaFunction{share} operator as described by
 Bunkenburg.
 The operator generates new unique scope identifiers using a \AgdaDatatype{State}
 effect.

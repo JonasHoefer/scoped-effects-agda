@@ -218,7 +218,8 @@ combined type.
 
 \begin{code}
 ⟦_⟧′ : Effect → (Set₁ → Set₁) → Set₁ → Set₁
-⟦ S ◁ P + PX / C ⟧′ F A = Σ[ s ∈ S ] (((p : P s) → F A) × ((p : PX s) → F (Lift _ $ C s p)))
+⟦ S ◁ P + PX / C ⟧′ F A = Σ[ s ∈ S ]
+  (((p : P s) → F A) × ((p : PX s) → F (Lift _ $ C s p)))
 
 data Progᵂ (C : Effect) (A : Set₁) : Set₁ where
   pure    : A → Progᵂ C A
@@ -335,7 +336,7 @@ functions using the coproduct mediator.
 
 \begin{code}
 _⊕_ : Effect → Effect → Effect
-(S₁ ◁ P₁ + PX₁ / C₁) ⊕ (S₂ ◁ P₂ + PX₂ / C₂) = 
+(S₁ ◁ P₁ + PX₁ / C₁) ⊕ (S₂ ◁ P₂ + PX₂ / C₂) =
   (S₁ ⊎ S₂) ◁ [ P₁ , P₂ ] + [ PX₁ , PX₂ ] / [ C₁ , C₂ ]
 \end{code}
 To easily work in the higher order setting we adapt the \AgdaDatatype{Prog}
@@ -471,7 +472,10 @@ As a result the values are now lifted into the resulting context.
 Using the initial context and the handler, the type class explains how an
 arbitrary operation from its signature is evaluated.
 
-Notice that the given programs have an arbitrary size. -- TODO: explain here or later?
+Notice that the given operations contain computations of an arbitrary size.
+Furthermore, the given handler works on computations of the same size.
+This will be important in section \ref{higher-order:limited-impl} when we define
+handlers, which pass them self to \AgdaFunction{handle}.
 
 \begin{code}
 record Syntax (E : Effect) : Setω where
@@ -657,8 +661,8 @@ The cases for the three computations are identical to the ones presented by
 After evaluating the handler on the sub-trees, values are lifted into the
 context, therefore the captured intermediate result type changes.
 In Agda we have to manage the type explicitly.
-In contrast to the Haskell implementation by 
-\citeauthor{DBLP:conf/haskell/WuSH14} we have to explicitly change the captured 
+In contrast to the Haskell implementation by
+\citeauthor{DBLP:conf/haskell/WuSH14} we have to explicitly change the captured
 type.
 Using the curly brackets we access the hidden type constructor \AgdaArgument{C}
 for the context and simply evaluate it on the given type.
