@@ -274,8 +274,82 @@ Furthermore, it gives an overview over related and possible future work.
 
 \chapter{Conclusion}
 \label{chapter:conclusion}
+
 \section{Summary}
-\section{Related Work}
+
+\section{Results}
+\begin{itemize}
+\item in depth exploration of 3 possible implementations for scoped effects in
+  the dependently Typed language Agda under constraints needed for theorem
+  proofing (no \texttt{--type-in-type}, \texttt{--terminating}, ...)
+\item Chapter \ref{chapter:first-order}
+  \begin{itemize}
+    \item (as expected) a working implementation
+    \item library contains modular infrastructure for more effects
+    \item size annotated free monad works out nicely for complex handlers and
+      avoids excessive inlining
+    \item sharing implementation by \textcite{bunkenburg2019modeling} works in Agda
+  \end{itemize}
+\item Chapter \ref{chapter:higher-order}
+  \begin{itemize}
+    \item ultimately failed to meet set goals
+    \item working implementation in setting without deep-effects
+    \item deep effects only work very limited (implementation just in repository)
+    \item discussion about problems regarding the implementation
+    \item Potential future Approaches
+    \begin{itemize}
+      \item typing environment idea (managing the env seemed to complex)
+      \item unifying effectful data and \AgdaDatatype{Prog} data type (data
+        lives just in the higher universe, because it contains computations i.e.
+        it continues the tree; it does not contain arbitrary ``too large'' data;
+        fact currently unused)
+    \end{itemize}
+  \end{itemize}
+  \item Chapter \ref{chapter:scoped-algebras}
+  \begin{itemize}
+    \item general structure lends itself to implementation in Agda
+    \begin{itemize}
+      \item \texttt{fold} avoids use of \AgdaDatatype{Size}
+      \item inherently uses dependent types $\Rightarrow{}$ implementation
+        partly even simplifies in Agda
+    \end{itemize}
+    \item future developments regarding scoped algebras could transfer nicely to Agda
+    \item Intuitive modularisation seems promising, because it shares many
+      parallels with \ref{chapter:higher-order} approach (known bug in
+      \AgdaDatatype{Nondet} handler also occurs in HO setting)
+    \item deep-effects can be modelled without any problem 
+    \item no problem with mismatched scopes in proofs.
+    \item sharing implementation by \textcite{bunkenburg2019modeling} works in Agda
+  \end{itemize}
+\end{itemize}
+
+
+\section{Related Work and future Directions}
+
+\subsection{Future Work}
+\begin{itemize}
+  \item generalize syntax in approach from chapter \ref{chapter:scoped-algebras}
+    (\texttt{pass} and \texttt{listen} operations for the \texttt{Writer} monad
+    currently not possible)
+  \item more formal treatment of modular scoped algebra approach,
+    \textcite{DBLP:conf/lics/PirogSWJ18} noted that the approach does not
+    generally compose; what did I do exactly?
+  \item explore equational reasoning in the modular setting
+  \begin{itemize}
+    \item custom \AgdaDatatype{Setoid}
+    \item all current proofs are just for fixed stacks and the head of the
+      current stack.
+    \item Modular lifting of proofs through other handlers i.e. does \texttt{p ?
+        fail = p} hold after running some other effect?
+    \item needed for efficiently proofs of properties of arbitrary programs,
+      which use the library
+  \end{itemize}
+  \item explore different implementations as basis for scoped effects (not only Wu's)
+  \item integrate scoped and resource dependent effects
+  \item Implement more effects
+  \item introduce shorter syntax for effect constraints (e.g. hide
+    \AgdaKeyword{tactic} in \AgdaKeyword{record})
+\end{itemize}
 
 \printbibliography
 
