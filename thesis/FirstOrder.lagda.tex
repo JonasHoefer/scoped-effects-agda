@@ -647,7 +647,7 @@ pure lists and simply use the corresponding equality from the standard library.
 The proof for the left identity is straight forward.
 No standard library equality is needed, because \AgdaFunction{++} is recursive
 in its first argument.
-To eliminate \AgdaFunction{<\$>} a functor law is needed.
+To eliminate \AgdaFunction{<\$>} a functor law is required.
 
 \begin{code}
 ⁇-identʳ : (p : Free (Nondet ∷ ops) A) → solutions (p ⁇ fail) ≡ solutions p
@@ -844,6 +844,7 @@ module StateLaws (S : Set) (ops : List Container) (s₀ : S) where
 
 
 \subsection{Handling Combined Effects}
+\label{first-order:combined-effects}
 
 As described in section \ref{first-order:functor}, signatures can be combined by
 combining the underlying functors.

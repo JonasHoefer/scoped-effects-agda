@@ -7,11 +7,12 @@ open import Size using (↑_; Size; ∞)
 open import Function using (_∘_; id; case_of_; const; _$_)
 open import Level using (Level; 0ℓ; Lift; lift; Setω)
 
+open import Data.Bool using (Bool; true; false; if_then_else_)
 open import Data.Empty using (⊥)
 open import Data.Product using (Σ-syntax; _×_; _,_) renaming (proj₁ to π₁; proj₂ to π₂)
 open import Data.Maybe using (Maybe; fromMaybe; nothing; just)
 open import Data.Nat using (ℕ; suc; zero)
-open import Data.List using (List; _∷_; []; foldr)
+open import Data.List using (List; _∷_; []; foldr; _++_)
 open import Data.Sum using (_⊎_; inj₁; inj₂; [_,_])
 open import Data.String using (String)
 open import Data.Unit using (⊤; tt)
@@ -28,7 +29,7 @@ variable
 
 To address problems of the first order approach, like mismatched scope
 delimiters and explicit control over the continuation,
-\citeauthor{DBLP:conf/haskell/WuSH14} introduced a second approach utilizing
+\citeauthor{DBLP:conf/haskell/WuSH14} introduce a second approach utilizing
 higher order abstract syntax~\cite{DBLP:conf/haskell/WuSH14}.
 \citeauthor{bunkenburg2019modeling} already tried to implement some scoped
 effects using this approach, but failed due to limitations of
@@ -240,7 +241,7 @@ the problem.
 \begin{code}[hide]
 private
   variable
-    E : Effect
+    E E′ : Effect
     effs effs′ effs″ : List Effect
 \end{code}
 
@@ -392,6 +393,9 @@ impure x  >>= k = impure (emap {F = λ X → Prog _ X} (_>>= k) x)
 _>>_ : Prog effs A → Prog effs B → Prog effs B
 ma >> mb = ma >>= λ _ → mb
 
+_<*>_ : Prog effs (A → B) → Prog effs A → Prog effs B
+mf <*> ma = mf >>= λ f → ma >>= λ a → pure (f a)
+
 run : Prog [] A → A
 run (pure x) = x
 \end{code}
@@ -484,14 +488,29 @@ record Syntax (E : Effect) : Setω where
           ⟦ E ⟧ (λ X → Prog effs′ X {i}) A → ⟦ E ⟧ (λ X → Prog effs″ X) (C A)
 open Syntax ⦃...⦄
 \end{code}
+To finish the basic infrastructure we define two \AgdaDatatype{Syntax}
+instances.
+The instance for the empty signature \AgdaDatatype{Void} is trivial, because the
+type of container extensions is empty.
+Combined signatures are handled by inspecting the value, calling the
+\AgdaFunction{handle} for one of the given signatures and injecting the result
+in the combined signature.
 
 \begin{code}
 instance
   Void-Syntax : Syntax Void
   Syntax.handle Void-Syntax _ _ ()
+
+  ⊕-syntax : ⦃ Syntax E ⦄ → ⦃ Syntax E′ ⦄ → Syntax (E ⊕ E′)
+  Syntax.handle ⊕-syntax ctx hdl (inj₁ s , κ , σ) with handle ctx hdl (s , κ , σ)
+  ... | s′ , κ′ , σ′ = (inj₁ s′) , κ′ , σ′
+  Syntax.handle ⊕-syntax ctx hdl (inj₂ s , κ , σ) with handle ctx hdl (s , κ , σ)
+  ... | s′ , κ′ , σ′ = (inj₂ s′) , κ′ , σ′
 \end{code}
 
+
 \subsection{Exceptions}
+\label{higher-order:exceptions}
 
 An an example for an effect in the higher order setting we define exceptions.
 Exceptions support two operations, the usual algebraic operation
@@ -774,3 +793,201 @@ runCatchTestExc = refl
 \end{code}
 \end{center}
 
+
+\subsection{Lifting First Order Syntax}
+
+\textcite{DBLP:conf/haskell/WuSH14} present a construction for lifting first
+order syntax to the higher order setting.
+A similar construction is possible with container representations.
+In this section we present the corresponding construction and use it to
+lift nondeterminism syntax into the higher order setting. 
+
+Given the two fields of a normal container we construct an indexed bi-container.
+The shapes and positions for \AgdaArgument{A} correspond exactly to the first
+two arguments for the indexed bi-container.
+The second postion type and the context are precisely the generalization from
+the first-order to the higher-order setting.
+Therefore, we simply use \AgdaDatatype{⊥} to ignore them.
+
+We did not use the cumulativitiy flag to simplifiy this examplary implementation.
+This simplified the earlier implementation, but forces us now to do some manual
+lifting.
+The \AgdaDatatype{Lift} data type is element of an arbitrary universe and stores
+a value of an arbitrary type from a smaller universe.
+Using \AgdaDatatype{Lift} we can pass the given shape type to the constructor.
+To apply the position function we unwrap the lifted shape.
+
+\begin{code}
+_▷_ : (Shape : Set) → (Pos : Shape → Set) → Effect
+S ▷ P = Lift _ S ◁ (λ (lift s) → P s) + (λ _ → ⊥) / λ _ ()
+\end{code}
+As shown by \textcite{DBLP:conf/haskell/WuSH14}, we can define a general
+\AgdaDatatype{Syntax} instance for lifted first order syntax.
+The second type of positions is empty, therefore we can omitt the definition of
+\AgdaArgument{σ}.
+Notice that this definition applies to all effects constructed using
+\AgdaFunction{▷}.
+Therefore, we avoid defining parts of the infrastructure for effects without
+scoping operations.
+
+\begin{code}
+instance
+  ▷-Syntax : ∀ {S P} → Syntax (S ▷ P)
+  Syntax.handle ▷-Syntax ctx hdl (s , κ , σ) = s , (λ p → hdl (κ p <$ ctx)) , λ()
+\end{code}
+
+\paragraph{Example: Nondet}
+Using the above function and \AgdaKeyword{instance} we can lift the
+nondeterminism syntax from chapter \ref{chapter:first-order} to the higher-order
+setting.
+
+\begin{code}[hide]
+data Nondetˢ : Set where ⁇ˢ failˢ : Nondetˢ
+\end{code}
+\begin{code}
+Nondet : Effect
+Nondet = Nondetˢ ▷ λ where failˢ → ⊥ ; ⁇ˢ → Bool
+
+pattern Fail      = impure (inj₁ (lift failˢ)  , _ , _)
+pattern Choice κ  = impure (inj₁ (lift ⁇ˢ)     , κ , _)
+\end{code}
+We still have to define a \AgdaDatatype{Context} instance and a custom handler
+for \AgdaDatatype{Nondet}, because we have to define the interaction with other
+higher order syntax.
+Again, the \AgdaDatatype{Context} instance corresponds to the normal functor
+instance.
+
+\begin{code}
+instance
+  List-Context : Context List
+  Context._<$>_ List-Context f []        = []
+  Context._<$>_ List-Context f (x ∷ xs)  = f x ∷ (f <$> xs)
+\end{code}
+The first three cases of the handler are identical to the implementation in
+section \ref{nondeterminism}.
+The interesting new case is the one for \AgdaInductiveConstructor{Other} syntax.
+We must use use \AgdaFunction{handle} to traverse the arbitrary operation.
+Analougous to exceptions we evaluate \AgdaFunction{handle} on the reconstructed,
+given operation.
+The initial context have to be signleton lists, because empty lists would
+stop the compatation, while lists with two or more elements would duplicate
+parts of the program.
+
+\AgdaFunction{hdl} has to map from a \AgdaDatatype{List} of compuations with
+\AgdaDatatype{Nondet} syntax to a compuation without \AgdaDatatype{Nondet}
+syntax and a \AgdaDatatype{List} as value type.
+Consider the \AgdaDatatype{Syntax} instance for \AgdaDatatype{Exc}, given in
+section \ref{higher-order:exceptions}.
+The two compuations in scope use the inital context i.e. the given list is a
+singleton.
+The continuation uses \AgdaFunction{<\$>} to apply the rest of the program to
+the given results of the compuatation in scope and evaluates them using
+\AgdaFunction{hdl}.
+Conceptually, the argument of \AgdaFunction{hdl} corresponds to the
+computations, which prodce results for each result of some earlier compuatation.
+We therefore use the obvious (and usually given) implementation of the
+\AgdaFunction{hdl} function i.e. we sequence the computations from left to right
+and concat the results.
+
+\begin{code}
+runNondet : ⦃ Syntax (sum effs) ⦄ → Prog (Nondet ∷ effs) A {i} → Prog effs (List A)
+runNondet (pure x)       = pure (x ∷ [])
+runNondet Fail           = pure []
+runNondet (Choice κ)     = ⦇ runNondet (κ true) ++ runNondet (κ false) ⦈
+runNondet (Other s κ σ)  = impure (handle (tt ∷ []) hdl (s , κ , σ))
+  where  hdl : ⦃ Syntax (sum effs) ⦄ →
+           List (Prog (Nondet ∷ effs) B {i}) → Prog effs (List B)
+         hdl []          = pure []
+         hdl (mx ∷ mxs)  = ⦇ runNondet mx ++ hdl mxs ⦈
+\end{code}
+Notice that the argument of the handler as well as the \AgdaFunction{hdl}
+function are of size \AgdaArgument{i} to guaranty termination, following the
+pattern explained in section \ref{higher-order:exceptions}.
+
+\begin{code}
+_⁇_ : ⦃ Nondet ∈ effs ⦄ → Prog effs A → Prog effs A → Prog effs A
+p ⁇ q = op (lift ⁇ˢ , (if_then p else q) , λ())
+\end{code}
+
+\paragraph{Ordering of Operations}
+It is important to note that the above handler induces unexpected semantics when
+combined with certain other effects.
+Interpreting \AgdaDatatype{Nondet} syntax yields the results in depth first
+ordering.
+
+If a part of a nondeterministic computation is captured in a scope the order of
+operations changes.
+The program in scope is evaluated, yielding its results in depth first ordering.
+Afterwards, using \AgdaFunction{hdl} the continuation is evaluated on each
+intermediate result and the final results are concatenated.
+The results are in the expected depth first order, but the operations not.
+The order of operations is introduced by \AgdaFunction{>>=}.
+A scoping operation is evaluated by first evaluating the part of the computation
+in scope and afterwards the continuations outside the scope.
+Therefore the unevaluated operations are now in the same order.
+The potential unexpected semantics of this implementation is that introducing a
+semantically irrelevant scoping operation (e.g. \texttt{local id}) influences
+the ordering of operations of other globally evaluated effects.
+This behavior is known, because it also occurs in some Haskell implementations
+of scoped
+effects\footnote{https://github.com/polysemy-research/polysemy/issues/246}.
+
+Encountering the above behavior is quite uncommon, because the program has to
+evaluate a scoping operation globally over a nondeterministic program, while
+simultaneously using global operations whose ordering can be observed.
+Most effects only provide one of the two.
+% Furthermore, evaluating effects globally over \AgdaDatatype{Nondet} inherently
+% depends on the ordering of branches, which is precisely what nondeterminism
+% abstracts away.
+The most common examples are global state to collect results, global writer to
+log and global partiality to stop all branches, which do not encounter the above
+behavior.
+When catching global exceptions over a nondeterministic program the above
+behavior seems more reasonable.
+More complex semantics (e.g. leaving and reentering the scoped computation) are
+conceivable, but not captured by the standard representation of higher order
+syntax.
+
+
+\subsection{Modular Higher Order Effects}
+
+In the last to sections we presented effects in isolation.
+Similar to the combined semantics described in
+\ref{first-order:combined-effects} we can induced different semantics by
+reordering the handlers.
+Consider the following program, which chooses between a
+\AgdaInductiveConstructor{pure} value and an exception.
+
+\begin{code}
+throwNondet : ⦃ Nondet ∈ effs ⦄ → ⦃ Exc ⊤ ∈ effs ⦄ → Prog effs ℕ
+throwNondet = pure 42 ⁇ throw tt
+\end{code}
+Evaluating \AgdaDatatype{Exc} first runs it locally in each branch of the
+nondeterministic computation i.e. each branch either returns a result or an
+exception. 
+\begin{center}
+\begin{code}[inline,hide]
+localExc : 
+\end{code}
+\begin{code}[inline]
+ run (runNondet (runExc throwNondet)) ≡ inj₂ 42 ∷ inj₁ tt ∷ []
+\end{code}
+\begin{code}[inline,hide]
+localExc = refl
+\end{code}
+\end{center}
+Evaluating \AgdaDatatype{Exc} last evaluates it globally.
+Therefore, throwing an exception stops the current, by the \AgdaDatatype{Nondet}
+handler induced, ordered evaluation of nondeterministic branches and just
+returns the exception.
+\begin{center}
+\begin{code}[inline,hide]
+globalExc : 
+\end{code}
+\begin{code}[inline]
+ run (runExc (runNondet throwNondet)) ≡ inj₁ tt
+\end{code}
+\begin{code}[inline,hide]
+globalExc = refl
+\end{code}
+\end{center}
