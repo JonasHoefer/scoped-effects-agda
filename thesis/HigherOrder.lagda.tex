@@ -80,15 +80,46 @@ The three programs agree on an arbitrary, but per \texttt{catch} fixed type
 
 Calling \AgdaFunction{>>=} on a higher order term just extends the continuation
 i.e. just substitutes the variables in the trees of type \texttt{m a}.
-See figure \ref{higher-order:syntax:bind} for an example.
+Figure \ref{higher-order:syntax:bind} demonstrates the action of
+\AgdaFunction{>>=} an \AgdaFunction{catch}.
+The program in scope and the $e$ indexed handler both produce values of the
+captured type $X$, therefore \AgdaFunction{>>=} does not effect them.
+Only the third computation is of type \AgdaArgument{A} and therefore effected by
+\AgdaFunction{>>=}.
 Therefore these operations aren't algebraic but also capture the notation of
 scopes.
 
 \begin{figure}
-  \begin{tikzpicture}
-    \node[] {$\bind$};
-  \end{tikzpicture}
-  \caption{calling \bind{} on operations with and without scopes (TODO)}
+  \begin{center}
+    \begin{tikzpicture}[level distance=1.0cm,sibling distance=1.5cm]
+      \node[treenode] at (0,0) {\textbf{catch}$_X$}
+          child[sibling distance=1.3cm] {
+              node[treenode] {\textbf{p}}
+          }
+          child[sibling distance=1.3cm] {
+              node[treenode] {\textbf{h}} edge from parent node[right,draw=none] {$e$}
+          }
+          child[sibling distance=1.3cm] {
+              node[treenode] {\textbf{cont}} edge from parent node[right,draw=none,xshift=0.1cm] {$x$}
+          }
+      ;
+
+      \node at (3.0,-0.5) {$\gg\!\!=\;k\quad \equiv$};
+
+      \node[treenode] at (5.8,0) {\textbf{catch}$_X$}
+          child[sibling distance=1.3cm] {
+              node[treenode] {\textbf{p}}
+          }
+          child[sibling distance=1.3cm] {
+              node[treenode] {\textbf{h}} edge from parent node[right,draw=none] {$e$}
+          }
+          child[sibling distance=1.3cm] {
+              node[treenode] {\textbf{cont}$\;\bind{}\; k$} edge from parent node[right,draw=none,xshift=0.1cm] {$x$}
+          }
+      ;
+    \end{tikzpicture}
+  \end{center}
+  \caption{calling \bind{} on an operation with a local scope}
   \label{higher-order:syntax:bind}
 \end{figure}
 
@@ -319,8 +350,9 @@ deal with and are hard to hide from the user of the library.
 \section{Limited Implementation}
 \label{higher-order:limited-impl}
 
-Although, this implementation makes working with deep effects difficult, it can
-still implement scoped effects in a setting without them.
+Translating \textcite{DBLP:conf/haskell/WuSH14} approach without major changes
+to Agda makes working  with deep effects difficult.
+However, it can still be used to implement scoped effects without deep effects.
 For completeness the following section will show key points of a simplified
 implementation using this approach.
 To write concise code we will work with Bunkenburg's indexed Bi-Containers,
@@ -344,13 +376,15 @@ To easily work in the higher order setting we adapt the \AgdaDatatype{Prog}
 data type similarly to \AgdaDatatype{Free} monad from chapter
 \ref{chapter:first-order} i.e. we parameterize over a list of effects and add a
 \AgdaDatatype{Size} parameter.
-To avoid excessive use of universe levels and avoid the \texttt{--cumulativity}
+To avoid excessive use of universe levels and to avoid the \texttt{--cumulativity}
 flag we work with a version of \AgdaDatatype{Prog} which takes a type parameter
 from \AgdaDatatype{Set}\footnote{To be monad this parameter has to be an element
   of \AgdaDatatype{Set₁}. Such a structure is sometimes known as a \textit{relative
   monad}, because we can still define a \AgdaFunction{>>=} for which the usual
   laws hold. Adapting this structure to a normal monad is possible, but involves
   more level annotations and it is easier in a universe polymorphic setting.}.
+We try to avoid the flag in this exemplary implementation, because it weakens
+type inference, forcing us to write more implicit values explicitly.
 
 \begin{code}[hide]
 Void : Effect

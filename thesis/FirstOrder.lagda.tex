@@ -40,12 +40,14 @@ open Container public
 ⟦ S ▷ P ⟧ A = Σ[ s ∈ S ] (P s → A)
 \end{code}
 
-The following sections describe the implementation of algebraic and scoped
-effects in the first order setting.
+In this chapter we present a first implementation of algebraic effects in Agda.
+The implementation uses a traditional approach i.e. it represents effects as
+functors and uses the free monad, as described in section
+\ref{preliminaries:free-monad}.
 We focus on implementation details specific to Agda like termination and
 positivity checks.
-The scoped effects are implemented using explicit scope delimiters as described
-by \textcite{DBLP:conf/haskell/WuSH14}.
+Furthermore we implement scoped effects using explicit scope delimiters by
+\textcite{DBLP:conf/haskell/WuSH14}.
 
 
 \section{Functors {\`{a}} la carte}
@@ -264,8 +266,17 @@ the operation.
 \AgdaFunction{prj} allows to inspect the next operation of a
 program, restricted to a specific signature.
 Furthermore we add the functions \AgdaFunction{op} and \AgdaFunction{upcast}.
-\AgdaFunction{op} generates the generic operation for any operation symbol.
-\AgdaFunction{upcast} transformes a program using any signature to one using a
+
+Writing operations with explicit continuations is unintuitive.
+Furthermore, \AgdaFunction{>>=} and \AgdaKeyword{do}-notation provide a more
+convenient syntax to extend the continuation.
+\AgdaFunction{op} generates the \textit{generic operation} for any operation
+symbol.
+The generic operation for an operation symbol $\mathrm{op} : P \leadsto A$ is
+the operation with \AgdaInductiveConstructor{pure} as continuation.
+Therefore, it is a function, usually notated as $\overbar{op}$, of type $P
+\rightarrow \mathrm{Free}_T(A)$, justifying the $\leadsto$-notation.
+\AgdaFunction{upcast} transforms a program using any signature to one using a
 larger signature.
 Notice that \AgdaFunction{upcast} preserves the size of its input, because it
 just traverses the tree and repackages the contents.
@@ -1300,15 +1311,15 @@ To implement sharing the handler modifies the program in scope.
 Using \AgdaFunction{prj}, \AgdaFunction{NonDet} syntax is extracted and
 reinjected.
 Choice nodes are modified to now include the unique choice id.
-The identifier is generated from the scope id of the current shareing scope and a
+The identifier is generated from the scope id of the current sharing scope and a
 counter, which is managed by the handler.
 When ever a choice is tagged with an id the counter is increased.
 The uniquenes of the scope identifiers is not managed by the handler, but the
 share operator.
 
-Due to the size annotations termination is proven on the type level.
-To implement the sharing handler it's not necessary to combine the two cases,
-as done by Bunkeburg in his Coq implementation.
+Due to the size annotations, termination is proven on the type level.
+To implement the sharing handler it is not necessary to combine the two cases,
+as done by \textcite{bunkenburg2019modeling} in his Coq implementation.
 
 \begin{code}
 bshare  : ⦃ NonDet ∈ ops ⦄ → Free (Share ∷ ops) A {i} → Free ops A
@@ -1333,7 +1344,7 @@ eshare next sid p@(Other s κ) with prj {NonDet} p
 \subsection{Share Operator}
 
 Next we define the \AgdaFunction{share} operator as described by
-Bunkenburg.
+\textcite{bunkenburg2019modeling}.
 The operator generates new unique scope identifiers using a \AgdaDatatype{State}
 effect.
 Furthermore, it shares all choices in the components of effectful data
@@ -1347,10 +1358,9 @@ Similar to \AgdaDatatype{Normalform}, trivial instances for simple data types
 are introduced.
 
 \begin{code}
-record Shareable (ops : List Container) (A : Set) : Set₁ where
-  field
-    shareArgs : A → Free ops A
-open Shareable ⦃...⦄ public
+record Shareable (ops : List Container) (A : Set) : Set where
+  field shareArgs : A → Free ops A
+open Shareable ⦃...⦄
 
 instance
   shareable-ℕ : Shareable ops ℕ
@@ -1358,18 +1368,22 @@ instance
 \end{code}
 Using the instances for data we can implement Bunkenburg's version of the
 operator.
-The operator itself relies on a \AgdaDatatype{State} effect, which is later
-executed as first effect in the stack, to generate the identifiers.
+The operator itself relies on a \AgdaDatatype{State} effect to generate the
+identifiers.
+\AgdaDatatype{State} is later executed as first effect in the stack, to generate
+concrete identifier values for the sharing handler.
 Given a computation producing values of type \AgdaArgument{A} the operator
 returns a computation of computations of type \AgdaArgument{A} i.e. the result
 has two \AgdaDatatype{Free}\AgdaSpace{}\AgdaArgument{ops} layers.
-The outer layer is usually execute (injected at into the larger program at the
-current point) immediately using \AgdaFunction{>>=}.
+The outer layer is usually execute immediately (i.e. injected into the larger
+program at the current position) using \AgdaFunction{>>=}.
 The outer computation generates a new identifier.
-The inner computation captures the identifier, therefore binding the inner
-computation multiple times yields multiple scopes with the same id.
-An in depth explanation can be found in ``Modeling Call-Time Choice as Effect
-using Scoped Free Monads''~\cite{bunkenburg2019modeling}.
+The inner computation actually evaluates the shared program and manages its
+sharing scope.
+The inner computation captures the identifier
+Therefore, binding the inner computation multiple times yields multiple scopes
+with the same id.
+An in depth explanation can be found in \citetitle{bunkenburg2019modeling}.
 
 \begin{code}
 share : ⦃ Shareable ops A ⦄ → ⦃ Share ∈ ops ⦄ → ⦃ State (ℕ × ℕ) ∈ ops ⦄ →
@@ -1384,10 +1398,11 @@ share p = do (i , j) ← get
                      op $ eshareˢ (i , j)
                      pure x′
 \end{code}
-Using \AgdaFunction{share} we can implement a shareable instance for effectful
-lists.
+Using \AgdaFunction{share} we can implement a \AgdaDatatype{Shareable} instance
+for effectful lists.
 In the original Haskell implementation \AgdaFunction{shareArgs} is a higher
-order function, which takes \AgdaFunction{share} as an additional argument.
+order function, which takes the used sharing operator as an additional
+argument.
 For simplicity and to avoid termination problems this is not the case in the
 Agda implementation.
 
