@@ -138,16 +138,16 @@
 \usepackage{fancyhdr}
 \pagestyle{fancy}
 \fancyhf{}%
-\fancyhead[LO,RE]{\thepage}
-\fancyhead[RO]{\rightmark}
-\fancyhead[LE]{\leftmark}
+\fancyhead[LE,RO]{\thepage}
+\fancyhead[LO]{\leftmark}
+\fancyhead[RE]{\rightmark}
 \renewcommand{\headrulewidth}{0.4pt}
 \renewcommand{\footrulewidth}{0.0pt}
 
 % Chapter pages
 \fancypagestyle{plain}{%
   \fancyhf{}%
-  \fancyhead[LO,RE]{\thepage}
+  \fancyhead[RO,LE]{\thepage}
   \renewcommand{\headrulewidth}{0.0pt}%
   \renewcommand{\footrulewidth}{0.0pt}%
 }
@@ -159,21 +159,56 @@
 \setcounter{biburllcpenalty}{7000}
 \setcounter{biburlucpenalty}{8000}
 
-\title{
-  {\huge\textbf{Implementing a library for scoped algebraic effects in Agda}}\\
-  {\large HTWK Leipzig}
-}
-\author{
-  {Jonas Höfer}\\
-  {Informatik}\\
-  {69555}
-}
+\title{Implementing a library for scoped algebraic effects in Agda}
+\author{Jonas Höfer}
 \date{2020}
 
 \begin{document}
-\maketitle
+\begin{titlepage}
+  \begin{large}
+    \begin{center}
+
+      \includegraphics[width=10cm]{htwk_logo2.png}
+
+      \vskip 2cm
+
+      \textbf{Leipzig University of Applied Sciences}\\
+      Faculty of Computer Science and Media\\
+      Computer Science\\
+
+      \vskip 2cm
+
+      \textbf{Bachelor Thesis}
+
+      \vskip 2cm
+
+      \textbf{Implementing a library for scoped algebraic effects in Agda}\\
+
+      \vfill
+
+      Author: Jonas Höfer\\
+
+      \vskip 2cm
+
+      \begin{tabular}{rl}
+        Examiner: & Prof. Dr. Johannes Waldmann\\
+                  & M. Sc. Niels Bunkenburg\\
+      \end{tabular}
+
+      \vskip 2cm
+
+      Leipzig, \today\\
+
+    \end{center}
+  \end{large}
+\end{titlepage}
+
+\thispagestyle{plain}
 \begin{abstract}
 \end{abstract}
+
+\newpage
+\setcounter{page}{1}
 
 \tableofcontents
 
@@ -275,82 +310,184 @@ Furthermore, it gives an overview over related and possible future work.
 \chapter{Conclusion}
 \label{chapter:conclusion}
 
+In this last chapter we recap the work done in the thesis and discuss the
+results as well as possible future work.
+
 \section{Summary}
 
+The main goal was to implement a library for scoped algebraic effects by
+porting the two haskell implementations from
+\citetitle{DBLP:conf/haskell/WuSH14} to Agda.
+
+Of particular significance was to work under Agda's constraints for consistency,
+which are needed for theorem proving.
+These included defining only function which Agda could prove terminate, as well
+as work with a consistent universe structure.
+As a running example we tried implementing effects related to simulating Curry's
+call-time choice semantics namely the sharing effect by
+\textcite{bunkenburg2019modeling}.
+In the chapters \ref{chapter:first-order}, \ref{chapter:higher-order} and
+\ref{chapter:scoped-algebras} we discussed how three different approaches
+translate to Agda.
+
+
 \section{Results}
-\begin{itemize}
-\item in depth exploration of 3 possible implementations for scoped effects in
-  the dependently Typed language Agda under constraints needed for theorem
-  proofing (no \texttt{--type-in-type}, \texttt{--terminating}, ...)
-\item Chapter \ref{chapter:first-order}
-  \begin{itemize}
-    \item (as expected) a working implementation
-    \item library contains modular infrastructure for more effects
-    \item size annotated free monad works out nicely for complex handlers and
-      avoids excessive inlining
-    \item sharing implementation by \textcite{bunkenburg2019modeling} works in Agda
-  \end{itemize}
-\item Chapter \ref{chapter:higher-order}
-  \begin{itemize}
-    \item ultimately failed to meet set goals
-    \item working implementation in setting without deep-effects
-    \item deep effects only work very limited (implementation just in repository)
-    \item discussion about problems regarding the implementation
-    \item Potential future Approaches
-    \begin{itemize}
-      \item typing environment idea (managing the env seemed to complex)
-      \item unifying effectful data and \AgdaDatatype{Prog} data type (data
-        lives just in the higher universe, because it contains computations i.e.
-        it continues the tree; it does not contain arbitrary ``too large'' data;
-        fact currently unused)
-    \end{itemize}
-  \end{itemize}
-  \item Chapter \ref{chapter:scoped-algebras}
-  \begin{itemize}
-    \item general structure lends itself to implementation in Agda
-    \begin{itemize}
-      \item \texttt{fold} avoids use of \AgdaDatatype{Size}
-      \item inherently uses dependent types $\Rightarrow{}$ implementation
-        partly even simplifies in Agda
-    \end{itemize}
-    \item future developments regarding scoped algebras could transfer nicely to Agda
-    \item Intuitive modularisation seems promising, because it shares many
-      parallels with \ref{chapter:higher-order} approach (known bug in
-      \AgdaDatatype{Nondet} handler also occurs in HO setting)
-    \item deep-effects can be modelled without any problem 
-    \item no problem with mismatched scopes in proofs.
-    \item sharing implementation by \textcite{bunkenburg2019modeling} works in Agda
-  \end{itemize}
-\end{itemize}
+
+In chapter \ref{chapter:first-order} we first implemented ordinary algebraic
+effects in Agda.
+The implementation only depends on the definition of the free monad, which
+implementation using containers, a well known approach.
+To prove termination we used sized types, which proved effective, because they
+allowed the definition of \textcite{DBLP:conf/haskell/WuSH14} handlers for
+explicit scope delimiters as well as avoided excessive inlining.
+Furthermore, it was possible to implement the sharing handler by
+\textcite{bunkenburg2019modeling} in Agda, making this approach a valid choice
+for simulating call-time choice semantics.
+A problem with this approach is that it inherently allows mismatched scope
+delimiters, that is malformed syntax, which potentially complicates proofs.
+
+In chapter \ref{chapter:higher-order} we tried implementing effects using higher
+order syntax, as described by \textcite{DBLP:conf/haskell/WuSH14}.
+This approach turned out to be problematic, because it relies on existential
+types to capture subcomputations.
+Holding onto the idea of storing types directly, we showed that it is not
+possible to implement deep effects in a setting with bounded universe levels.
+Furthermore, we discussed potential alternative approaches, although non of them
+seem promising.
+The repository for the library contains a sketch of an implementation with
+variable universe levels.
+Even thought this approach cannot model deep effects and therefore is not
+expressive enough to model Curry's ambient nondeterminism in data structures, we
+still presented the key points of a limited implementation of normal scoped
+effects.
+
+Due to the deep-seated problem of the approach from chapter
+\ref{chapter:higher-order} we experimented with an novel representation by
+\textcite{DBLP:conf/lics/PirogSWJ18}, which allowed us to remove the existential
+type.
+The naive Agda implementation of the monad \textcite{DBLP:conf/lics/PirogSWJ18}
+proved to be problematic in terms of theorem proving.
+We derived an alternative underlying implementation, based on the work by
+\textcite{DBLP:journals/corr/abs-1806-05230}, which allowed the implementation
+of complex recursive functions and proofs without the use of sized types.
+The approach allows the implementation of deep effects and also can be used to
+simulate sharing.
+Furthermore, we experimented with a naive modularisation of scoped effects in
+this setting.
+Even though \textcite{DBLP:conf/lics/PirogSWJ18} noted theoretical problems with
+modularity, the implementation seemed promising in our limited, practical
+setting and showed parallels to the higher-order approach. % of course, the monads are essentially equivalent
 
 
 \section{Related Work and future Directions}
 
 \subsection{Future Work}
-\begin{itemize}
-  \item generalize syntax in approach from chapter \ref{chapter:scoped-algebras}
-    (\texttt{pass} and \texttt{listen} operations for the \texttt{Writer} monad
-    currently not possible)
-  \item more formal treatment of modular scoped algebra approach,
-    \textcite{DBLP:conf/lics/PirogSWJ18} noted that the approach does not
-    generally compose; what did I do exactly?
-  \item explore equational reasoning in the modular setting
-  \begin{itemize}
-    \item custom \AgdaDatatype{Setoid}
-    \item all current proofs are just for fixed stacks and the head of the
-      current stack.
-    \item Modular lifting of proofs through other handlers i.e. does \texttt{p ?
-        fail = p} hold after running some other effect?
-    \item needed for efficiently proofs of properties of arbitrary programs,
-      which use the library
-  \end{itemize}
-  \item explore different implementations as basis for scoped effects (not only Wu's)
-  \item integrate scoped and resource dependent effects
-  \item Implement more effects
-  \item introduce shorter syntax for effect constraints (e.g. hide
-    \AgdaKeyword{tactic} in \AgdaKeyword{record})
-\end{itemize}
+
+For each of the three approach, the basic infrastructure as well as some
+exemplary effects were presented.
+Based on them, the corresponding library could be extended with more effects.
+In case of the approaches from chapter \ref{chapter:higher-order} and chapter
+\ref{chapter:scoped-algebras} a simplified syntax was used.
+Some operations, for example \texttt{pass} and \texttt{listen} for the
+\texttt{Writer} effect, have fundamentally different shape, which at the moment
+cannot be represented.
+Implementing these operations requires generalizing the syntax.
+For higher-order approach alternative container representations were mentioned.
+For scoped algebras \textcite{DBLP:conf/lics/PirogSWJ18} also note a
+generalization for more expressive syntax.
+
+Another area which could be explored further is reasoning about programs using
+effects.
+All proofs in the thesis either used a fixed effect stack or just hold if the
+handlers for the effect was called last.
+Most real program use multiple effects, which differ between functions.
+Properties of effects may not hold if a non-orthogonal handler is called first.
+Exploring this issue and defining structures for proving and using propositions
+related to effects could be a useful addition to the library.
+
+The approaches in this thesis are based on the work by
+\textcite{DBLP:conf/haskell/WuSH14} and \textcite{DBLP:conf/lics/PirogSWJ18}.
+Norell ported the Idris effect library by \textcite{DBLP:conf/icfp/Brady13} to
+Agda.
+The library does not allow scoped effects, but uses a fundamentally different
+structure.
+Extending this approach with scoped effects could provide an alternative to the
+approaches described implemented in thesis.
+Vice versa, one could try extending one of the approaches presented here with
+recourse dependent effects.
+
 
 \printbibliography
 
 \end{document}
+
+
+% \begin{itemize}
+% \item in depth exploration of 3 possible implementations for scoped effects in
+%   the dependently Typed language Agda under constraints needed for theorem
+%   proving (no \texttt{--type-in-type}, \texttt{--terminating}, ...)
+% \item Chapter \ref{chapter:first-order}
+%   \begin{itemize}
+%     \item (as expected) a working implementation
+%     \item library contains modular infrastructure for more effects
+%     \item size annotated free monad works out nicely for complex handlers and
+%       avoids excessive inlining
+%     \item sharing implementation by \textcite{bunkenburg2019modeling} works in Agda
+%   \end{itemize}
+% \item Chapter \ref{chapter:higher-order}
+%   \begin{itemize}
+%     \item ultimately failed to meet set goals
+%     \item working implementation in setting without deep-effects
+%     \item deep effects only work very limited (implementation just in repository)
+%     \item discussion about problems regarding the implementation
+%     \item Potential future Approaches
+%     \begin{itemize}
+%       \item typing environment idea (managing the env seemed to complex)
+%       \item unifying effectful data and \AgdaDatatype{Prog} data type (data
+%         lives just in the higher universe, because it contains computations i.e.
+%         it continues the tree; it does not contain arbitrary ``too large'' data;
+%         fact currently unused)
+%     \end{itemize}
+%   \end{itemize}
+%   \item Chapter \ref{chapter:scoped-algebras}
+%   \begin{itemize}
+%     \item general structure lends itself to implementation in Agda
+%     \begin{itemize}
+%       \item \texttt{fold} avoids use of \AgdaDatatype{Size}
+%       \item inherently uses dependent types $\Rightarrow{}$ implementation
+%         partly even simplifies in Agda
+%     \end{itemize}
+%     \item future developments regarding scoped algebras could transfer nicely to Agda
+%     \item Intuitive modularisation seems promising, because it shares many
+%       parallels with \ref{chapter:higher-order} approach (known bug in
+%       \AgdaDatatype{Nondet} handler also occurs in HO setting)
+%     \item deep-effects can be modelled without any problem 
+%     \item no problem with mismatched scopes in proofs.
+%     \item sharing implementation by \textcite{bunkenburg2019modeling} works in Agda
+%   \end{itemize}
+% \end{itemize}
+
+
+% \begin{itemize}
+%   \item generalize syntax in approach from chapter \ref{chapter:scoped-algebras}
+%     ( operations for the \texttt{Writer} monad
+%     currently not possible)
+%   \item more formal treatment of modular scoped algebra approach,
+%     \textcite{DBLP:conf/lics/PirogSWJ18} noted that the approach does not
+%     generally compose; what did I do exactly?
+%   \item explore equational reasoning in the modular setting
+%   \begin{itemize}
+%     \item custom \AgdaDatatype{Setoid}
+%     \item all current proofs are just for fixed stacks and the head of the
+%       current stack.
+%     \item Modular lifting of proofs through other handlers i.e. does \texttt{p ?
+%         fail = p} hold after running some other effect?
+%     \item needed for efficiently proofs of properties of arbitrary programs,
+%       which use the library
+%   \end{itemize}
+%   \item explore different implementations as basis for scoped effects (not only Wu's)
+%   \item integrate scoped and resource dependent effects
+%   \item Implement more effects
+%   \item introduce shorter syntax for effect constraints (e.g. hide
+%     \AgdaKeyword{tactic} in \AgdaKeyword{record})
+% \end{itemize}

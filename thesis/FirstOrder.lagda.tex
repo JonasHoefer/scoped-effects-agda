@@ -44,7 +44,7 @@ In this chapter we present a first implementation of algebraic effects in Agda.
 The implementation uses a traditional approach i.e. it represents effects as
 functors and uses the free monad, as described in section
 \ref{preliminaries:free-monad}.
-We focus on implementation details specific to Agda like termination and
+We focus on implementation details specific to Agda, for example termination and
 positivity checks.
 Furthermore we implement scoped effects using explicit scope delimiters by
 \textcite{DBLP:conf/haskell/WuSH14}.
@@ -53,13 +53,15 @@ Furthermore we implement scoped effects using explicit scope delimiters by
 \section{Functors {\`{a}} la carte}
 \label{first-order:functor}
 
-When modelling effects each functor represents the syntax i.e. the operations of
+When modelling effects each functor represents the signature i.e. the operations for
 an effect.
+Theoretically, it is possible to represent each operation as a functor.
+Usually operations which are handled together are implemented as a single functor.
 For containers each shape constructor corresponds to an operation symbol and the
 type of position for a shape corresponds to the arity set for the operation.
 The additional parameter of an operation is embedded in the shape.
 The free monad over a container describes a program using the effect's syntax
-i.e. it is the free model for the algebra without the equations.
+i.e. it is the free model for the algebraic theory without the equations.
 To combine the syntax of multiple effects we can combine the underlying
 functors, because the free monad preserves coproducts\footnote{This follows from
 the facts that \texttt{Free} is the left half of a free-forgetful adjunction and
@@ -72,7 +74,7 @@ The functor coproduct is modelled as the data type \mintinline{haskell}{data (f
 :+: g) a = Inl (f a) | Inr (g a)}, which is again a \texttt{Functor} in
 \texttt{a}.
 In section \ref{chapter:preliminaries:free-monad} we defined the free monad over
-a strictly positive functor, which was represented by a \AgdaDatatype{Container}.
+a strictly positive functor, which was represented as \AgdaDatatype{Container}.
 We could use a similar data type to combine the extensions of two containers,
 but we would lose the advantages of containers i.e. that container extension is
 a strictly positive functor.
@@ -81,11 +83,11 @@ them~\cite{DBLP:conf/fossacs/AbbottAG03}.
 Therefore, we can combine two container functors by combining the underlying
 containers.
 The coproduct of two containers $F$ and $G$ is the container whose
-\AgdaFunction{shape} is the disjoint union of $F$'s and $G$'s shapes and whose
-position function \AgdaFunction{pos} is the coproduct mediator of $F$'s and
-$G$'s position functions\footnote{The function \AgdaFunction{[\_,\_]}
-corresponds to the Haskell function \mintinline{haskell}{either :: (a -> c) ->
-(b -> c) -> Either a b -> c}.}.
+\AgdaField{Shape} is the disjoint union of $F$'s and $G$'s shapes and whose
+position function \AgdaField{Pos} is given by the coproduct
+mediator\footnote{The function \AgdaFunction{[\_,\_]} corresponds to the Haskell
+function \mintinline{haskell}{either :: (a -> c) -> (b -> c) -> Either a b ->
+c}.} of $F$'s and $G$'s position functions.
 
 \begin{code}[hide]
 infixr 1 _⊕_
@@ -97,13 +99,12 @@ _⊕_ : Container → Container → Container
 The functor represented by the coproduct of two containers is isomorphic to the
 functor coproduct of their representations.
 The container without shapes is the neutral element for the coproduct of
-containers\footnote{It is the initial element in the category of containers
-  over set, because $\mathbb{0}$ is initial in set.}.
+containers.
 This allows us to define $n$-ary coproducts for containers.
 
 \begin{code}
 sum : List Container → Container
-sum  = foldr (_⊕_) (⊥ ▷ λ())
+sum = foldr _⊕_ (⊥ ▷ λ())
 \end{code}
 To generically work with arbitrary coproducts of functors we define two utility
 functions.
@@ -125,7 +126,7 @@ option in the coproduct.
 \texttt{:<:}'s functions can be used to inject or potentially extract values
 from a coproduct.
 The two instances for \texttt{:<:} mark $F$ as an element of the coproduct if
-it's on the left-hand side of the coproduct (in the head) or if it's already
+it is on the left-hand side of the coproduct (in the head) or if it is already
 in the right-hand side (in the tail).
 Usually one would add a third instances \texttt{f :<: f}, relating \texttt{f} to
 itself, but this instance is not needed if the last functor is always
@@ -184,11 +185,17 @@ One can always construct a proof that \AgdaArgument{x} is in a list with
 \AgdaArgument{x}\AgdaSpace{}\AgdaDatatype{∈}\AgdaSpace{}\AgdaArgument{xs}
 one can construct a proof that \AgdaArgument{x} is also in the extended list
 \AgdaArgument{y}\AgdaSpace{}\AgdaInductiveConstructor{∷}\AgdaSpace{}\AgdaArgument{xs}.
+The \AgdaKeyword{instance} keyword marks the two constructors as possible
+solution for instance arguments.
+Instance arguments are special hidden arguments which are denoted using
+$\lBrace$ and $\rBrace$.
+Instances and instance arguments can be used similar to Haskell's type classes
+and type class constraints.
 
-The two instances still overlap resulting in an exponential slowdown in instance
-resolution\footnote{\url{https://agda.readthedocs.io/en/v2.6.1.1/language/instance-arguments.html\#overlapping-instances}}.
-Using Agdas internal instance resolution can be avoided by using a tactic to
-infer \AgdaDatatype{\_∈\_} arguments.
+The two instances still overlap resulting in a potentially exponential slowdown
+in instance resolution\footnote{\url{https://agda.readthedocs.io/en/v2.6.1.1/language/instance-arguments.html\#overlapping-instances}}.
+Using Agda's internal instance resolution can be avoided by using a
+tactic to infer \AgdaDatatype{\_∈\_} arguments.
 For simplicity the following code will still use instance arguments.
 This version can easily be adapted to one using macros, by replacing the
 instance arguments with hidden ones with \AgdaKeyword{tactic} annotations.
@@ -209,7 +216,7 @@ project there          (inj₁ _ , _ )  = nothing
 project (there ⦃ p ⦄)  (inj₂ s , pf)  = project p (s , pf)
 \end{code}
 Both \AgdaFunction{inject} and \AgdaFunction{project} require a proof that
-specific container is an element of the list used to construct the coproduct.
+specific effect is an element of the list used to construct the coproduct.
 
 Let us consider \AgdaFunction{inject} first.
 By pattern matching on the evidence we acquire more information about the type
@@ -228,6 +235,8 @@ type.
 By pattern matching on the proof we either know that the value we found has
 the correct type or we obtain a proof for the tail of the list allowing us to
 either make a recursive call or stop the search.
+Notice that in both cases we do not handle cases related to the empty list,
+because it is impossible to prove that the empty list has a member.
 
 
 \subsection{The Free Monad for Effect Handling}
@@ -253,10 +262,11 @@ annotate the data type.
 \AgdaInductiveConstructor{pure} values have an arbitrary size.
 When constructing an \AgdaInductiveConstructor{impure} value the new value is
 strictly larger than the ones produced by the container's position function.
-The size annotation therefore corresponds to the height of the tree described by
-the free monad.
-Using the annotation it is possible to prove that functions preserve the size of
-a value or that complex recursive functions terminate.
+Therefore, a calculation is larger than its continuations or a computation is
+finite.
+Using the annotation it is possible to prove that functions preserve or decrease
+the size of a computation and therefore that complex recursive functions
+terminate.
 
 Next we define utility functions for working with the free monad.
 \AgdaFunction{inj} and \AgdaFunction{prj} provide the same functionality as the
@@ -264,18 +274,19 @@ ones used by \textcite{DBLP:conf/haskell/WuSH14}.
 \AgdaFunction{inj} allows to inject syntax into a program whose signature allows
 the operation.
 \AgdaFunction{prj} allows to inspect the next operation of a
-program, restricted to a specific signature.
+program, restricted to the signature for a specific effect.
 Furthermore we add the functions \AgdaFunction{op} and \AgdaFunction{upcast}.
 
 Writing operations with explicit continuations is unintuitive.
 Furthermore, \AgdaFunction{>>=} and \AgdaKeyword{do}-notation provide a more
-convenient syntax to extend the continuation.
+convenient syntax for extending the continuation.
 \AgdaFunction{op} generates the \textit{generic operation} for any operation
 symbol.
-The generic operation for an operation symbol $\mathrm{op} : P \leadsto A$ is
-the operation with \AgdaInductiveConstructor{pure} as continuation.
-Therefore, it is a function, usually notated as $\overbar{op}$, of type $P
-\rightarrow \mathrm{Free}_T(A)$, justifying the $\leadsto$-notation.
+The generic operation for $\mathrm{op} : P \leadsto A$ is the operation with
+\AgdaInductiveConstructor{pure} as continuation.
+Therefore, it is a function of type $P \rightarrow \mathrm{Free}_T(A)$,
+justifying the $\leadsto$-notation.
+
 \AgdaFunction{upcast} transforms a program using any signature to one using a
 larger signature.
 Notice that \AgdaFunction{upcast} preserves the size of its input, because it
@@ -344,18 +355,18 @@ This means that by using \AgdaFunction{>>=} on a value we lose our size
 esstimate.
 This is a problem in recursive functions, because in terms of termination
 checking it renders the annotation useless.
-For later programs using effects this is not a problem, because should not rely
+For later programs using effects this is not a problem, because they should not rely
 on the size annotation of the free monad, because they should not recurse on a
 value of type \AgdaDatatype{Free}.
 The return type is not explicitly indexed, because the compiler correctly
 infers \AgdaInductiveConstructor{∞}.
 
 \begin{code}
-_>>=_ : ∀ {ops} → Free ops A → (A → Free ops B) → Free ops B
+_>>=_ : ∀ {ops} → Free ops A {i} → (A → Free ops B) → Free ops B
 pure x           >>= k = k x
 impure (s , pf)  >>= k = impure (s , (_>>= k) ∘ pf)
 
-_>>_ : ∀ {ops} → Free ops A → Free ops B → Free ops B
+_>>_ : ∀ {ops} → Free ops A {i} → Free ops B → Free ops B
 ma >> mb = ma >>= λ _ → mb
 \end{code}
 To complete our basic set of monadic functions we also define \AgdaFunction{ap}.
@@ -371,8 +382,8 @@ impure (s , pf)  <*> ma = impure (s , (_<*> ma) ∘ pf)
 
 The definition of the free monad from section \ref{first-order:free-monad} is a
 functor because it satisfies the two functor laws.
-The two laws state that the lifting of morphisms via \AgdaFunction{fmap}
-preserves identity and the composition of morphisms.
+The two laws state that the lifting of functions via \AgdaFunction{fmap}
+preserves the identity and the composition of functions.
 
 Both properties are proven by structural induction over the free monad.
 Let us consider the first proof.
@@ -392,8 +403,7 @@ recursive call.
 
 Because all steps using \AgdaFunction{≡⟨⟩} are proven by
 \AgdaInductiveConstructor{refl} they can be omitted.
-The other proofs follow the same pattern and can therefore are written more
-concise.
+The other proofs follow the same pattern and therefore are written more concise.
 
 \begin{code}[number=fmap-id]
 fmap-id : (p : Free ops A) → fmap id p ≡ p
@@ -413,9 +423,10 @@ fmap-∘ f g (pure x)           = refl
 fmap-∘ f g (impure (s , pf))  = cong (impure ∘ (s ,_)) (extensionality (fmap-∘ f g ∘ pf))
 \end{code}
 Later we will need the interchange law for applicative functors.
-Based on the definition of \AgdaFunction{<*>} it allows us to reduce a call to
-\AgdaFunction{<*>} with a \AgdaInductiveConstructor{pure} second argument to one
-to \AgdaFunction{<\$>}.
+The law essentially allows us to swap the arguments of \AgdaFunction{<*>} if one
+of the is \AgdaInductiveConstructor{pure}.
+Because \AgdaFunction{<*>} is defined in terms of \AgdaFunction{<\$>} it allows
+us to reduce calls to \AgdaFunction{<*>} to \AgdaFunction{<\$>}.
 
 \begin{code}[number=ap-interchange]
 interchange : ∀ a (f : Free ops (A → B)) →
@@ -453,29 +464,32 @@ bind-assoc f g (pure x)           = refl
 bind-assoc f g (impure (s , pf))  = cong (impure ∘ (s ,_)) (extensionality (bind-assoc f g ∘ pf))
 \end{code}
 
-\section{Handler}
 
-Usually, an effect handler removes and interprets the syntax of an effect.
-In the simplest case the handler replaces the effect syntax with a corresponding
-implementation in the host language.
-It maps from the free model to a model in the language i.e. it transforms an
-impure to a pure computation.
-Therefore, the handler induced semantics for the effects.
-Some handlers manipulate syntax of other effects or the structure of the program
-itself.
-These handlers are usually called \textit{non-orthogonal handlers}.
+\section{Implementing Effects and Handlers}
+
+In section \ref{preliminaries:handler} we introduced effect handlers more
+formally.
+In this section we implement algebraic effect and their handlers in Agda.
 
 All handlers in the following sections will have the same basic structure.
 They will take a program i.e. a variable of type
 \AgdaDatatype{Free}\AgdaSpace{}\AgdaArgument{C}\AgdaSpace{}\AgdaArgument{A},
 where the head of \AgdaArgument{C} is the effect interpreted by the handler.
 Each handler produces a program without the interpreted syntax i.e. just the
-tail of \AgdaArgument{C} in it's effect stack and potentially modify the type
+tail of \AgdaArgument{C} in its effect stack and potentially modify the type
 \AgdaArgument{A} to one modelling the result of the effect.
+They transform an impure computation partially to a pure one.
+Furthermore, by interpreting the syntax of an effect (mapping to a model for
+the theory) the handler defines the semantics for the effect.
 For example a handler for exceptions would remove exception syntax and transform
 a program producing a value of type \AgdaArgument{A} to one producing a value of
 type \AgdaArgument{E}\AgdaSpace{}\AgdaFunction{⊎}\AgdaSpace{}\AgdaArgument{A},
 either an exception or a result.
+Internally the handler would map the \AgdaInductiveConstructor{pure}
+\AgdaFunction{throw} operation to a \AgdaInductiveConstructor{pure}
+computations, witch simply yields the exception.
+Some later handlers will also modify syntax of other effects.
+These handlers are usually called \textit{non-orthogonal handlers}.
 
 A simple but important handler is the one handling the empty effect stack and
 therefore the \AgdaDatatype{Void} effect.
@@ -483,7 +497,6 @@ A program containing just \AgdaDatatype{Void} syntax contains no
 \AgdaInductiveConstructor{impure} constructors, because \AgdaDatatype{Void} has
 no operations i.e. its \AgdaField{Shape} type has no constructors.
 Pattern matching on the impure constructor yields $()$.
-
 Therefore, we can always produce a value of type \AgdaArgument{A}.
 The handler for \AgdaDatatype{Void} is important, because it can be used to
 escape the \AgdaDatatype{Free} context after all other effects have been
@@ -552,10 +565,16 @@ fail = op failˢ >>= λ()
 \end{code}
 With the syntax in place we can now move on to semantics and define a handler
 for the effect.
-By introducing \AgdaKeyword{pattern} declarations for each operations the
-handler can be simplified.
-Furthermore we introduce a \AgdaKeyword{pattern} for other operations, i.e.
-those who are not part of the currently handled signature.
+\textcite{DBLP:conf/haskell/WuSH14} use Haskell language extensions like pattern
+synonyms and view patterns to simplify their implementations.
+Agda also has \AgdaKeyword{pattern} synonyms, which we use to simplify at least
+simple effect handlers i.e. those which do not rely on \AgdaFunction{prj}.
+Similar to Haskell, the left-hand side of a \AgdaKeyword{pattern} defines an
+abbreviate for the right-hand side, which can be used on the left- and
+right-hand side of function rules.
+We introduce \AgdaKeyword{pattern}s for each operation from the signature as
+well as for other operations i.e. those who are not part of the currently
+handled signature.
 
 \begin{code}
 pattern Other s κ  = impure (inj₂ s , κ)
@@ -570,24 +589,24 @@ pattern Choice κ   = impure (inj₁ ⁇ˢ , κ)
   The \AgdaDatatype{List} contains the results of all successful execution
   paths.
   \begin{code}
-solutions : ∀ {ops} → Free (Nondet ∷ ops) A → Free ops (List A)
+runNondet : ∀ {ops} → Free (Nondet ∷ ops) A → Free ops (List A)
   \end{code}
   The \AgdaInductiveConstructor{pure} constructor represents a program without
   effects.
   The singleton list is returned, because no nondeterminism is used in a
   \AgdaInductiveConstructor{pure} calculation.
   \begin{code}
-solutions (pure x)     = pure (x ∷ [])
+runNondet (pure x)     = pure (x ∷ [])
   \end{code}
   The \AgdaInductiveConstructor{fail} constructor represents an unsuccessful
   calculation.
   No result is returned.
   \begin{code}
-solutions (Fail κ)     = pure []
+runNondet (Fail κ)     = pure []
   \end{code}
   In case of a \AgdaInductiveConstructor{Choice} both paths can produce an
   arbitrary number of results.
-  We execute both programs recursively using \AgdaFunction{solutions} and
+  We execute both programs recursively using \AgdaFunction{runNondet} and
   collect the results in a single \AgdaDatatype{List}.
 
   $\llparenthesis$ and $\rrparenthesis$ are \textit{idiom brackets} and denote
@@ -596,18 +615,29 @@ solutions (Fail κ)     = pure []
   In this case the function \AgdaArgument{f} is the mixfix operator
   \AgdaFunction{\_++\_} which can still be written in infix notation.
   \begin{code}
-solutions (Choice κ)   = ⦇ solutions (κ true) ++ solutions (κ false) ⦈
+runNondet (Choice κ)   = ⦇ runNondet (κ true) ++ runNondet (κ false) ⦈
   \end{code}
-  In case of syntax from another effect we just execute \AgdaFunction{solutions}
+  In case of syntax from another effect we just execute \AgdaFunction{runNondet}
   on every subtree by mapping the function over the container.
   Note that the newly constructed value has a different type.
   \AgdaInductiveConstructor{Other} hides the \AgdaInductiveConstructor{inj₂}
   constructor, therefore the newly constructed \AgdaInductiveConstructor{impure}
   value is of type
   \AgdaDatatype{Free}\AgdaSpace{}\AgdaArgument{ops}\AgdaSpace{}$($\AgdaDatatype{List}\AgdaSpace{}\AgdaArgument{A}$)$.
+  Furthermore, notice that this function rule corresponds to one of the equations
+  for handlers, given in section \ref{preliminaries:handler}.
   \begin{code}
-solutions (Other s κ)  = impure (s , solutions ∘ κ)
+runNondet (Other s κ)  = impure (s , runNondet ∘ κ)
   \end{code}
+  Even though, this handler is defined recursive the definition from section
+  \ref{preliminaries:handler} can still be recognized.
+  The case for \AgdaInductiveConstructor{pure} corresponds to the function
+  mapping values to computations.
+  The cases for each operation correspond to the maps $h_i$, which process the
+  parameter and the results of the continuation.
+  The handler is not explicitly composed with the continuation before calling
+  $h_i$, but in the cases above all results of $\kappa$ are processed by
+  \AgdaFunction{runNondet}.
 \end{AgdaAlign}
 
 
@@ -623,16 +653,17 @@ The result of a handler should again be a model for the effect i.e. the
 equations characterizing the effect should hold.
 We can proof that our handler produces a valid (but not necessarily free) model
 for our equations by verifying that the laws holds after interpreting the terms.
-The ability to rigorously proof these laws about the program is one of the main
-advantages of Agda.
+The ability to rigorously prove properties of a program, such as these laws for
+our handler, the program is one of the main advantages of Agda.
 
 We have four laws governing our \AgdaDatatype{Nondet} effect.
 The first law states that \AgdaFunction{const}\AgdaSpace{}\AgdaFunction{fail}
 should be an absorbing element for the Kleisli composition.
+Writing the law using bind leaves us with the following equality.
 
 \begin{code}[number=fail-annihilating]
 bind-fail : {k : A → Free (Nondet ∷ ops) B} → 
-  solutions (fail >>= k) ≡ solutions fail
+  runNondet (fail >>= k) ≡ runNondet fail
 bind-fail = refl
 \end{code}
 The proof is trivial, because \AgdaFunction{fail} has no continuations.
@@ -645,15 +676,15 @@ By using functor, applicative and monad laws one can reduce the proof to one for
 pure lists and simply use the corresponding equality from the standard library.
 
 \begin{code}
-⁇-identˡ : (q : Free (Nondet ∷ ops) A) → solutions (fail ⁇ q) ≡ solutions q
+⁇-identˡ : (q : Free (Nondet ∷ ops) A) → runNondet (fail ⁇ q) ≡ runNondet q
 ⁇-identˡ q = begin
-  solutions (fail ⁇ q)                      ≡⟨⟩ -- definition of handler for ⁇
-  _++_ <$> solutions fail  <*> solutions q  ≡⟨⟩ -- definition of handler for fail
-  _++_ <$> pure []         <*> solutions q  ≡⟨⟩ -- definition of <$>
-  pure ([] ++_)            <*> solutions q  ≡⟨⟩ -- definition of <*> / ap-ident-left
-  [] ++_                   <$> solutions q  ≡⟨⟩ -- definition of ++ / ++-ident-left
-  id                       <$> solutions q  ≡⟨ fmap-id (solutions q) ⟩
-  solutions q                               ∎
+  runNondet (fail ⁇ q)                      ≡⟨⟩ -- definition of handler for ⁇
+  _++_ <$> runNondet fail  <*> runNondet q  ≡⟨⟩ -- definition of handler for fail
+  _++_ <$> pure []         <*> runNondet q  ≡⟨⟩ -- definition of <$>
+  pure ([] ++_)            <*> runNondet q  ≡⟨⟩ -- definition of <*> / ap-ident-left
+  [] ++_                   <$> runNondet q  ≡⟨⟩ -- definition of ++ / ++-ident-left
+  id                       <$> runNondet q  ≡⟨ fmap-id (runNondet q) ⟩
+  runNondet q                               ∎
 \end{code}
 The proof for the left identity is straight forward.
 No standard library equality is needed, because \AgdaFunction{++} is recursive
@@ -661,17 +692,17 @@ in its first argument.
 To eliminate \AgdaFunction{<\$>} a functor law is required.
 
 \begin{code}
-⁇-identʳ : (p : Free (Nondet ∷ ops) A) → solutions (p ⁇ fail) ≡ solutions p
+⁇-identʳ : (p : Free (Nondet ∷ ops) A) → runNondet (p ⁇ fail) ≡ runNondet p
 ⁇-identʳ p = begin
-  solutions (p ⁇ fail)                          ≡⟨⟩ -- definition of handler
-  _++_ <$> solutions p        <*> pure []       ≡⟨ interchange [] (_++_ <$> solutions p) ⟩
-  pure (_$ [])    <*>  (_++_  <$> solutions p)  ≡⟨⟩ -- definition of <*> / ap-ident-left
-  (_$ [])         <$>  (_++_  <$> solutions p)  ≡⟨ sym (fmap-∘ (_$ []) _++_ (solutions p)) ⟩
-  (_$ [])         ∘    _++_   <$> solutions p   ≡⟨⟩ -- definition of ∘ and $
-  (_++ [])                    <$> solutions p   ≡⟨ cong  (_<$> solutions p)
+  runNondet (p ⁇ fail)                          ≡⟨⟩ -- definition of handler
+  _++_ <$> runNondet p        <*> pure []       ≡⟨ interchange [] (_++_ <$> runNondet p) ⟩
+  pure (_$ [])    <*>  (_++_  <$> runNondet p)  ≡⟨⟩ -- definition of <*> / ap-ident-left
+  (_$ [])         <$>  (_++_  <$> runNondet p)  ≡⟨ sym (fmap-∘ (_$ []) _++_ (runNondet p)) ⟩
+  (_$ [])         ∘    _++_   <$> runNondet p   ≡⟨⟩ -- definition of ∘ and $
+  (_++ [])                    <$> runNondet p   ≡⟨ cong  (_<$> runNondet p)
                                                          (extensionality ++-identityʳ) ⟩
-  id                          <$> solutions p   ≡⟨ fmap-id (solutions p) ⟩
-  solutions p                                   ∎
+  id                          <$> runNondet p   ≡⟨ fmap-id (runNondet p) ⟩
+  runNondet p                                   ∎
 \end{code}
 Proving the right identity is more complicated, because \AgdaFunction{fail} is
 on the right-hand side of \AgdaFunction{⁇}.
@@ -688,43 +719,20 @@ Notice that partially applying \AgdaFunction{++} with
 without invoking \AgdaFunction{extensionality}.
 
 Using the proofs from section \ref{first-order:free-monad:properties} we
-can simplify the equations and reduce them to a problem for normal
+can simplify the equations and reduce them to a problem for a normal
 \AgdaDatatype{List}.
 The proof for associativity is longer, but follows the same patterns.
-
-\begin{code}[hide]
--- ⁇-assoc : (p q r : Free (Nondet ∷ ops) A) →
---   solutions ((p ⁇ q) ⁇ r) ≡ solutions (p ⁇ (q ⁇ r))
--- ⁇-assoc p q r = begin
---     solutions ((p ⁇ q) ⁇ r)
---   ≡⟨⟩
---     _++_ <$> (_++_ <$> solutions p <*> solutions q) <*> solutions r
---   ≡⟨ cong (_<*> solutions r) (composition (pure _++_) (_++_ <$> solutions p) (solutions q)) ⟩
---     (_++_ ∘′_) <$> (_++_ <$> solutions p) <*> solutions q <*> solutions r
---   ≡⟨ cong (λ t → t <*> solutions q <*> solutions r) (sym (fmap-∘ (_++_ ∘′_) _++_ (solutions p))) ⟩
---     (λ x y z → (x ++ y) ++ z) <$> (solutions p) <*> solutions q <*> solutions r
---   ≡⟨ {!!} ⟩
---     (λ x y z → x ++ (y ++ z)) <$> (solutions p) <*> solutions q <*> solutions r
---   ≡⟨ cong (_<*> solutions r) (sym (composition ({!(_∘′_ ∘ _++_) <$> solutions p!}) (pure _++_) (solutions q))) ⟩
---     (_∘′_ ∘ _++_) <$> solutions p <*> (_++_ <$> solutions q) <*> solutions r
---   ≡⟨ cong (λ t → t <*> (_++_ <$> solutions q) <*> solutions r) (fmap-∘ _∘′_ _++_ (solutions p)) ⟩
---     _∘′_ <$> (_++_ <$> solutions p) <*> (_++_ <$> solutions q) <*> solutions r
---   ≡⟨ sym (composition (_++_ <$> solutions p) (_++_ <$> solutions q) (solutions r)) ⟩
---     _++_ <$> solutions p <*> (_++_ <$> solutions q <*> solutions r)
---   ≡⟨⟩
---     solutions (p ⁇ (q ⁇ r)) ∎
-\end{code}
 
 
 \subsection{State}
 
 The state effect has two operations \AgdaFunction{get} and \AgdaFunction{put}.
-The whole effect is parameterized over the state type \AgdaArgument{s}.
+The whole effect is parameterized over the state type \AgdaArgument{S}.
 
 \AgdaFunction{get} simply returns the current state.
-The operation takes no additional parameters and has \AgdaArgument{s} positions.
+The operation takes no additional parameters and has \AgdaArgument{S} positions.
 This can either be interpreted as \AgdaFunction{get} being an
-\AgdaArgument{s}-ary operation (one child for each possible state) or simply the
+\AgdaArgument{S}-ary operation (one child for each possible state) or simply the
 parameter of the continuation being a value of type \AgdaArgument{s}.
 
 \AgdaFunction{put} updates the current state.
@@ -733,8 +741,8 @@ The operation itself is unary i.e. the continuation is called with
 \AgdaInductiveConstructor{tt} to start the rest of the program.
 
 $$
-\Sigma_{State} = \{ \mathrm{get} : \mathbf{1} \rightsquigarrow s, \mathrm{put} :
-s \rightsquigarrow \mathbf{1} \}
+\Sigma_{State} = \{ \mathrm{get} : \mathbf{1} \leadsto S, \mathrm{put} :
+S \leadsto \mathbf{1} \}
 $$
 As before we translate this definition in a corresponding container and
 define \AgdaKeyword{pattern}s to simplify the handler.
@@ -775,7 +783,7 @@ The final state is returend in addition to the result.
 \begin{code}
 runState : ∀ {ops S} → S → Free (State S ∷ ops) A → Free ops (S × A)
 \end{code}
-A \AgdaInductiveConstructor{pure} calculation doesn't change the current state.
+A \AgdaInductiveConstructor{pure} calculation does not change the current state.
 Therefore, the initial is also the final state and returned in addition to the
 result of the calculation.
 \begin{code}
@@ -832,26 +840,60 @@ example₁ = refl
 \end{code}
 \end{center}
 
+
 \subsubsection{Properties}
 
-\begin{code}
+To show that our implementation of \AgdaDatatype{State} is correct i.e. that it
+is a model, we have to show that the equations characterizing the effect hold.
+Because some equations just \AgdaFunction{get} and \AgdaFunction{put},
+\AgdaArgument{ops} cannot be automatically infered.
+
+\begin{code}[inline,hide]
 module StateLaws (S : Set) (ops : List Container) (s₀ : S) where
+\end{code}
+\begin{code}
   go : Free (State S ∷ ops) A → Free ops (S × A)
   go = runState {_} {ops} s₀
+\end{code}
+Given an arbitrary inital state \AgdaArgument{s₀} and rest effect stack
+\AgdaArgument{ops} the following equations have to hold.
 
-  put-put : {s₁ s₂ : S} → (go $ put s₁ >> put s₂) ≡ (go $ put s₂)
+\begin{code}[hide]
+  put-put :
+\end{code}
+\begin{code}
+    ∀ {s₁ s₂ : S} → go (put s₁ >> put s₂) ≡ go (put s₂)
+\end{code}
+\begin{code}[hide]
+  put-get :
+\end{code}
+\begin{code}
+    ∀ {s : S} → go (put s >> get) ≡ go (put s >> pure s)
+\end{code}
+\begin{code}[hide]
+  get-get :
+\end{code}
+\begin{code}
+    ∀ {k : S → S → Free (State S ∷ ops) A} →
+      go (get >>= λ s → get >>= k s) ≡ go (get >>= λ s → k s s)
+\end{code}
+\begin{code}[hide]
+  get-put :
+\end{code}
+\begin{code}
+    go (get >>= put) ≡ go (pure tt)
+\end{code}
+\begin{code}[hide]
   put-put = refl
-
-  put-get : {s : S} → (go $ put s >> get) ≡ (go $ put s >> pure s)
   put-get = refl
-
-  get-get : {k : S → S → Free (State S ∷ ops) A}
-    → (go $ get >>= λ s → get >>= k s) ≡ (go $ get >>= λ s → k s s)
   get-get = refl
-
-  get-put : (go $ get >>= put) ≡ (go $ pure tt)
   get-put = refl
 \end{code}
+All four equalities are proven trivially using \AgdaInductiveConstructor{refl}.
+Our model for \AgdaDatatype{State} is just the usual state monad.
+\textcite{DBLP:conf/fossacs/PlotkinP02} showed that the four equalities above
+are enough to determine the state effect and that the free model is the usual
+state monad.
 
 
 \subsection{Handling Combined Effects}
@@ -891,10 +933,10 @@ above.
 
 \begin{code}
 localState : S → Free (State S ∷ Nondet ∷ []) A → List (S × A)
-localState s₀ = run ∘ solutions ∘ runState s₀
+localState s₀ = run ∘ runNondet ∘ runState s₀
 
 globalState : S → Free (Nondet ∷ State S ∷ []) A → S × List A
-globalState s₀ = run ∘ runState s₀ ∘ solutions
+globalState s₀ = run ∘ runState s₀ ∘ runNondet
 \end{code}
 Let us consider the above example under both combined handlers with initial
 state \AgdaNumber{0}.
@@ -940,7 +982,7 @@ runChooseTickGlobal = refl
 
 To correctly handle operations with local scopes Wu et al. introduced scoped
 effects \cite{DBLP:conf/haskell/WuSH14}.
-They presented two solutions to explicitly declare how far an operations scopes
+They presented two runNondet to explicitly declare how far an operations scopes
 over a program using arbitrary syntax.
 In the following section we implement the scoped effect
 \AgdaDatatype{Cut} using the first order approach in Agda.
@@ -950,7 +992,7 @@ Whenever an opening delimiter is encountered the handler can be run again on the
 scoped program.
 Thanks to a closing delimiters the end of a scope can be found.
 Therefore, calling \AgdaFunction{>>=} on a scoped operation to extend the
-continuation isn't a problem, because the continuation can be separated in the
+continuation is not a problem, because the continuation can be separated in the
 part inside and outside the scope.
 
 \subsection{Cut and Call}
@@ -1048,7 +1090,7 @@ Syntax from other effects is handled as usual.
 With the handler for \AgdaDatatype{Cut} in place we can define the handler for the
 scope delimiters.
 The implementation is again similar to the one presented by Wu et al., but to
-proof termination we again have to add \AgdaDatatype{Size} annotations to the
+prove termination we again have to add \AgdaDatatype{Size} annotations to the
 functions.
 
 The \AgdaFunction{bcall} and \AgdaFunction{ecall} handler remove the scope
@@ -1062,7 +1104,7 @@ The rest of the program is the result of the returned program.
 
 A valid upper bound for the size of the rest of the program is \AgdaArgument{i},
 the size of the program before separating the syntax after the closing delimiter.
-This fact is curcial to proof that the recursive calls to \AgdaFunction{bcall} and
+This fact is curcial to prove that the recursive calls to \AgdaFunction{bcall} and
 \AgdaFunction{ecall} using \AgdaFunction{>>=} terminate.
 
 Calling the handler on the extracted program guaranties that the handler does
@@ -1180,7 +1222,7 @@ pattern _∷ᴹ_ mx mxs  = pure (cons mx mxs)
 The size annotations on the lifted data structures are needed to proof
 termination of structural recursive functions.
 To pattern match on a lifted value we have to use \AgdaFunction{>>=}.
-Therefore the structural recursion is obscured.
+Therefore, the structural recursion is obscured.
 
 \begin{code}
 _++ᴹ_ : Free ops (Listᴹ ops A {i}) → Free ops (Listᴹ ops A) → Free ops (Listᴹ ops A)
@@ -1191,7 +1233,7 @@ mxs ++ᴹ mys = mxs >>= λ where
 
 \subsubsection{Normalization of Effectful Data}
 
-Based on Bunkenburg's code~\cite{bunkenburg2019modeling} we introduce a type
+Based on the code by \textcite{bunkenburg2019modeling} we introduce a type
 class for normalizing effectful data structures i.e. moving interleaved
 \AgdaDatatype{Free} layers to the outside using \AgdaFunction{>>=}.
 
@@ -1235,13 +1277,13 @@ The data stored in an effectful list could also be effectful and therefore has
 to be normalized.
 We simply require a \AgdaDatatype{Normalform} instance for the stored type.
 To allow normalization of general types and effectful data structures containing
-them, we have to implement dummy instances for data types like builtin natural
+them, we have to implement dummy instances for simple data types like natural
 numbers or booleans.
 
 \subsection{Sharing Handler}
 
 The idea of the following sharing handler is identical to the one presented by
-Bunkenburg.
+\textcite{bunkenburg2019modeling}.
 Thanks to the more flexible infrastructure described in the earlier sections we
 are able to define a more modular handler and avoid some inlining, necessary to
 prove termination in Coq.
@@ -1450,7 +1492,7 @@ doubleCoin = share coin >>= λ c → ⦇ c + c ⦈
 By calling \AgdaFunction{share} the choice in \AgdaFunction{coin} is shared.
 By binding the result of \AgdaFunction{share} the computation tree generating
 the ids (i.e. the outer layer) is expanded.
-The argument of the continuation \AgdaArgument{c} is itself a program, it's the
+The argument of the continuation \AgdaArgument{c} is itself a program, it is the
 original coin function wrapped into a sharing scope, which captures the
 generated id of the outer scope.
 By binding \AgdaArgument{c} this computation is injected into the whole
@@ -1471,8 +1513,8 @@ runDoubleCoin :
 runDoubleCoin = refl
 \end{code}
 \end{center}
-Thanks to the \AgdaDatatype{Shareable} type class it's also possible to share
-choice, which are embedded in data structures.
+Thanks to the \AgdaDatatype{Shareable} type class it is also possible to share
+choices, which are embedded in data structures.
 The following simple example demonstrates this possibility.
 
 \begin{code}
@@ -1499,7 +1541,7 @@ runDoubleHead :
 runDoubleHead = refl
 \end{code}
 \end{center}
-Using the \AgdaDatatype{Normalform} type class it's possible to embed effects
+Using the \AgdaDatatype{Normalform} type class it is possible to embed effects
 deep into data structures.
 This allow to write programs operating on recursive data structures, which
 closely resemble their Curry version.
@@ -1591,17 +1633,17 @@ The law can be proven analogous to the one for \AgdaFunction{fail}.
 
 The third law involving \AgdaFunction{share} states that \AgdaFunction{share}
 distributes over \AgdaFunction{⁇}.
-This law doesn't hold for this implementation, because there is no guarantee
-that \AgdaFunction{get} or \AgdaFunction{put} aren't called outside the sharing
+This law does not hold for this implementation, because there is no guarantee
+that \AgdaFunction{get} or \AgdaFunction{put} are not called outside the sharing
 operator.
 Developing another implementation satisfying the laws in all cases is outside
 the scope of this thesis.
 
-The last law states that share distributes over the components of effectful
-data structures.
-Since our representation for effectful data isn't uniform this law has to be
+The last law states that \AgdaFunction{share} distributes over the components of
+effectful data structures.
+Since our representation for effectful data is not uniform this law has to be
 proven on a case by case basis.
 One could try to automate this proves using tactics, find an equivalent
-formulation which doesn't refer to constructors directly or use a different
+formulation which does not refer to constructors directly or use a different
 representation for effectful data (e.g. fixed points of polynomial functors,
 since they can be made effectful generically).

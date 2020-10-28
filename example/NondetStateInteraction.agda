@@ -8,6 +8,7 @@ open import Category.Monad using (RawMonad)
 open        RawMonad ⦃...⦄ renaming (_⊛_ to _<*>_)
 
 open import Data.Nat using (ℕ; _+_)
+open import Data.String using (String; _++_)
 open import Data.Unit using (⊤; tt)
 
 open import Variables
@@ -31,12 +32,12 @@ runFoo : ⊤ ⊎ (List (ℕ × ℕ))
 runFoo = run $ runExc $ runNondet $ runState foo 0
 
 
-open import Data.String using (String; _++_)
-
 -- Bug: Global scopes over Nondet reorder other global operations, because the handler
 -- for ⁇ˢ already chains the operations using >>=
 -- https://github.com/polysemy-research/polysemy/issues/246
 -- Possbile fixes destroy generality of approach.
+--
+-- same semantics as higher order approach
 
 tell : ⦃ State String ∈ effs ⦄ → String → Prog effs ⊤
 tell msg = get >>= λ s → put (s ++ msg)

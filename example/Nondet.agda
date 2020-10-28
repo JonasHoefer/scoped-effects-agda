@@ -21,3 +21,5 @@ coin = pure 0 ⁇ pure 1
 
 sumCoins : (run $ runNondet ⦇ coin + coin ⦈) ≡ (0 ∷ 1 ∷ 1 ∷ 2 ∷ [])
 sumCoins = refl
+
+-- more tests in Share.agda

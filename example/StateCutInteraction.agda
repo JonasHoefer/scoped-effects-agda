@@ -61,7 +61,6 @@ runCutT {effs} {A} = foldP (λ i → ((Prog effs ∘ List!) ^ i) A) 1 id
   (λ where
     (inj₁ cutfailˢ ,          κ) → var []!
     (Other (inj₁ failˢ)       κ) → var []
-    -- ⦇ κ true +!+ κ false ⦈ -- does not realy cut :/
     (Other (inj₁ (choiceˢ _)) κ) → κ true >>= λ xs → if doesCut xs then var xs else ((xs +!+_) <$> κ false)
     (Other (inj₂ s)           κ) → op (s , κ)
   ) λ where

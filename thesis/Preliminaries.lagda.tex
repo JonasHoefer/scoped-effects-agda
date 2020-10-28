@@ -790,10 +790,10 @@ An algebraic theory consists of a signature describing the syntax of the
 operations together with a set of equations.
 A signature is a set of operation symbols together with an arity set and an
 additional parameter.
-Operations of this form are usually denoted with a colon and $\rightsquigarrow$
+Operations of this form are usually denoted with a colon and $\leadsto$
 between the three sets, suggesting that they describe special functions.
 \[
-  \Sigma = \{ \mathrm{op}_i : P_i \rightsquigarrow A_i  \}
+  \Sigma = \{ \mathrm{op}_i : P_i \leadsto A_i  \}
 \]
 Given a signature $\Sigma$ we can build terms over a set of variables $\mathbb{X}$.
 \[
@@ -824,6 +824,18 @@ a value, we can give an interpretation for terms $\lBrack\cdot\rBrack_{(I,\iota)
 \end{align*}
 An interpretation for $T$ is called $T$-model if it validates all equations in $\mathcal{E}_T$.
 
+% \paragraph{Algebraic Theories for Computational Effects}
+% 
+% \begin{itemize}
+%   \item Effects which can be described using an algebraic theory
+%   \item evaluation order from top to bottom
+%   \item interpretation of operations essential performs side effect
+%   \item $|I|^{A_i}$ corresponds to continuation, i.e. rest of the computation
+%     processing the result
+%   \item if $A_i$ is infinite (e.g. for \texttt{get} it is $S$) it describes possible
+%     continuations for each state (contrast: in math operations usually process
+%     all parameters $\Leftrightarrow$ results of subcomputations)
+% \end{itemize}
 
 \subsubsection{Free Model}
 
@@ -879,8 +891,8 @@ $A$.
 The empty word $\varepsilon$ corresponds to the identity element and $\cdot$
 corresponds to concatenation $\circ$.
 This is of course the usual definition of a free monoid over $A$.
-All other monoid with underlying set $A$ can be described as the image of a
-monoid-homomorphism from $A^*$.
+% All other monoid with underlying set $A$ can be described as the image of a
+% monoid-homomorphism from $A^*$.
 
 
 \subsection{Effect Handler}

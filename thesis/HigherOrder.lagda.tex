@@ -91,30 +91,30 @@ scopes.
 
 \begin{figure}
   \begin{center}
-    \begin{tikzpicture}[level distance=1.0cm,sibling distance=1.5cm]
+    \begin{tikzpicture}[level distance=1.0cm,sibling distance=1.7cm]
       \node[treenode] at (0,0) {\textbf{catch}$_X$}
           child[sibling distance=1.3cm] {
               node[treenode] {\textbf{p}}
           }
           child[sibling distance=1.3cm] {
-              node[treenode] {\textbf{h}} edge from parent node[right,draw=none] {$e$}
+              node[treenode] {\textbf{h}$\; e$} edge from parent node[right,draw=none] {$e$}
           }
           child[sibling distance=1.3cm] {
-              node[treenode] {\textbf{cont}} edge from parent node[right,draw=none,xshift=0.1cm] {$x$}
+              node[treenode] {\textbf{cont}$\; x$} edge from parent node[right,draw=none,xshift=0.1cm] {$x$}
           }
       ;
 
       \node at (3.0,-0.5) {$\gg\!\!=\;k\quad \equiv$};
 
       \node[treenode] at (5.8,0) {\textbf{catch}$_X$}
-          child[sibling distance=1.3cm] {
+          child[sibling distance=1.7cm] {
               node[treenode] {\textbf{p}}
           }
-          child[sibling distance=1.3cm] {
-              node[treenode] {\textbf{h}} edge from parent node[right,draw=none] {$e$}
+          child[sibling distance=1.7cm] {
+            node[treenode] {\textbf{h}$\; e$} edge from parent node[right,draw=none] {$e$}
           }
-          child[sibling distance=1.3cm] {
-              node[treenode] {\textbf{cont}$\;\bind{}\; k$} edge from parent node[right,draw=none,xshift=0.1cm] {$x$}
+          child[sibling distance=1.7cm] {
+              node[treenode] {\textbf{cont}$x\;\bind{}\; k$} edge from parent node[right,draw=none,xshift=0.1cm] {$x$}
           }
       ;
     \end{tikzpicture}
@@ -124,7 +124,7 @@ scopes.
 \end{figure}
 
 
-\section{Representing Strictly Positive Higher Order Functors}
+\subsection{Representing Strictly Positive Higher Order Functors}
 \label{higher-order:container}
 
 In Haskell the generalization to higher order syntax is straight forward.
@@ -276,7 +276,7 @@ private
     effs effs′ effs″ : List Effect
 \end{code}
 
-\section{Effectful Data and Existential Types}
+\subsection{Effectful Data and Existential Types}
 \label{higher-order:eff-data-ext-types}
 
 A central problem with this approach is that it cannot model deep effects
@@ -326,7 +326,7 @@ Both of these phenomena are hard to deal with and in a complex program
 potentially unsolvable.
 
 
-\section{The Problem with Indexing}
+\subsection{The Problem with Indexing}
 
 One could try solving the problem of existential types by indexing the program
 over a typing context.
