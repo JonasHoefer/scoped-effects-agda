@@ -5,7 +5,7 @@
 Agda\footnote{\url{https://github.com/agda/agda}} is a dependently typed
 functional programming language.
 The current version (2.6.1.1 as of Nov 2020) was originally developed by Ulf
-Norell under the name Agda2 \cite{norell:thesis}.
+Norell under the name Agda2~\cite{norell:thesis}.
 Due to its type system Agda can be used as a programming language and as a proof
 assistant.
 
@@ -14,7 +14,7 @@ of ``Propositions as types'' under which Agda can be used for theorem proving.
 
 \subsection{Basic Syntax}
 
-Agda's syntax is similar to Haskell's.
+Agda's syntax is similar to Haskell's~\cite{Haskell98}.
 Data types are declared with syntax similar to Haskell's GADTs.
 Functions declarations and definitions are also similar to Haskell, except that
 Agda uses a single colon for the typing relation.
@@ -49,8 +49,8 @@ suc n  + m = suc (n + m)
 
 \subsection{Dependent Types}
 \label{preliminaries:dependent-types}
-The following type theoretic definitions are taken from the homotopy type theory
-book~\cite{hottbook}.
+The following type theoretic definitions are taken from the
+book ``\citetitle{hottbook}'' ~\cite{hottbook}.
 In type theory a type of types is called a universe.
 Universes are usually denoted $\mathcal{U}$.
 A function whose codomain is a universe is called a type family or a dependent
@@ -100,9 +100,13 @@ Each field can be used in the type of the following fields.
 
 \paragraph{Programming with Dependent Types}
 
-A common example for dependent types are fixed length vectors.
-The data type depends on a type \AgdaDatatype{A} and a value of type
-\AgdaDatatype{ℕ}.
+Next we introduce some common patterns for programming with dependent types.
+The example of fixed length vectors and indexing using bounded subsets of
+natural numbers is one of the examples presented by
+\textcite{DBLP:conf/afp/Norell08}.
+
+The data type \AgdaDatatype{Vec} depends on a type \AgdaDatatype{A} and a value
+of type \AgdaDatatype{ℕ}.
 
 \begin{code}
 data Vec (A : Set) : ℕ → Set where
@@ -315,7 +319,7 @@ well as the corresponding syntax in Agda can be found in table
     \end{tabular}
   \end{center}
   \label{preliminaries:propositions-as-types:table}
-  \caption{correspondence between first order logic and types in mathematical
+  \caption{Correspondence between first order logic and types in mathematical
     and Agda notation}
 \end{table}
 
@@ -334,16 +338,17 @@ equality.
 When defining a program rule like
 \AgdaFunction{truth}\AgdaSpace{}\AgdaSymbol{=}\AgdaSpace{}\AgdaNumber{42}
 we are making an \textit{equality judgement}.
-The symbol \AgdaFunction{truth} is \textit{definitional equal} to \AgdaNumber{42}.
+The symbol \AgdaFunction{truth} is \textit{definitionally equal} to
+\AgdaNumber{42}.
 A judgment is always true.
 We define one term to be equal to another one i.e. we allow Agda to reduce the
 left-hand side of the equality to the right-hand side.
 
 The next notion of equality is \textit{computational equality}.
-Two terms $t_1$ and $t_2$ are computational equal if they reduce to the same
+Two terms $t_1$ and $t_2$ are computationally equal if they reduce to the same
 term.
 For example, given the above definition of $+$ the terms $0+(0+n)$ and $n$ are
-computational equal, because using the first rule in the definition of plus
+computationally equal, because using the first rule in the definition of plus
 $0+(0+n)$ $\beta$-reduces to $n$.
 On the other hand $n+0$ and $n$ are not computational equal, because for a free
 variable $n$ none of the program rules for $+$ can be used to reduce the term
@@ -352,7 +357,8 @@ further.
 To talk about the equality of two terms we have to use \textit{propositional
 equality} i.e. we have to define a proposition representing the fact that two
 terms of type $A$ are equal.
-This proposition is usually encapsulated in an \textit{equality type} of $A$.
+This proposition is usually encapsulated in an \textit{equality type} of
+$A$~\cite{hottbook,DBLP:conf/afp/Norell08,DBLP:journals/scp/KokkeSW20}.
 
 \begin{code}[hide]
 infix 4 _≡_
@@ -458,7 +464,8 @@ preserving Agda's consistency.
 \subsection{Termination Checking}
 \label{sec:termination-checking}
 
-Non-terminating functions correspond to circular arguments.
+Under the idea of propositions as types, Non-terminating functions correspond to
+ill-formed, for example circular arguments. % cite?
 Therefore, allowing the definition of non-terminating functions entails logical
 inconsistency.
 When defining functions Agda allows general recursion, but only terminating
@@ -502,9 +509,9 @@ The fundamental idea is to represent the size of a recursive data structure in
 its type.
 Termination of recursive functions can be proven by observing a reduction in
 size on the type level.
-Abel noted as main advantages robustness with respect to small/local changes in
-code (which do not impact the type) as well as scaling to higher-order functions
-and polymorphism~\cite{DBLP:journals/lmcs/Abel08}.
+Abel noted as main advantages robustness with respect to small or local changes
+in code (which do not impact the type) as well as scaling to higher-order
+functions and polymorphism~\cite{DBLP:journals/lmcs/Abel08}.
 The latter will be essential in future chapters, since representations of
 computational effects involve complex constructs, which obscure recursion on the
 value level.
@@ -521,8 +528,9 @@ The elements of \AgdaDatatype{Size} are well ordered.
 \AgdaFunction{\_⊔ˢ\_} is the supremum w.r.t. the relation.
 \AgdaInductiveConstructor{∞} is the top element in \AgdaArgument{Size}.
 Given an \AgdaArgument{i} the type of all smaller sizes can be constructed using
-\AgdaDatatype{Size<\_}\footnote{We will not use this construction. It is usually
-  used when working with \AgdaKeyword{coinductive} data types.}.
+the \AgdaDatatype{Size<\_} family of type\footnote{We will not need this
+  construction. It is usually used when working with \AgdaKeyword{coinductive}
+  data types.}.
 If the size decreases across all recursive call of a function, termination
 follows from the well-ordering on \AgdaDatatype{Size}.
 
@@ -565,7 +573,7 @@ By pattern matching on the argument of type
 \AgdaFunction{↑}\AgdaSpace{}\AgdaArgument{i} we obtain a \AgdaDatatype{List} of
 trees of size \AgdaArgument{i}.
 The recursive calls via \AgdaFunction{map} therefore occur on smaller trees.
-Therefore the functions has to terminates.
+Therefore the functions has to terminate.
 
 In this case inlining the call of \AgdaFunction{map} would also solve the
 termination problem.
@@ -587,17 +595,18 @@ A data type $D$ is strictly positive if all constructors are of the form
 $$
   A_1 \rightarrow A_2 \rightarrow \dots \rightarrow A_n \rightarrow D
 $$
-where $A_i$ is either not inductive (does not mention $D$) or are of the form
+where each $A_i$ is either not inductive (does not mention $D$) or is of the form
 $$
-A_1 \rightarrow B_2 \rightarrow \dots \rightarrow B_n \rightarrow D
+B_1 \rightarrow B_2 \rightarrow \dots \rightarrow B_n \rightarrow D
 $$
 where $B_j$ is not inductive.
 By restricting recursive occurrences of a data type in its definition to strict
-positive positions strong normalization is preserved.
+positive positions strong normalization is
+preserved~\cite{Wadler1991RecursiveTF}.
+
 
 \subsubsection{Container}
 \label{container}
-% TODO: mention INLINE trick for map
 
 Because of the strict positivity requirement it is not allowed to apply generic
 type constructors to inductive occurrences of a data type in its definition.
@@ -608,7 +617,7 @@ need a more restrictive representation, which only uses its argument in a
 strictly positive position.
 One representation of such strictly positive functors are containers.
 
-Containers are a generic representation of data type, which store values of an
+Containers are a generic representation of data type, that store values of an
 arbitrary type.
 They were introduced by \textcite{DBLP:conf/fossacs/AbbottAG03}.
 A container is defined by a type of shapes $S$ and a type of positions for each
@@ -718,7 +727,7 @@ The simplest example of a nondeterministic function is the choice operator
 Both equations always match.
 Therefore, both arguments are returned i.e. \texttt{?} introduces a
 nondeterministic choice between its two arguments.
-Using choice we can define a simple nondeterministic programs.
+Using choice we can define a simple nondeterministic program.
 
 \begin{minted}{haskell}
      coin :: Int
@@ -733,7 +742,7 @@ When executing \texttt{twoCoins} the two calls of \texttt{coin} are independent.
 Both choose between $0$ and $1$, therefore \texttt{twoCoins} yields the results
 $0$, $1$, $1$ and $2$.
 
-\subsection{Call-Time-Choice}
+\subsection{Call-Time Choice}
 \label{call-time-choice}
 Next we will take a look at the interactions between nondeterminism and function
 calls.
@@ -765,7 +774,8 @@ bindings or lambda abstraction.
 The named expression is evaluated the first time it is needed.
 If the result is needed again the old value is reused.
 This behavior is called sharing.
-Usually function application is defined using the \texttt{let} primitive.
+Usually function application is defined using the \texttt{let}
+primitive~\cite{DBLP:conf/popl/Launchbury93}.
 Applying a non-variable expression to a function introduces a new intermediate
 result, which is bound using \texttt{let}.
 $$
@@ -922,7 +932,7 @@ This is of course the usual definition of a free monoid over $A$.
 % monoid-homomorphism from $A^*$.
 
 
-\subsection{Effect Handler}
+\subsection{Effect Handlers}
 \label{preliminaries:handler}
 
 Lastly we introduce the notion of an effect handler, again as described by
@@ -978,16 +988,17 @@ For example, one could simulate a logging effect (in Haskell \texttt{Writer Stri
   a}) using a state effect (in Haskell \texttt{State String a}).
 
 
-\subsection{Free Monad}
+\subsection{Free Monads}
 \label{preliminaries:free-monad}
 
-The syntax of an algebraic effect is described using the \textit{free monad}.
+The syntax of an algebraic effect is described using the \textit{free
+monad}~\cite{DBLP:journals/jfp/Swierstra08}.
 Given any functor \texttt{f} the data type \texttt{Free f a} is a monad.
 Furthermore, the natural transformations from any functor $f$ to any monad $m$
 (in Haskell functions of type \texttt{forall a. f a -> m a}) are in bijective
 correspondence with monad homomorphisms from \texttt{Free f a} to \texttt{m}
-i.e. each monad can be described as the image of a monad homomorphisms from a
-free monad.
+Therefore, each monad can be described as the image of a monad homomorphisms
+from a free monad.
 The usual definition of the free monad in Haskell is given below.
 
 \begin{minted}{haskell}
@@ -1038,16 +1049,23 @@ Haskell, because it would violate the strict positivity requirement.
 Instead we will represent the functor as the extension of a container as
 described in section \ref{container}.
 Replacing arbitrary functors with container extension, especially to implement
-the free monad, is a well known approach.
+the free monad, is a well known
+approach~\cite{DBLP:journals/programming/DylusCT19,DBLP:conf/haskell/ChristiansenDB19}.
 
 \begin{code}
 data Free (C : Container) (A : Set) : Set where
   pure    : A → Free C A
   impure  : ⟦ C ⟧ (Free C A) → Free C A
 \end{code}
-\AgdaDatatype{Container}s correspond to signatures.
+Because we constrain the generator from arbitrary to strictly positive functors,
+we cannot model all free monads with this data type.
+Using \AgdaDatatype{Free} we can model a class of free monads, which are
+accepted by Agda.
+% Good restriction e.g. Cont is a weird functor to describe syntax
+The definition of \AgdaDatatype{Container}s correspond closely to the one for
+signatures.
 The constructors for \AgdaField{Shape} correspond to the operation symbols
-$\mathrm{op}_i$ and simultaneously store the parameter $P_i$.
+$\mathrm{op}_i$ and the constructor arguments correspond to the parameter $P_i$.
 A constructor without extra arguments corresponds to the an operation with
 parameter set $\mathbb{1}$.
 The type of positions for a shape corresponds to the arity set $A_i$.

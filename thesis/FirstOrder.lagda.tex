@@ -40,7 +40,7 @@ open Container public
 ⟦ S ▷ P ⟧ A = Σ[ s ∈ S ] (P s → A)
 \end{code}
 
-In this chapter we present a first implementation of algebraic effects in Agda.
+In this chapter we present our first implementation of algebraic effects in Agda.
 The implementation uses a traditional approach i.e. it represents effects as
 functors and uses the free monad, as described in section
 \ref{preliminaries:free-monad}.
@@ -1240,7 +1240,7 @@ infixr 5 _∷ᴹ_ _++ᴹ_
 pattern []ᴹ          = pure nil
 pattern _∷ᴹ_ mx mxs  = pure (cons mx mxs)
 \end{code}
-The size annotations on the lifted data structures are needed to proof
+The size annotations on the lifted data structures are needed to prove
 termination of structural recursive functions.
 To pattern match on a lifted value we have to use \AgdaFunction{>>=}.
 Therefore, the structural recursion is obscured.
