@@ -2,9 +2,10 @@
 
 \section{Agda}
 
-Agda is a dependently typed functional programming language.
-The current version\footnote{\url{https://github.com/agda/agda}} was originally
-developed by Ulf Norell under the name Agda2 \cite{norell:thesis}.
+Agda\footnote{\url{https://github.com/agda/agda}} is a dependently typed
+functional programming language.
+The current version (2.6.1.1 as of Nov 2020) was originally developed by Ulf
+Norell under the name Agda2 \cite{norell:thesis}.
 Due to its type system Agda can be used as a programming language and as a proof
 assistant.
 
@@ -13,8 +14,8 @@ of ``Propositions as types'' under which Agda can be used for theorem proving.
 
 \subsection{Basic Syntax}
 
-Agda's syntax is similar to Haskells.
-Data types are declared with syntax similar to Haskells GADTs.
+Agda's syntax is similar to Haskell's.
+Data types are declared with syntax similar to Haskell's GADTs.
 Functions declarations and definitions are also similar to Haskell, except that
 Agda uses a single colon for the typing relation.
 In the following definition of \AgdaDatatype{ℕ}, \AgdaDatatype{Set} is the type
@@ -27,14 +28,15 @@ data ℕ : Set where
 \end{code}
 Ordinary function definitions are syntactically similar to Haskell.
 Agda allows the definition of mixfix operators.
-A mixfix operator is an nearly arbitrary list of symbols (builtin symbols like
+A mixfix operator is a nearly arbitrary list of symbols (builtin symbols like
 colons are not allowed as part of operators).
-Underscores in the operator name are placeholders for future parameters.
+An arbitrary number of underscores in the operator name are placeholders for
+future parameters.
 A mixfix operator can be applied partially by writing underscores for the
 omitted parameters.
 
-In the following definition of plus for natural numbers \AgdaFunction{+} is a
-binary operator and therefore contains two underscores.
+In the following definition of addition for natural numbers \AgdaFunction{+} is
+a binary operator and therefore contains two underscores.
 
 \begin{code}
 _+_ : ℕ → ℕ → ℕ
@@ -61,16 +63,16 @@ To avoid Russell's paradox, a hierarchy of universes $\mathcal{U}_1 :
 \mathcal{U}_2 : \dots$ is introduced.
 In Agda the universes are named \AgdaDatatype{Setₙ}, where \AgdaDatatype{Set₀}
 can be abbreviated as \AgdaDatatype{Set}.
-Usually the universes are cumulative i.e. if $\tau : \mathcal{U}_n$ then
+Usually, the universes are cumulative i.e. if $\tau : \mathcal{U}_n$ then
 $\tau : \mathcal{U}_k$ for $k>n$.
-by default this is not the case in Agda.
-Each type is member of a unique universe, but it's possible to lift a type to a
+By default this is not the case in Agda.
+Each type is member of a unique universe, but it is possible to lift a type to a
 higher universe manually.
 Since Agda 2.6.1 an experimental \texttt{--cumulativity} flag exists.
 
 \paragraph{Dependent Function Types ($\Pi$-Types)} are a generalization of
 function types.
-The codomain of a $\Pi$ type is not fixed, but values with the argument the
+The codomain of a $\Pi$-type is not fixed, but values with the argument the
 function is applied to.
 The codomain is defined using a type family of the domain, which specifies the
 type of the result for each given argument.
@@ -94,6 +96,7 @@ $$
 An element of the above type is a pair consisting of an $a : A$ and a $b : B(a)$.
 In Agda \AgdaKeyword{record}s represent $n$-ary $\Sigma$-types.
 Each field can be used in the type of the following fields.
+
 
 \paragraph{Programming with Dependent Types}
 
@@ -163,7 +166,7 @@ Therefore, if any number is an element of
 then its successor is an element of
 \AgdaDatatype{Fin}\AgdaSpace{}$($\AgdaInductiveConstructor{suc}\AgdaSpace{}\AgdaArgument{n}$)$.
 
-So we can construct a $k<n$ of type
+We can construct a $k<n$ of type
 \AgdaDatatype{Fin}\AgdaSpace{}\AgdaArgument{n} by starting with
 \AgdaInductiveConstructor{zero} of type
 \AgdaDatatype{Fin}\AgdaSpace{}$($\AgdaArgument{n - k}$)$ and applying
@@ -181,8 +184,9 @@ Notice that similar to \AgdaFunction{head} there is no case for
 \AgdaInductiveConstructor{[]}.
 \AgdaArgument{n} is used as index for
 \AgdaDatatype{Vec}\AgdaSpace{}\AgdaArgument{A} and \AgdaDatatype{Fin}.
-The constructors for \AgdaDatatype{Fin} only use \AgdaInductiveConstructor{suc},
-therefore the type \AgdaDatatype{Fin}\AgdaSpace{}\AgdaInductiveConstructor{zero}
+The constructors for \AgdaDatatype{Fin} only use \AgdaInductiveConstructor{suc}.
+Therefore, the type
+\AgdaDatatype{Fin}\AgdaSpace{}\AgdaInductiveConstructor{zero}
 is not inhabited and the cases for \AgdaInductiveConstructor{[]} do not apply.
 
 By case splitting on the vector first we could have obtained the term
@@ -222,14 +226,16 @@ cannot be translated as easily to Haskell.
 
 \subsection{Propositions as Types}
 
+The idea of propositions as types, also know as Curry-Howard correspondence,
+relates type theory to logic and is the basis for theorem proofing in
+dependently typed languages, like Agda.
+In this section we give a short overview over the idea.
 An more in depth explanation and an overview over the history of the idea can be
 found in Wadlers paper of the same name \cite{DBLP:journals/cacm/Wadler15}.
 
-The idea of propositions as types, also know as Curry-Howard correspondence,
-relates type theory to logic.
-As described by Wadler, it's a deep correspondents, relating \textit{propositions
-to types}, \textit{proofs to programs} and \textit{simplification of proofs to
-evaluation of programs}.
+As described by Wadler, the idea of propositions as types is a deep
+correspondents, relating \textit{propositions to types}, \textit{proofs to
+programs} and \textit{simplification of proofs to evaluation of programs}.
 We will first consider the connection between the simple typed lambda calculus
 (with product and sum types) and \textit{intuitionistic} propositional logic.
 The intuitionistic version of propositional logic uses weaker axioms than
@@ -267,7 +273,7 @@ Functions from $A$ to $B$ map element of $A$ to elements of $B$ i.e. they
 construct proofs of $B$ from proofs of $A$.
 They correspond to implications.
 Lambda abstracting of a value of type $A$ corresponds to assuming a proof of $A$
-i.e. implication introduction, while application function corresponds to
+i.e. implication introduction, while function application corresponds to
 implication elimination.
 
 As explained in section \ref{preliminaries:dependent-types}, Agda's type system
@@ -348,8 +354,10 @@ equality} i.e. we have to define a proposition representing the fact that two
 terms of type $A$ are equal.
 This proposition is usually encapsulated in an \textit{equality type} of $A$.
 
-\begin{code}
+\begin{code}[hide]
 infix 4 _≡_
+\end{code}
+\begin{code}
 data _≡_ {A : Set} (x : A) : A → Set where
   refl : x ≡ x
 \end{code}
@@ -377,7 +385,7 @@ because the two are not equal.
 By pattern matching in the argument of type 
 \AgdaArgument{x}\AgdaSpace{}\AgdaDatatype{≡}\AgdaSpace{}\AgdaArgument{y}
 i.e. by inspecting the evidence that $x$ and $y$ are equal we obtain more
-information about the goal.
+information about the goal i.e. the return type of the function.
 Because \AgdaInductiveConstructor{refl} can only be constructed if the two
 values are the same the two variables are unified.
 We therefore have to produce a proof that $f x$ is equal to itself, which is
@@ -418,7 +426,7 @@ of the induction hypothesis in an inductive proof.
 By applying \AgdaInductiveConstructor{suc} on both sides of the equality we
 obtain a proof for the correct proposition.
 
-We obtained a non obvious equality by using just definitional and computational
+We obtained a non-obvious equality by using just definitional and computational
 equality together with the analogs of proofs by exhaustion and induction.
 This proof can now be used to rewrite arbitrary terms containing terms
 corresponding to or containing the left- or right-hand of the equality.
@@ -457,7 +465,7 @@ When defining functions Agda allows general recursion, but only terminating
 functions are valid Agda programs.
 Due to the undecidability of the halting problem Agda uses a heuristic
 termination checker.
-The termination checker proofs termination by observing structural recursion.
+The termination checker proves termination by observing structural recursion.
 Consider the following definitions of \AgdaDatatype{List} and
 \AgdaFunction{map}.
 
@@ -488,8 +496,8 @@ termination checking.
 A common example are recursive calls in lambdas, which are passed to higher
 order functions like \AgdaFunction{map} and \AgdaFunction{>>=}.
 
-To still proof termination in such cases we can resort to type-based
-termination checking as described by Abel~\cite{DBLP:journals/lmcs/Abel08}.
+To still prove termination in such cases we can resort to type-based
+termination checking as described by \textcite{DBLP:journals/lmcs/Abel08}.
 The fundamental idea is to represent the size of a recursive data structure in
 its type.
 Termination of recursive functions can be proven by observing a reduction in
@@ -501,9 +509,10 @@ The latter will be essential in future chapters, since representations of
 computational effects involve complex constructs, which obscure recursion on the
 value level.
 
-Type-based termination is available in Agda in the form of \textit{sized types}.
+Type-based termination checking is available in Agda in the form of
+\textit{sized types}.
 The special, builtin type \AgdaDatatype{Size} can be used to annotate data types
-with a value which represents an upper bound on there size. % :/
+with a value which represents an upper bound on there term size. % :/
 A set of builtin functions and types can be used to establish relations between
 different sizes.
 The elements of \AgdaDatatype{Size} are well ordered.
@@ -512,9 +521,9 @@ The elements of \AgdaDatatype{Size} are well ordered.
 \AgdaFunction{\_⊔ˢ\_} is the supremum w.r.t. the relation.
 \AgdaInductiveConstructor{∞} is the top element in \AgdaArgument{Size}.
 Given an \AgdaArgument{i} the type of all smaller sizes can be constructed using
-\AgdaDatatype{Size<\_}\footnote{We will not use this construction. It's usually
+\AgdaDatatype{Size<\_}\footnote{We will not use this construction. It is usually
   used when working with \AgdaKeyword{coinductive} data types.}.
-If the size decreases across all recursive call of a function termination
+If the size decreases across all recursive call of a function, termination
 follows from the well-ordering on \AgdaDatatype{Size}.
 
 \begin{code}[hide]
@@ -561,7 +570,7 @@ Therefore the functions has to terminates.
 In this case inlining the call of \AgdaFunction{map} would also solve the
 termination problem.
 When generalizing the definition of the tree from \AgdaDatatype{List} to an
-arbitrary functor this wouldn't be possible.
+arbitrary functor this would not be possible.
 In many cases inlining all helper functions is either not feasible or would lead
 to large and unreadable programs.
 
@@ -597,12 +606,11 @@ use its argument only in strictly positive positions.
 To still work generically with type constructors or more precise functors we
 need a more restrictive representation, which only uses its argument in a
 strictly positive position.
-One representation of such functors are containers.
+One representation of such strictly positive functors are containers.
 
 Containers are a generic representation of data type, which store values of an
 arbitrary type.
-They were introduced by Abbott, Altenkirch and Ghani
-\cite{DBLP:conf/fossacs/AbbottAG03}.
+They were introduced by \textcite{DBLP:conf/fossacs/AbbottAG03}.
 A container is defined by a type of shapes $S$ and a type of positions for each
 of its shapes $P : S \rightarrow \mathcal{U}$.
 Usually containers are denoted $S \rhd P$.
@@ -641,7 +649,7 @@ record Container : Set₁ where
   field
     Shape : Set
     Pos : Shape → Set
-open Container public
+open Container
 \end{code}
 As expected, a container consists of a type of shapes and a dependent type of
 positions.
@@ -652,7 +660,7 @@ Next we define the lifting of types i.e. the container extension, as a function
 between universes.
 
 \begin{code}
-open import Data.Product using (Σ-syntax; _,_) -- TODO: define and explain earlier
+open import Data.Product using (Σ-syntax; _,_) renaming (proj₁ to π₁; proj₂ to π₂) -- TODO: define and explain earlier
 open import Function using (_∘_)
 ⟦_⟧ : Container → Set → Set
 ⟦ S ▷ P ⟧ A = Σ[ s ∈ S ] (P s → A)
@@ -663,6 +671,23 @@ Using this definition we can define \AgdaFunction{fmap} for containers.
 fmap : ∀ {A B C} → (A → B) → (⟦ C ⟧ A → ⟦ C ⟧ B)
 fmap f (s , pf) = (s , f ∘ pf)
 \end{code}
+As mentioned in section \ref{sec:termination-checking}, Agda does not inline
+functions containing a pattern match, even if the \AgdaDatatype{INLINE} pragma
+is used.
+Because container extensions are just \AgdaKeyword{record} types, we can define
+\AgdaFunction{fmap} better to assist the termination checker.
+By using the projection functions to access the components of the $\Sigma$-type
+we can avoid the pattern match.
+By forcing Agda to inline the function using the pragma we define a version of
+\AgdaFunction{fmap}, which is transparent for the termination checker, to
+avoiding more complex solutions when using this small auxiliary function.
+
+\begin{code}
+fmapᴵ : ∀ {A B C} → (A → B) → (⟦ C ⟧ A → ⟦ C ⟧ B)
+fmapᴵ f c = π₁ c , f ∘ π₂ c
+{-# INLINE fmapᴵ #-}
+\end{code}
+
 
 \section{Curry}
 \label{preliminaries:curry}
@@ -679,9 +704,9 @@ Like in Haskell, functions are defined using equations, but curry assigns
 different semantics to overlapping clauses.
 When calling a function all right-hand sides of matching left-hand sides are
 executed.
-This introduces non determinism.
-Nondeterminism is integrated as an ambient effect i.e. the effect is not
-represented at type level.
+This introduces nondeterminism.
+Nondeterminism is integrated as an \textit{ambient effect} i.e. the effect is
+not represented at type level.
 The simplest example of a nondeterministic function is the choice operator
 \texttt{?}.
 
@@ -690,8 +715,9 @@ The simplest example of a nondeterministic function is the choice operator
      x ? _ = x
      _ ? y = y
 \end{minted}
-Both equations always match, therefore both arguments are returned i.e.
-\texttt{?} introduces a nondeterministic choice between its two arguments.
+Both equations always match.
+Therefore, both arguments are returned i.e. \texttt{?} introduces a
+nondeterministic choice between its two arguments.
 Using choice we can define a simple nondeterministic programs.
 
 \begin{minted}{haskell}
@@ -728,7 +754,8 @@ The second possibility is choosing a value before calling the function and
 choosing between the results for each possible argument.
 In this case both \texttt{x} have the same value, therefore the possible results
 are $0$ and $2$.
-The later option is called Call-Time choice and is the one implemented by Curry.
+The latter option is called call-time choice and it is the one implemented by
+Curry.
 
 Similar to Haskell, Curry programs are evaluated lazily.
 The evaluation of an expression is delayed until its result is needed and each
@@ -739,14 +766,14 @@ The named expression is evaluated the first time it is needed.
 If the result is needed again the old value is reused.
 This behavior is called sharing.
 Usually function application is defined using the \texttt{let} primitive.
-Applying a non variable expression to a function introduces a new intermediate
-result, which bound using \texttt{let}.
+Applying a non-variable expression to a function introduces a new intermediate
+result, which is bound using \texttt{let}.
 $$
 (\lambda x.\sigma) \tau = \texttt{let}\;y = \tau\;\texttt{in}\;\sigma[x\mapsto y]
 $$
 We therefore expect a variable bound by a \texttt{let} to behave similar to one
 bound by a function.
-This naturally extends Call-Time choice to \texttt{let}-bindings in lazily
+This naturally extends call-time choice to \texttt{let}-bindings in lazily
 evaluated languages.
 
 \begin{minted}{haskell}
@@ -763,16 +790,16 @@ Examples include I/O, exceptions, nondeterminism, state and delimited
 continuations~\cite{DBLP:journals/corr/abs-1807-05923}.
 Algebraic effects are computational effects, which can be described using an
 algebraic theory.
-They were first presented by Plotkin and
-Power~\cite{DBLP:conf/fossacs/PlotkinP02}.
+They were first presented \textcite{DBLP:conf/fossacs/PlotkinP02} as an
+alternative to monads for describing computational effects.
 
 Handlers for algebraic effects were first presented by Plotkin and Pretnar
 as a generalization of exception handlers~\cite{DBLP:conf/esop/PlotkinP09}.
 Handlers can be used to describe non-algebraic operations, which include
 operations with scopes such as \texttt{catch} and \texttt{once}.
 
-Wu et al. describe a problem with this approach when multiple handlers
-interact.
+\textcite{DBLP:conf/haskell/WuSH14} describe a problem with this approach when
+multiple handlers interact.
 The ordering of handlers induces a semantic for the program, but simultaneously
 the handlers also delimit scopes.
 The correct ordering for scoping and semantics maybe not coincide.
@@ -799,7 +826,7 @@ Given a signature $\Sigma$ we can build terms over a set of variables $\mathbb{X
 \[
   x \in \mathrm{Term}_\Sigma(\mathbb{X}) \quad\text{for}\quad x\in\mathbb{X} \qquad
   \mathrm{op}_i(p, \kappa) \in \mathrm{Term}_\Sigma(\mathbb{X}) \quad\text{for}\quad
-  p\in P_i, \kappa : A_i \rightarrow \mathrm{Term}_\Sigma(\mathbb{X})
+  p\in P_i,\;\kappa : A_i \rightarrow \mathrm{Term}_\Sigma(\mathbb{X})
 \]
 Terms can be used to form equations of the form $x\;|\;l=r$.
 Each equation consists of two terms $l$ and $r$ over a set of variables $x$.
@@ -809,7 +836,7 @@ algebraic theory $T$.
   T = (\Sigma_T, \mathcal{E}_T)
 \]
 An interpretation $I$ of a signature is given by a carrier set $|I|$ and an
-interpretation for each operation $\lBrack\cdot\rBrack_I$.
+interpretation for each operation, given by $\lBrack\cdot\rBrack_I$.
 An interpretation of an operation $\mathrm{op}_i$ is given by a functions to the
 carrier set $|I|$, that takes an additional parameter from $P_i$ and $|A_i|$
 parameters as a function from the arity set to the carrier set $|I|$.
@@ -956,6 +983,11 @@ For example, one could simulate a logging effect (in Haskell \texttt{Writer Stri
 
 The syntax of an algebraic effect is described using the \textit{free monad}.
 Given any functor \texttt{f} the data type \texttt{Free f a} is a monad.
+Furthermore, the natural transformations from any functor $f$ to any monad $m$
+(in Haskell functions of type \texttt{forall a. f a -> m a}) are in bijective
+correspondence with monad homomorphisms from \texttt{Free f a} to \texttt{m}
+i.e. each monad can be described as the image of a monad homomorphisms from a
+free monad.
 The usual definition of the free monad in Haskell is given below.
 
 \begin{minted}{haskell}
@@ -1005,6 +1037,8 @@ When defining the free monad in Agda we cannot use an arbitrary functor as in
 Haskell, because it would violate the strict positivity requirement.
 Instead we will represent the functor as the extension of a container as
 described in section \ref{container}.
+Replacing arbitrary functors with container extension, especially to implement
+the free monad, is a well known approach.
 
 \begin{code}
 data Free (C : Container) (A : Set) : Set where

@@ -49,7 +49,7 @@ To implement scoped algebras in an obviously terminating way we derive a
 different implementation of the \AgdaFunction{fold} by
 \textcite{DBLP:conf/lics/PirogSWJ18} based on the work by
 \textcite{DBLP:journals/corr/abs-1806-05230}.
-Furthermore, we presents an idea for modularisation of the new handlers.
+Furthermore, we presents a naive idea for modularisation of the new handlers.
 
 
 \section{The Monad $E$}
@@ -72,9 +72,9 @@ An element of the monad is either a value of $A$, an operation without scopes,
 i.e. a functor applied to \texttt{Free F A} or an operation with scopes.
 Operations with scopes (e.g. \texttt{catch}) always quantified over some type to
 store subprograms over the same signature but with different local result type.
-Furthermore they provided a continuation, which transformed values of the
+The operations itself is represented by the second signature $\Gamma$.
+Furthermore, they provided a continuation, which transformed values of the
 internal result type to the result type of the whole program.
-[GAMMA]
 The following Agda data type represents the above monad.
 
 \begin{code}[hide]
@@ -125,6 +125,9 @@ following equivalent monad without the existential type.
 \]
 An equivalent monad without the existential type is a promising candidate for
 modelling deep effects in Agda, because it avoids the size issues.
+Compared to the higher order approach, by using this monad we lose explicit
+control over the parts of the program, which is important for potential
+optimizations like memorization.
 
 The monad models scopes using the double $E$ layer.
 The outer layer corresponds to the part of program in scope.
@@ -133,6 +136,7 @@ type $EA$, the rest of the program producing a result of type $A$.
 This resulting program corresponds to the continuation in the higher order
 approach, which was a function mapping from the the result of the scoped program
 to the rest of the whole program.
+
 
 \section{The \texttt{Prog} Monad}
 

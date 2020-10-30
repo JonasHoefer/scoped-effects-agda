@@ -159,7 +159,7 @@
 \setcounter{biburllcpenalty}{7000}
 \setcounter{biburlucpenalty}{8000}
 
-\title{Implementing a library for scoped algebraic effects in Agda}
+\title{Implementing a Library for Scoped Algebraic Effects in Agda}
 \author{Jonas Höfer}
 \date{2020}
 
@@ -182,7 +182,7 @@
 
       \vskip 2cm
 
-      \textbf{Implementing a library for scoped algebraic effects in Agda}\\
+    \textbf{Implementing a Library for Scoped Algebraic Effects in Agda}\\
 
       \vfill
 
@@ -321,10 +321,11 @@ porting the two haskell implementations from
 
 Of particular significance was to work under Agda's constraints for consistency,
 which are needed for theorem proving.
-These included defining only function which Agda could prove terminate, as well
-as work with a consistent universe structure.
+These included defining only function which Agda could prove terminate, defining
+only strictly positive recursive types and work with a consistent universe
+structure.
 As a running example we tried implementing effects related to simulating Curry's
-call-time choice semantics namely the sharing effect by
+call-time choice semantics, namely nondeterminism and the sharing effect by
 \textcite{bunkenburg2019modeling}.
 In the chapters \ref{chapter:first-order}, \ref{chapter:higher-order} and
 \ref{chapter:scoped-algebras} we discussed how three different approaches
@@ -336,7 +337,7 @@ translate to Agda.
 In chapter \ref{chapter:first-order} we first implemented ordinary algebraic
 effects in Agda.
 The implementation only depends on the definition of the free monad, which
-implementation using containers, a well known approach.
+we implemented using containers, a well known approach.
 To prove termination we used sized types, which proved effective, because they
 allowed the definition of \textcite{DBLP:conf/haskell/WuSH14} handlers for
 explicit scope delimiters as well as avoided excessive inlining.
@@ -355,7 +356,7 @@ possible to implement deep effects in a setting with bounded universe levels.
 Furthermore, we discussed potential alternative approaches, although non of them
 seem promising.
 The repository for the library contains a sketch of an implementation with
-variable universe levels.
+variable universe levels, which showcases the practical difficulties.
 Even thought this approach cannot model deep effects and therefore is not
 expressive enough to model Curry's ambient nondeterminism in data structures, we
 still presented the key points of a limited implementation of normal scoped

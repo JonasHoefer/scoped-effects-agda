@@ -56,7 +56,7 @@ Furthermore we implement scoped effects using explicit scope delimiters by
 When modelling effects each functor represents the signature i.e. the operations for
 an effect.
 Theoretically, it is possible to represent each operation as a functor.
-Usually operations which are handled together are implemented as a single functor.
+Usually, operations which are handled together are implemented as a single functor.
 For containers each shape constructor corresponds to an operation symbol and the
 type of position for a shape corresponds to the arity set for the operation.
 The additional parameter of an operation is embedded in the shape.
@@ -67,14 +67,16 @@ functors, because the free monad preserves coproducts\footnote{This follows from
 the facts that \texttt{Free} is the left half of a free-forgetful adjunction and
 that all left-adjoints preserve colimits.}.
 
-The approach described by \textcite{DBLP:conf/haskell/WuSH14} is based on
+The approach for modularization functors described by
+\textcite{DBLP:conf/haskell/WuSH14} is based on
 \citetitle{DBLP:journals/jfp/Swierstra08} by
 \textcite{DBLP:journals/jfp/Swierstra08}.
 The functor coproduct is modelled as the data type \mintinline{haskell}{data (f
 :+: g) a = Inl (f a) | Inr (g a)}, which is again a \texttt{Functor} in
 \texttt{a}.
-In section \ref{chapter:preliminaries:free-monad} we defined the free monad over
-a strictly positive functor, which was represented as \AgdaDatatype{Container}.
+In section \ref{preliminaries:free-monad} we defined the free monad over
+a strictly positive functor, which was represented by a
+\AgdaDatatype{Container}.
 We could use a similar data type to combine the extensions of two containers,
 but we would lose the advantages of containers i.e. that container extension is
 a strictly positive functor.
@@ -156,8 +158,8 @@ just a value of a simple data type, instance resolution using
 extremely slow\footnote{We encountered cases where type checking of overlapping
 instances involving \AgdaFunction{\_⊕\_} did not seem to terminate.}.
 
-This implementation of the free monad uses an approach similar to the Idris
-effect library \cite{DBLP:conf/icfp/Brady13}.
+We used an similar approach similar to the Idris effect library
+\cite{DBLP:conf/icfp/Brady13}.
 The free monad is not parameterised over a single container, but a list
 \AgdaArgument{ops} of containers.
 This has the benefit that we cannot associate coproducts to the left by
@@ -387,8 +389,12 @@ preserves the identity and the composition of functions.
 
 Both properties are proven by structural induction over the free monad.
 Let us consider the first proof.
-It is written using chain reasoning operators to display the general structure
-of the later proofs
+It is written using chain reasoning operators~\cite{norell:thesis} to display
+the general structure of the later proofs.
+The operators provide a convenient way of writing down transitive equalities.
+If the equality of two terms is not proven by \AgdaInductiveConstructor{refl},
+we use \AgdaFunction{\_≡⟨\_⟩\_}, which allows us to give a proof of their
+equality as second argument.
 In the definition of \AgdaFunction{<\$>}, in the case for
 \AgdaInductiveConstructor{pure} the given function is simply applied to the
 stored value.
@@ -537,9 +543,7 @@ When constructing the container we assign the correct arities to each shape.
 
 \begin{code}
 Nondet : Container
-Nondet = Nondetˢ ▷ λ where
-  ⁇ˢ     → Bool
-  failˢ  → ⊥
+Nondet = Nondetˢ ▷ λ where ⁇ˢ → Bool ; failˢ → ⊥
 \end{code}
 We can now define smart constructors for each operation.
 These are not the generic operations, but helper functions based on them.
@@ -732,8 +736,8 @@ The whole effect is parameterized over the state type \AgdaArgument{S}.
 \AgdaFunction{get} simply returns the current state.
 The operation takes no additional parameters and has \AgdaArgument{S} positions.
 This can either be interpreted as \AgdaFunction{get} being an
-\AgdaArgument{S}-ary operation (one child for each possible state) or simply the
-parameter of the continuation being a value of type \AgdaArgument{s}.
+\AgdaArgument{S}-ary operation (one argument for each possible state) or
+simply the parameter of the continuation being a value of type \AgdaArgument{s}.
 
 \AgdaFunction{put} updates the current state.
 The operation takes an additional parameter, the new state.
@@ -748,17 +752,13 @@ As before we translate this definition in a corresponding container and
 define \AgdaKeyword{pattern}s to simplify the handler.
 
 \begin{code}
-data Stateˢ (S : Set) : Set where
-  getˢ : Stateˢ S
-  putˢ : S → Stateˢ S
+data Stateˢ (S : Set) : Set where getˢ : Stateˢ S ; putˢ : S → Stateˢ S
 
 State : Set → Container
-State S = Stateˢ S ▷ λ where
-  getˢ      → S
-  (putˢ _)  → ⊤
+State S = Stateˢ S ▷ λ where getˢ → S ; (putˢ _) → ⊤
 
-pattern Get κ    = impure (inj₁ getˢ , κ)
-pattern Put s κ  = impure (inj₁ (putˢ s) , κ)
+pattern Get κ    = impure (inj₁ getˢ      , κ)
+pattern Put s κ  = impure (inj₁ (putˢ s)  , κ)
 \end{code}
 To simplify working with the \AgdaDatatype{State} effect we add smart
 constructors.
@@ -789,10 +789,16 @@ result of the calculation.
 \begin{code}
 runState s₀ (pure x)     = pure (s₀ , x)
 \end{code}
-The continuation/position function for \AgdaFunction{get} takes the current
-state to the rest of the calculation.
+The continuation for \AgdaFunction{get} maps a state to the rest of the
+computations, which somehow processes the given state.
 By applying \AgdaArgument{s₀} to \AgdaArgument{κ} we obtain the rest of the
-computation, which we can evaluate recursively.
+computation for the current state, which we evaluate recursively.
+Notice that this operation technical has $|S|$ continuations, but we only call a
+single one.
+In reality all continuations are of course implemented as a single function,
+which takes a parameter of type $S$.
+% Nondet -> all continuations ; more control -> flexible handler i.e.
+% backtracking; all results ; ..
 \begin{code}
 runState s₀ (Get κ)      = runState s₀ (κ s₀)
 \end{code}
@@ -845,8 +851,8 @@ example₁ = refl
 
 To show that our implementation of \AgdaDatatype{State} is correct i.e. that it
 is a model, we have to show that the equations characterizing the effect hold.
-Because some equations just \AgdaFunction{get} and \AgdaFunction{put},
-\AgdaArgument{ops} cannot be automatically infered.
+Because some equations use just \AgdaFunction{get} and \AgdaFunction{put},
+\AgdaArgument{ops} cannot be automatically inferred.
 
 \begin{code}[inline,hide]
 module StateLaws (S : Set) (ops : List Container) (s₀ : S) where
@@ -982,10 +988,11 @@ runChooseTickGlobal = refl
 
 To correctly handle operations with local scopes Wu et al. introduced scoped
 effects \cite{DBLP:conf/haskell/WuSH14}.
-They presented two runNondet to explicitly declare how far an operations scopes
-over a program using arbitrary syntax.
+They presented two syntactic approaches to explicitly declare how far an
+operations scopes over an arbitrary program.
 In the following section we implement the scoped effect
-\AgdaDatatype{Cut} using the first order approach in Agda.
+\AgdaDatatype{Cut} following \cite{DBLP:conf/haskell/WuSH14} in Agda.
+
 The central idea is to add new effect syntax, representing explicit scope
 delimiters.
 Whenever an opening delimiter is encountered the handler can be run again on the
@@ -994,6 +1001,7 @@ Thanks to a closing delimiters the end of a scope can be found.
 Therefore, calling \AgdaFunction{>>=} on a scoped operation to extend the
 continuation is not a problem, because the continuation can be separated in the
 part inside and outside the scope.
+
 
 \subsection{Cut and Call}
 
@@ -1015,9 +1023,12 @@ The \AgdaDatatype{Cut} effect has just a single operation, \AgdaFunction{cutfail
 \AgdaFunction{cutfail} can only be used in a context with nondeterminism.
 When \AgdaFunction{cutfail} is called it prunes all unexplored branches and
 calls \AgdaFunction{fail}.
-The Agda implementation of the handlers is identical to the one by Wu et al.
+The structure of the Agda implementation of the handlers is identical to the one
+by \textcite{DBLP:conf/haskell/WuSH14}, but to proof termination we have to use
+the size annotations.
 
 \begin{AgdaAlign}
+% TODO: mention that this sis essentially a parameter passing handler?
 The handler itself calls the function \AgdaFunction{go}, which accumulates the
 unexplored alternatives in its second argument using \AgdaFunction{⁇}.
 \AgdaFunction{fail} is the neutral element for \AgdaFunction{⁇} and therefore
@@ -1025,6 +1036,9 @@ the default argument.
 Since this handler is not orthogonal (i.e it interacts with another effect)
 \AgdaDatatype{Nondet} is required to be in the effect stack, but its position is
 irrelevant.
+We require a proof that \AgdaDatatype{Nondet} is in the effect stack.
+Using \AgdaFunction{prj} we can inspect \AgdaDatatype{Nondet} syntax without
+explicitly knowing how the container coproduct was constructed.
 
 To prove termination we mark the second argument with an arbitrary but fixed size
 \AgdaArgument{i}.
@@ -1046,8 +1060,8 @@ separated alternatives.
 \begin{code}
     go q (pure a)       = (pure a) ⁇ q
 \end{code}
-In case of a cutfail we terminate the current computation by calling
-\AgdaFunction{fail} and prune the alternatives by ignoring \AgdaArgument{q}.
+In case of a \AgdaFunction{cutfail} we terminate the current computation by calling
+\AgdaFunction{fail} and prune the alternatives by discarding \AgdaArgument{q}.
 
 \begin{code}
     go _ Cutfail        = fail
@@ -1089,9 +1103,9 @@ Syntax from other effects is handled as usual.
 \end{AgdaAlign}
 With the handler for \AgdaDatatype{Cut} in place we can define the handler for the
 scope delimiters.
-The implementation is again similar to the one presented by Wu et al., but to
-prove termination we again have to add \AgdaDatatype{Size} annotations to the
-functions.
+The implementation is again similar to the one presented by
+\textcite{DBLP:conf/haskell/WuSH14}, but to prove termination we again have to
+add \AgdaDatatype{Size} annotations to the functions.
 
 The \AgdaFunction{bcall} and \AgdaFunction{ecall} handler remove the scope
 delimiter syntax from the program and run \AgdaFunction{call} (the handler
@@ -1106,6 +1120,11 @@ A valid upper bound for the size of the rest of the program is \AgdaArgument{i},
 the size of the program before separating the syntax after the closing delimiter.
 This fact is curcial to prove that the recursive calls to \AgdaFunction{bcall} and
 \AgdaFunction{ecall} using \AgdaFunction{>>=} terminate.
+Remember that bind discards the size of its argument.
+For handlers following this pattern this is not a problem, because the returned
+program (i.e. the inner \AgdaDatatype{Prog} layer) is size annotated.
+Therefore, calling the handler recursively 
+
 
 Calling the handler on the extracted program guaranties that the handler does
 not interact with syntax outside the intended scope.
@@ -1116,11 +1135,13 @@ delimiter.
 Since the delimiters could be placed freely it is possible to mismatch them.
 If we encounter a closing before and operening delimiter, we know that they are
 mismatched.
-Wu et al. use Haskells \texttt{error} function to terminate the program.
+\textcite{DBLP:conf/haskell/WuSH14} use Haskell's \texttt{error} function to
+terminate the program.
 In Agda we are not allowed to define partial functions, therefore we have to
 handle the error.
 We could either correct the error and just continue or short circuit the
-calculation using exceptions in form of e.g. a \AgdaDatatype{Maybe} monad.
+calculation using some form of exceptions, for example the \AgdaDatatype{Maybe}
+monad.
 For simplicity we use the former approach.
 In a real application it would be advisable to inform the programmer about the
 error, either using exceptions or at least trace the error.
