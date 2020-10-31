@@ -686,7 +686,7 @@ sufficient.
 Section \ref{scoped-algebra:nondet:modular} presents an idea for modular effects
 and handlers.
 
-\subsection{As Scoped Algebra}
+\subsection{Implementation as Scoped Algebra}
 \label{scoped-algebra:nondet:scoped-algebra}
 The signature for the two algebraic operations is the same as before.
 Furthermore we define a signature for the scoped operation \AgdaFunction{once}.
@@ -932,10 +932,10 @@ onceᵖ : ⦃ Nondetᵖ ∈ effs ⦄ → Prog effs A → Prog effs A
 onceᵖ p = Scp (onceˢ , λ _ → pure <$> p)
 \end{code}
 
-\subsection{As Modular Handler}
+\subsection{Implementation as Modular Handler}
 \label{scoped-algebra:nondet:modular}
 
-Piróg et al. just present handlers for single effects.
+\textcite{DBLP:conf/lics/PirogSWJ18} just present handlers for single effects.
 This section presents an idea for adapting the handlers from the paper to
 modular ones.
 
@@ -1331,7 +1331,6 @@ share {Ops} {Scps} p = do
           put (i + 1 , j)
           pure x′
     pure $ share⟨ i , j ⟩ p′
-    
 \end{code}
 Using \AgdaFunction{Nondet}, \AgdaFunction{State} and \AgdaFunction{Share} we
 can again simulate call-time choice semantics.
@@ -1349,10 +1348,18 @@ doubleCoin : ⦃ Nondet ∈ effs ⦄ → ⦃ Share ∈ effs ⦄ → ⦃ State SI
   Prog effs ℕ
 doubleCoin = do c ← share coin
                 ⦇ c + c ⦈
-
-runDoubleCoin : runCTC doubleCoin ≡ 0 ∷ 2 ∷ []
+\end{code}
+\begin{center}
+\begin{code}[inline,hide]
+runDoubleCoin :
+\end{code}
+\begin{code}[inline]
+ runCTC doubleCoin ≡ 0 ∷ 2 ∷ []
+\end{code}
+\begin{code}[inline,hide]
 runDoubleCoin = refl
 \end{code}
+\end{center}
 In contrast to chapter \ref{chapter:higher-order} this approach can also model
 deep effects without involving universe levels.
 The definition of an effectful list as well as its typeclass instances from
@@ -1385,7 +1392,32 @@ doubleHead : ⦃ Nondet ∈ effs ⦄ → ⦃ Share ∈ effs ⦄ → ⦃ State SI
   Prog effs ℕ
 doubleHead = do mxs ← share (coin ∷ᴹ []ᴹ)
                 ⦇ headᴹ mxs + headᴹ mxs ⦈
+\end{code}
 
-runDoubleHead : runCTC doubleHead ≡ 0 ∷ 2 ∷ []
+\begin{center}
+\begin{code}[inline,hide]
+runDoubleHead :
+\end{code}
+\begin{code}[inline]
+ runCTC doubleHead ≡ 0 ∷ 2 ∷ []
+\end{code}
+\begin{code}[inline,hide]
 runDoubleHead = refl
 \end{code}
+\end{center}
+
+
+\section{Results}
+
+\begin{itemize}
+  \item implementation of scoped algebras by
+    \textcite{DBLP:conf/lics/PirogSWJ18} in Agda
+  \item different implementation of \texttt{fold} using work by
+    \textcite{DBLP:journals/corr/abs-1806-05230}
+  \item naive idea for modularization seems promising and shows parallels to
+    higher order approach
+  \item no explicit control over continuation (no memorization for sharing)
+  \item working implementation of sharing based on work by
+    \textcite{bunkenburg2019modeling} (does not depend on modularization,
+    because \AgdaFunction{share} is only scoping operation)
+\end{itemize}

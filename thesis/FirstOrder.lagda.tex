@@ -1617,7 +1617,7 @@ runInsertND = refl
     \tag{HNF}
     \mathrm{share}\;(\mathrm{c}\;x_1\dots x_n) &= \mathrm{share}\; x_1 \bind \lambda y_1 \dots \mathrm{share}\; x_n \bind\lambda y_n \rightarrow \mathrm{pure}\;(\mathrm{pure}\;(c\;y_1\dots y_n))
   \end{align*}
-  \caption{laws for a monad with sharing by Fischer et al.}
+  \caption{Laws for a monad with sharing by \textcite{DBLP:conf/icfp/FischerKS09}}
   \label{first-order:sharing:properties:laws}
 \end{figure}
 
@@ -1668,3 +1668,16 @@ One could try to automate this proves using tactics, find an equivalent
 formulation which does not refer to constructors directly or use a different
 representation for effectful data (e.g. fixed points of polynomial functors,
 since they can be made effectful generically).
+
+
+\section{Results}
+
+\begin{itemize}
+  \item Implementation of usual algebraic effects and handlers
+  \item Scoped effects using first approach by \textcite{DBLP:conf/haskell/WuSH14}
+  \item size annotated free monad is strong enough to implement scope delimiter
+  \item same problems as in Haskell i.e. missmatched scoped delimiters possible
+  \item missmatched scope delimiters potentially complicate proofs
+  \item implementation of sharing effect by \textcite{bunkenburg2019modeling} -
+    can model call-time choice
+\end{itemize}

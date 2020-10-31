@@ -1,6 +1,6 @@
-\documentclass[10pt,a4paper,twoside]{report}
+\documentclass[10pt,a4paper,twoside,notitlepage]{report}
 
-\usepackage[english]{babel}
+\usepackage[english,ngerman]{babel}
 \usepackage[a4paper,width=150mm,top=25mm,bottom=25mm]{geometry}
 % \usepackage[twoside, inner=28mm, outer=37mm, top=35mm, bottom=49mm]{geometry}
 
@@ -60,9 +60,11 @@
 \newunicodechar{ʳ}{\textsuperscript{r}}
 \newunicodechar{ˢ}{\textsuperscript{s}}
 \newunicodechar{ˣ}{\textsuperscript{x}}
+\newunicodechar{ᴵ}{\textsuperscript{I}}
 \newunicodechar{ᴸ}{\textsuperscript{L}}
 \newunicodechar{ᴹ}{\textsuperscript{M}}
 \newunicodechar{ᴾ}{\textsuperscript{P}}
+\newunicodechar{ᵂ}{\textsuperscript{W}}
 \newunicodechar{₀}{\textsubscript{0}}
 \newunicodechar{₁}{\textsubscript{1}}
 \newunicodechar{₂}{\textsubscript{2}}
@@ -203,16 +205,15 @@
 \end{titlepage}
 
 \thispagestyle{plain}
+\selectlanguage{english}
 \begin{abstract}
-  Deutsch
 \end{abstract}
-
+\selectlanguage{ngerman} 
 \begin{abstract}
-  English
 \end{abstract}
+\selectlanguage{english}
 
 \newpage
-\setcounter{page}{1}
 
 \tableofcontents
 
@@ -380,8 +381,8 @@ simulate sharing.
 Furthermore, we experimented with a naive modularisation of scoped effects in
 this setting.
 Even though \textcite{DBLP:conf/lics/PirogSWJ18} noted theoretical problems with
-modularity, the implementation seemed promising in our limited, practical
-setting and showed parallels to the higher-order approach. % of course, the monads are essentially equivalent
+modularity, the implementation seems promising in our limited, practical
+setting and shows parallels to the higher-order approach. % of course, the monads are essentially equivalent
 
 
 \section{Related Work and future Directions}
