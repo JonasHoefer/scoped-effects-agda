@@ -89,6 +89,7 @@ runCurry p = run $ runExc $ runNondet $ runShare $ evalState (! p) (0 , 0)
 open import Size
 open import Codata.Thunk as Thunk using (Thunk; force)
 
+-- Sharing codata is problematic using the implementation by Bunkenburg.
 data Streamᴹ (effs : List Effect) (A : Set) (i : Size) : Set where
   consᴹ : Prog effs A → Thunk (Prog effs ∘ Streamᴹ effs A) i → Streamᴹ effs A i
   nilᴹ  : Streamᴹ effs A i

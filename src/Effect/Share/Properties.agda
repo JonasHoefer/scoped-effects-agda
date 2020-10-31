@@ -43,7 +43,11 @@ share-fail = refl
 runCTC′ : ℕ × ℕ → Prog (State SID ∷ Share ∷ Nondet ∷ []) A → List A
 runCTC′ id p = run $ runNondet $ runShare $ evalState p id -- normalfrom could produce arbitrary term!
 
--- problems if user calls put or get :/
+-- It is not possible to prove the following law without extra ssumptions.
+-- Because the share operator directly produces state code, it is not possible to differentiate
+-- between user written and share code.
+-- Complex approach: mark scope using syntax and add assumption that operations outside these scopes
+-- are not put or get.
 --
 -- share-⁇ : ⦃ _ : Normalform CTC A B ⦄ → ⦃ _ : Shareable CTC A ⦄ → (p q : Prog CTC A) →
 --   runCTC (share (p ⁇ q) >>= id) ≡ runCTC (share p >>= id ⁇ share q >>= id)

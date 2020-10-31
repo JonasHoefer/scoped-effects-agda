@@ -22,15 +22,12 @@ data Stateˢ (S : Set) : Set where
   getˢ : Stateˢ S
   putˢ : S → Stateˢ S
 
-data Localˢ (S : Set): Set where localˢ : (s : S) → Localˢ S
-
 State : Set → Effect
 Ops  (State S) = Stateˢ S ▷ λ{ getˢ → S ; (putˢ _) → ⊤ }
-Scps (State S) = Localˢ S ~> ⊤
+Scps (State S) = Void
 
 pattern Get κ = (inj₁ getˢ , κ)
 pattern Put s κ = (inj₁ (putˢ s) , κ)
-pattern Local s κ = (inj₁ (localˢ s) , κ)
 
 runState : Prog (State S ∷ effs) A → S → Prog effs (S × A)
 runState {S} {effs} {A} = foldP (λ i → (λ X → S → Prog effs (S × X)) ^ i $ A) 1 id
@@ -40,7 +37,6 @@ runState {S} {effs} {A} = foldP (λ i → (λ X → S → Prog effs (S × X)) ^ 
     (Put s₁ κ)  s₀ → κ tt s₁
     (Other s κ) s₀ → op (s , λ c → κ c s₀)
   ) λ where
-    (Local s κ) s₀ → κ tt s >>= λ (_ , r) → r s₀
     (Other s κ) s₀ → scp (s , λ c → (λ (a , f) → f a) <$> κ c s₀)
 
 evalState : Prog (State S ∷ effs) A → S → Prog effs A
@@ -52,5 +48,6 @@ get = Op (getˢ , pure)
 put : ⦃ State S ∈ effs ⦄ → S → Prog effs ⊤
 put s = Op (putˢ s , pure)
 
+-- we can simulate local using state operations
 local : ⦃ State S ∈ effs ⦄ → (S → S) → Prog effs A → Prog effs A
-local f p = get >>= λ s → Scp (localˢ (f s) , λ _ → pure <$> p)
+local f p = do s₀ ← get ; put (f s₀) ; x ← p ; put s₀ ; return x

@@ -29,3 +29,9 @@ runCutThrowGlobal = refl
 
 runCutThrowLocal : (run $ runNondet $ runExc $ runCut cutThrow) ≡ inj₂ 1 ∷ inj₂ 2 ∷ []
 runCutThrowLocal = refl
+
+runCutThrowGlobal2 : (run $ runExc $ runCut″ cutThrow) ≡ inj₂ (1 ∷ 2 ∷ [])
+runCutThrowGlobal2 = refl
+
+runCutThrowLocal2 : (run $ runCut″ $ runExc cutThrow) ≡ inj₂ 1 ∷ inj₂ 2 ∷ []
+runCutThrowLocal2 = refl
