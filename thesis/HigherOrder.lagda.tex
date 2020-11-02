@@ -1078,21 +1078,33 @@ globalExc = refl
 
 \section{Results}
 
-In this chapter, we tired to implement scoped effects using the higher order
-syntax approach by \textcite{DBLP:conf/haskell/WuSH14}.
+In this chapter, we tired to implement scoped effects a higher order
+syntax representation approach by \textcite{DBLP:conf/haskell/WuSH14}.
 We continued Bunkeburg's~\cite{bunkenburg2019modeling} investigation of this
 approach and uncovered a deep seated problem while implementing it in Agda,
 which arises due to more restrictive requirements for programs compared to
 Haskell.
-The problem occurs because of size issues.
-When using higher order syntax, computations potentially have to store types and
-therefore are larger than the data they hold. 
+The problem occurs because we have to work in a consistent hierarchy of
+universes to preserve Agda's consistency.
+When using higher order syntax, computations potentially have to store the type
+of data they produce and therefore are larger than the data.
 This prevents scoping operations from capturing other computations, without
 switching to a larger type of computations.
+This specifically includes effectful data structures, which are needed to
+implement deep effects.
 In case of deep sharing this leads to a dependence between universe levels and
 the depth of data structures.
 We discussed two general approaches to avoid increasing universe levels when
-working with effectful data, however both of them do not allow a concise
-implementation.
+working with effectful data.
+However, both of them require a more complex representation for either types or
+data, probably leading to a complex implementations, which are hard to work with
+in real programs.
+
 Because deep effects are an uncommon requirement, we still presented key points
-of the limited implementation.
+of a limited implementation.
+Although we removed deep effects as a requirement, we still had to work with
+different universe levels, while implementing the \AgdaDatatype{Syntax}.
+This lead to manual lifting between universes and structures involving
+\AgdaDatatype{Setω}, which should generally be avoided.
+A level polymorphic implementation, needed for increasing the size of the
+computation types, uses both constructs more frequently.

@@ -450,8 +450,7 @@ The approach allows the implementation of deep effects and also can be used to
 simulate sharing.
 Furthermore, we experimented with a naive modularisation of scoped effects in
 this setting.
-Even though \textcite{DBLP:conf/lics/PirogSWJ18} noted theoretical problems with
-modularity, the naive implementation seems promising in our limited, practical
+The naive implementation seems promising in our limited, practical
 setting and shows parallels to the higher-order approach. % of course, the monads are essentially equivalent
 
 
@@ -481,8 +480,8 @@ Based on them, the corresponding library could be extended with more effects.
 In case of the approaches from chapter \ref{chapter:higher-order} and chapter
 \ref{chapter:scoped-algebras} a simplified syntax was used.
 Some scoped operations, for example \texttt{pass} and \texttt{listen} for the
-\texttt{Writer} effect, have fundamentally different shape, which at the moment
-cannot be represented.
+\texttt{Writer} effect, have fundamentally different shape, which cannot be
+represented at the moment.
 Implementing these operations requires generalizing the syntax.
 For higher-order approach alternative container representations were mentioned.
 For scoped algebras \textcite{DBLP:conf/lics/PirogSWJ18} also note a

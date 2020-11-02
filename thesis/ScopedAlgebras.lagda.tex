@@ -1448,16 +1448,26 @@ runDoubleHead = refl
 
 \section{Results}
 
+In this chapter we presented an implementation of scoped
+algebras~\cite{DBLP:conf/lics/PirogSWJ18} in Agda.
+To generally guaranty termination of recursive functions on values of
+\AgdaDatatype{Prog}, we defined its recursion scheme based on the work by
+\textcite{DBLP:journals/corr/abs-1806-05230}.
+Our recursion scheme, based on \textcite{DBLP:journals/corr/abs-1806-05230} idea
+of introducing an index type, has essentially the same shape.
 
-\begin{itemize}
-  \item implementation of scoped algebras by
-    \textcite{DBLP:conf/lics/PirogSWJ18} in Agda
-  \item different implementation of \texttt{fold} using work by
-    \textcite{DBLP:journals/corr/abs-1806-05230}
-  \item naive idea for modularization seems promising and shows parallels to
-    higher order approach
-  \item no explicit control over continuation (no memorization for sharing)
-  \item working implementation of sharing based on work by
-    \textcite{bunkenburg2019modeling} (does not depend on modularization,
-    because \AgdaFunction{share} is only scoping operation)
-\end{itemize}
+Using the recursion scheme we were able to define nondeterminism example by
+\textcite{DBLP:conf/lics/PirogSWJ18} in Agda, without resorting to sized types.
+With this approach we could easily implement deep effects, because the
+AgdaDatatype{Prog} monad does not increase the universe level.
+However due to rewriting the monad, we again loose explicit control over the
+continuation.
+Based on the patterns from the earlier chapters i.e. the general idea of
+partially removing syntax~\cite{DBLP:conf/haskell/SchrijversPWJ19}, we
+implemented a naive modularization for handlers.
+In our current limited, practical setting the examples in the thesis as well as
+the ones in the repository seem promising.
+The cases for traversing foreign sharing scopes still bear resemblance to the
+functions passed to \AgdaFunction{handle} in chapter \ref{chapter:higher-order}.
+Using our modular approach we could again implement
+Bunkenburg's~\cite{bunkenburg2019modeling} sharing handler.
