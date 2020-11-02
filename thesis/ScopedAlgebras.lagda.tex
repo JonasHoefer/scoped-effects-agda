@@ -39,7 +39,7 @@ Due to the deep-rooted problem with the higher order approach from chapter
 \ref{chapter:higher-order} it seemed reasonable to search for another
 formulation of scoped effects, which does not rely on existential types.
 \textcite{DBLP:conf/lics/PirogSWJ18} present a novel formalization for
-scoped operations and their algebras, which fulfils this requirement.
+scoped operations and their algebras, that fulfils this requirement.
 Their approach does not describe the combination of multiple effects, but due to
 the different structure the approach seemed worth exploring nonetheless.
 
@@ -49,6 +49,9 @@ To implement scoped algebras in an obviously terminating way we derive a
 different implementation of the \AgdaFunction{fold} by
 \textcite{DBLP:conf/lics/PirogSWJ18} based on the work by
 \textcite{DBLP:journals/corr/abs-1806-05230}.
+To test our implementation we implement the nondeterminism example by
+\textcite{DBLP:conf/lics/PirogSWJ18}, exceptions, state and sharing as defined
+by \textcite{bunkenburg2019modeling}.
 Furthermore, we presents a naive idea for modularisation of the new handlers.
 
 
@@ -59,21 +62,25 @@ modelling operations with scopes.
 The monad is the result of rewriting a slightly modified version of the monad
 from ``Effect Handlers in Scope'' i.e. the monad used in chapter
 \ref{chapter:higher-order}.
-They separate the signature into one describing effects with scopes $\Gamma$ and
-one describing the algebraic effects $\Sigma$.
+
+In the following we describe the original and the resulting monad in Agda.
+\textcite{DBLP:conf/lics/PirogSWJ18} separate the signature into one describing
+effects with scopes $\Gamma$ and one describing the algebraic effects $\Sigma$.
 The monad $E$ can be described as the fixpoint of the following equation, where
-the coend (the integral sign) denotes an existential types.
+the coend (the integral sign) denotes an existential type.
 
 \[
   EA \cong A + \Sigma{}(EA) + \int^{X\in\mathscr{C}} \Gamma{}(EX) \times (EA)^X
 \]
 This representation looks appropriate considering our earlier definition.
-An element of the monad is either a value of $A$, an operation without scopes,
-i.e. a functor applied to \texttt{Free F A} or an operation with scopes.
-Operations with scopes (e.g. \texttt{catch}) always quantified over some type to
-store subprograms over the same signature but with different local result type.
-The operations itself is represented by the second signature $\Gamma$.
-Furthermore, they provided a continuation, which transformed values of the
+An element of the monad is either a value of $A$, an operation without scopes
+i.e. the functor $\Sigma$ applied to the monad or an operation with scopes.
+Operations with scopes always quantified over some type to store subprograms
+over the same signature but with different local result type.
+The operations with scopes from chapter \ref{chapter:higher-order} followed
+exactly this pattern.
+The operations are represented using a second signature $\Gamma$.
+Furthermore, they provided a continuation, which transforms values of the
 internal result type to the result type of the whole program.
 The following Agda data type represents the above monad.
 
@@ -136,9 +143,11 @@ type $EA$, the rest of the program producing a result of type $A$.
 This resulting program corresponds to the continuation in the higher order
 approach, which was a function mapping from the the result of the scoped program
 to the rest of the whole program.
+In section \ref{scoped-algebra:monad} we will define above monad in Agda.
 
 
 \section{The \texttt{Prog} Monad}
+\label{scoped-algebra:monad}
 
 In this section we define the central monad for this approach.
 Because effects are split into signatures with and without scopes we will define
@@ -152,6 +161,7 @@ open Effect public
 \end{code}
 The functions \AgdaFunction{ops} and \AgdaFunction{scps} combine the
 corresponding signatures of a \AgdaDatatype{List} of \AgdaDatatype{Effect}s.
+\AgdaFunction{mapᴸ} corresponds to the Haskell function \texttt{map} for lists.
 
 \begin{code}
 ops scps : List Effect → Container
@@ -1041,10 +1051,9 @@ the monad i.e. by interleaving binds it orders the results.
 On a term level, we are given a list of possible continuations, which we execute
 on after another, appending their results.
 
-As in chapter \ref{chapter:higher-order} this implementation orders the results 
-correctly, but not the operations of other effects, which entails possible
-unexpected interaction semantics.
-(TODO: EXPLAIN HERE OR IN CHAPTER 4?)
+Similar to the handler from section \ref{higher-order:lifting}, this
+implementation orders the results correctly, but not the operations of other
+effects, which entails possible unexpected interaction semantics.
 
 \begin{code}
   ) λ where
@@ -1147,7 +1156,26 @@ p catch h = Scp $ catchˢ , λ where
   mainᵖ        → pure <$> p
   (handleᵖ e)  → pure <$> h e
 \end{code}
+Using the smart constructors, we can define programs using exceptions as well as nondeterminism.
+Because \AgdaDatatype{Nondet} has no scoping operation, only one of the two
+cases for traversing foreign scopes is used, the one for \AgdaDatatype{Nondet}
+in the example with global exceptions.
 
+Because the program in scope of the \AgdaFunction{catch} encounters an
+exception, the result is discarded and replaced with the result of the handler.
+The handler for \AgdaFunction{Nondet} is run before the handler for exceptions
+and therefore has to traverse the scope of \AgdaFunction{catch}.
+
+\begin{code}
+interaction : ⦃ Nondet ∈ effs ⦄ → ⦃ Exc ⊤ ∈ effs ⦄ → Prog effs ℕ
+interaction = (throw tt ⁇ pure 2) catch λ tt → pure 1
+
+localExc : run (runNondet (runExc interaction)) ≡ inj₂ 1 ∷ inj₂ 2 ∷ []
+localExc = refl
+
+globalExc : run (runExc (runNondet interaction)) ≡ inj₂ (1 ∷ [])
+globalExc = refl
+\end{code}
 
 \section{State}
 \label{scoped-algebra:state}
@@ -1312,7 +1340,7 @@ The \AgdaDatatype{Shareable} and \AgdaDatatype{Normalform} infrastructure from
 chapter \ref{chapter:first-order} can be reused to define the
 \AgdaFunction{share} operator.
 The program in the scope is again captured by mapping \AgdaFunction{pure} over it.
-The constrcution of scope ids follow again the implementation by
+The constrcution of scope ids follows again the implementation by
 \textcite{bunkenburg2019modeling}.
 
 \begin{code}
@@ -1332,9 +1360,12 @@ share {Ops} {Scps} p = do
           pure x′
     pure $ share⟨ i , j ⟩ p′
 \end{code}
+
+\paragraph{Examples}
 Using \AgdaFunction{Nondet}, \AgdaFunction{State} and \AgdaFunction{Share} we
 can again simulate call-time choice semantics.
-As expected, doubling a shared coin yields the results $0$ and $2$.
+We introduce the function \AgdaFunction{runCTC} to easily evaluate programms
+using normaliazable data and call-time choice smenarics.
 
 \begin{code}
 runCTC : ⦃ Normalform (State SID ∷ Share ∷ Nondet ∷ []) A B ⦄ →
@@ -1349,6 +1380,7 @@ doubleCoin : ⦃ Nondet ∈ effs ⦄ → ⦃ Share ∈ effs ⦄ → ⦃ State SI
 doubleCoin = do c ← share coin
                 ⦇ c + c ⦈
 \end{code}
+As expected, doubling a shared coin yields the results $0$ and $2$.
 \begin{center}
 \begin{code}[inline,hide]
 runDoubleCoin :
@@ -1362,8 +1394,11 @@ runDoubleCoin = refl
 \end{center}
 In contrast to chapter \ref{chapter:higher-order} this approach can also model
 deep effects without involving universe levels.
-The definition of an effectful list as well as its typeclass instances from
+The definition of an effectful list as well as its type class instances from
 chapter \ref{chapter:first-order} are reused.
+The definition of \AgdaFunction{doubleHead} stays the same, while the new
+underlying representation for the effects eliminates the problem of potentially
+mismatched scope delimiters.
 
 \begin{code}[hide]
 data Listᴹ (effs : List Effect) (A : Set) : {Size} → Set where
@@ -1393,6 +1428,10 @@ doubleHead : ⦃ Nondet ∈ effs ⦄ → ⦃ Share ∈ effs ⦄ → ⦃ State SI
 doubleHead = do mxs ← share (coin ∷ᴹ []ᴹ)
                 ⦇ headᴹ mxs + headᴹ mxs ⦈
 \end{code}
+Using the \AgdaDatatype{Shareable} instance we can share choices inside data
+structures.
+As expected, sharing a coin inside a list, unwrapping and doubling it yields the
+results \AgdaNumber{0} and \AgdaNumber{2}.
 
 \begin{center}
 \begin{code}[inline,hide]
@@ -1408,6 +1447,7 @@ runDoubleHead = refl
 
 
 \section{Results}
+
 
 \begin{itemize}
   \item implementation of scoped algebras by

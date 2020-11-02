@@ -96,7 +96,10 @@ $$
 An element of the above type is a pair consisting of an $a : A$ and a $b : B(a)$.
 In Agda \AgdaKeyword{record}s represent $n$-ary $\Sigma$-types.
 Each field can be used in the type of the following fields.
-
+The Agda standard library provides a data type called \AgdaDatatype{Σ}, that
+represents normal dependent product types with two elements.
+Furthermore, it provides a more convenient syntax for writing $\Sigma$-types.
+The type above can be written as \AgdaDatatype{Σ[ a ∈ A ] (B a)}.
 
 \paragraph{Programming with Dependent Types}
 
@@ -668,9 +671,11 @@ larger.
 Next we define the lifting of types i.e. the container extension, as a function
 between universes.
 
-\begin{code}
-open import Data.Product using (Σ-syntax; _,_) renaming (proj₁ to π₁; proj₂ to π₂) -- TODO: define and explain earlier
+\begin{code}[hide]
+open import Data.Product using (Σ-syntax; _,_) renaming (proj₁ to π₁; proj₂ to π₂)
 open import Function using (_∘_)
+\end{code}
+\begin{code}
 ⟦_⟧ : Container → Set → Set
 ⟦ S ▷ P ⟧ A = Σ[ s ∈ S ] (P s → A)
 \end{code}
@@ -1050,7 +1055,7 @@ Instead we will represent the functor as the extension of a container as
 described in section \ref{container}.
 Replacing arbitrary functors with container extension, especially to implement
 the free monad, is a well known
-approach~\cite{DBLP:journals/programming/DylusCT19,DBLP:conf/haskell/ChristiansenDB19}.
+approach~\cite{DBLP:journals/programming/DylusCT19,DBLP:conf/haskell/ChristiansenDB19,DBLP:conf/mpc/McBride15}.
 
 \begin{code}
 data Free (C : Container) (A : Set) : Set where
@@ -1062,6 +1067,7 @@ we cannot model all free monads with this data type.
 Using \AgdaDatatype{Free} we can model a class of free monads, which are
 accepted by Agda.
 % Good restriction e.g. Cont is a weird functor to describe syntax
+% corresponds to freer monad?
 The definition of \AgdaDatatype{Container}s correspond closely to the one for
 signatures.
 The constructors for \AgdaField{Shape} correspond to the operation symbols

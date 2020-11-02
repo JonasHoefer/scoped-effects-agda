@@ -46,8 +46,24 @@ functors and uses the free monad, as described in section
 \ref{preliminaries:free-monad}.
 We focus on implementation details specific to Agda, for example termination and
 positivity checks.
-Furthermore we implement scoped effects using explicit scope delimiters by
+
+In section \ref{first-order:functor} we introduce our general infrastructure for
+modular effects, which provides a similar interface to the one by
 \textcite{DBLP:conf/haskell/WuSH14}.
+The basic idea of operating on lists of effects is similar to the Idris effect
+library by \textcite{DBLP:conf/icfp/Brady13}.
+In section \ref{first-order:effects-and-handlers} we implement some of the
+examples by \textcite{DBLP:conf/haskell/WuSH14} to explain the general
+construction of effects and handlers uisng this approach.
+In section \ref{fist-order:scoped-effects} we implement scoped effects using
+explicit scoped delimiters as described by \textcite{DBLP:conf/haskell/WuSH14}.
+To define handlers for effects with and without scopes we use a general
+construction using sized types to prove termination.
+This allows us to conveniently implement handlers in Agda i.e. without changing
+the structure of handlers to prove termination.
+As a more complex example we implement the sharing handler by
+\textcite{bunkenburg2019modeling}, providing a way of simulating call-time
+choice semantics in Agda.
 
 
 \section{Functors {\`{a}} la carte}
@@ -66,14 +82,16 @@ To combine the syntax of multiple effects we can combine the underlying
 functors, because the free monad preserves coproducts\footnote{This follows from
 the facts that \texttt{Free} is the left half of a free-forgetful adjunction and
 that all left-adjoints preserve colimits.}.
+This method of modularization syntax was first presented by
+\textcite{DBLP:journals/jfp/Swierstra08}.
 
 The approach for modularization functors described by
 \textcite{DBLP:conf/haskell/WuSH14} is based on
 \citetitle{DBLP:journals/jfp/Swierstra08} by
 \textcite{DBLP:journals/jfp/Swierstra08}.
-The functor coproduct is modelled as the data type \mintinline{haskell}{data (f
-:+: g) a = Inl (f a) | Inr (g a)}, which is again a \texttt{Functor} in
-\texttt{a}.
+The functor coproduct is modelled as the data type
+\mintinline[breaklines]{haskell}{data (f :+: g) a = Inl (f a) | Inr (g a)},
+which is again a \texttt{Functor} in \texttt{a}.
 In section \ref{preliminaries:free-monad} we defined the free monad over
 a strictly positive functor, which was represented by a
 \AgdaDatatype{Container}.
@@ -252,6 +270,10 @@ In the \AgdaInductiveConstructor{impure} constructor the containers are combined
 using \AgdaFunction{sum}.
 The parameterization over a list ensures that the containers are not combined
 prematurely.
+We could store a proof that some effect \AgdaArgument{E} is an element of
+\AgdaArgument{effs} directly.
+This would allow us to use \AgdaArgument{E} directly, but raise the universe
+level of \AgdaDatatype{Free}.
 
 \begin{code}
 data Free (ops : List Container) (A : Set) : {Size} → Set where
@@ -471,7 +493,8 @@ bind-assoc f g (impure (s , pf))  = cong (impure ∘ (s ,_)) (extensionality (bi
 \end{code}
 
 
-\section{Implementing Effects and Handlers}
+\section{Implementing Algebraic Effects and Handlers}
+\label{first-order:effects-and-handlers}
 
 In section \ref{preliminaries:handler} we introduced effect handlers more
 formally.
@@ -985,6 +1008,7 @@ runChooseTickGlobal = refl
 
 
 \section{Effects with Scopes using Brackets}
+\label{fist-order:scoped-effects}
 
 To correctly handle operations with local scopes Wu et al. introduced scoped
 effects \cite{DBLP:conf/haskell/WuSH14}.
@@ -1109,7 +1133,7 @@ add \AgdaDatatype{Size} annotations to the functions.
 
 The \AgdaFunction{bcall} and \AgdaFunction{ecall} handler remove the scope
 delimiter syntax from the program and run \AgdaFunction{call} (the handler
-for \AgdaDatatype{cut}) at the begining of each scope.
+for \AgdaDatatype{cut}) at the beginning of each scope.
 Whenever a \AgdaFunction{BCall} is found the handler \AgdaFunction{ecall} is
 used to handle the rest of the program.
 \AgdaFunction{ecall} searches for the end of the scope and returns the program
@@ -1203,6 +1227,7 @@ first search, independent of the handler.
 
 
 \subsection{Deep Effects}
+\label{first-order:deep-effects}
 
 In Haskell and Curry ambient effects, like partiality, tracing and
 nondeterminism, can occur in components of data structures.
@@ -1391,7 +1416,7 @@ eshare  : ⦃ NonDet ∈ ops ⦄ → ℕ → ℕ × ℕ → Free (Share ∷ ops)
 
 bshare (pure x)        = pure x
 bshare (BShare sid κ)  = eshare 0 sid (κ tt) >>= bshare
-bshare (EShare sid κ)  = bshare (κ tt) -- missmatched scopes, we just continue!
+bshare (EShare sid κ)  = bshare (κ tt) -- mismatched scopes, we just continue!
 bshare (Other  s   κ)  = impure (s , bshare ∘ κ)
 
 eshare next sid (pure x)         = pure (pure x)
@@ -1671,13 +1696,30 @@ since they can be made effectful generically).
 
 
 \section{Results}
+\label{first-order:results}
 
-\begin{itemize}
-  \item Implementation of usual algebraic effects and handlers
-  \item Scoped effects using first approach by \textcite{DBLP:conf/haskell/WuSH14}
-  \item size annotated free monad is strong enough to implement scope delimiter
-  \item same problems as in Haskell i.e. missmatched scoped delimiters possible
-  \item missmatched scope delimiters potentially complicate proofs
-  \item implementation of sharing effect by \textcite{bunkenburg2019modeling} -
-    can model call-time choice
-\end{itemize}
+In this chapter we implemented usual notion of algebraic effects and handlers.
+Based on the work by \textcite{DBLP:conf/icfp/Brady13}, we introduced our
+general infrastructure for working with modular effects in Agda.
+In addition to the implementation of effects and the handlers, we used Agda's
+theorem proving capabilities to reason about effectful programs.
+Furthermore, we used \textcite{DBLP:conf/haskell/WuSH14} method of explicit
+scope delimiters to provide modular versions of operations with scopes.
+Our sized annotated version of the free monad allowed us to implement the more
+complex, recursive handlers for scope delimiters, without changing the general
+structure of the implementation by \textcite{DBLP:conf/haskell/WuSH14}.
+Following \textcite{bunkenburg2019modeling} we were able to implement a general
+infrastructure for deep effects as well as a handler for sharing, allowing us to
+simulate call-time choice semantics in Agda.
+
+Because we simply implemented the Haskell version of this approach in Agda, the
+problems from the Haskell implementation also carry over.
+The problem noted by \textcite{DBLP:conf/haskell/WuSH14} is malformed syntax.
+Because the beginning and end of each scope were marked using different
+operations, the handler has to deal with potentially mismatched scope delimiters.
+This problem is amplified in Agda, because mismatched scope delimiters could
+potentially also be encountered in proofs.
+Furthermore, when handling operations with scopes the handlers has no direct
+access to the continuation of the operation.
+This prevents potentially optimizations, such as direct evaluation of the
+continuation with memorized result of a shared computation.

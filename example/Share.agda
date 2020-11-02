@@ -1,5 +1,5 @@
-
 {-# OPTIONS --overlapping-instances #-}
+
 module Share where
 
 open import Size     using (↑_)

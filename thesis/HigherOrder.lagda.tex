@@ -27,26 +27,34 @@ variable
   C : ∀ {ℓ} → Set ℓ → Set ℓ
 \end{code}
 
-To address problems of the first order approach, like mismatched scope
-delimiters and explicit control over the continuation,
-\citeauthor{DBLP:conf/haskell/WuSH14} introduce a second approach using
-higher order abstract syntax~\cite{DBLP:conf/haskell/WuSH14}.
+To address problems of the first order approach, noted in section
+\ref{first-order:results}, \citeauthor{DBLP:conf/haskell/WuSH14} introduce a
+second approach using higher order abstract
+syntax~\cite{DBLP:conf/haskell/WuSH14} to directly represent scoping
+constructs. 
+By changing the syntax, this approach moves away from the exact definition of
+algebraic effects, but the general concept of defining syntax and inducing
+semantics using a handler is still present.
+This approach is usually used in Haskell to implement scoped effects.
 \citeauthor{bunkenburg2019modeling} already tried to implement some scoped
 effects using this approach, but failed due to limitations of
 Coq~\cite{bunkenburg2019modeling}.
-
-Chapter \ref{chapter:first-order} demonstrated how the first order approach
-could be transferred to Agda using container representations for functors
-and sized types.
-This chapter focuses on the implementation of effects using higher order syntax.
-It partially follows Bunkenburg's approach, because the limitation of Coq
-described by him does not exist in Agda.
-Therefore, this chapter focuses on expanding his approach further.
 Due to other limitations, needed for the consistency of Agda, this approach
 ultimately failed again.
-Section \ref{higher-order:limited-impl} presents a limited implementation in
-Agda to discusses some implementation details and highlight the occurring
-problems.
+
+In section \ref{higher-order:syntax} introduce the concept of higher order
+syntax as described by \textcite{DBLP:conf/haskell/WuSH14}.
+We partially follows Bunkenburg's approach, because the limitation of Coq
+described by him does not exist in Agda.
+In section \ref{higher-order:container} we discuss different
+representation for higher order syntax in Agda.
+We present a central problem with all of these representations, which generally
+prohibits us from implementing deep effects, without making excessive changes.
+In section \ref{higher-order:fixes} we discuss some potential changes to the
+representation and their consequences.
+Because deep effects are an uncommon requirement, in section
+\ref{higher-order:limited-impl} we still presents a limited implementation,
+to highlight some details specific to Agda.
 
 
 \section{Higher Order Syntax}
@@ -342,6 +350,7 @@ potentially unsolvable.
 
 
 \subsection{Indexing and Integrating Data}
+\label{higher-order:fixes}
 
 To solve the problem from section \ref{higher-order:eff-data-ext-types} we
 explored two approaches.
@@ -868,6 +877,7 @@ runCatchTestExc = refl
 
 
 \subsection{Lifting First Order Syntax}
+\label{higher-order:lifting}
 
 \textcite{DBLP:conf/haskell/WuSH14} present a construction for lifting first
 order syntax to the higher order setting.
@@ -1068,13 +1078,21 @@ globalExc = refl
 
 \section{Results}
 
-\begin{itemize}
-  \item discussion of different representations for higher order syntax
-  \item combination of bounded universe levels and existential (stored) types
-    problematic when modeling deep effects $\Rightarrow$ call-time choice cannot
-    be modelled adequately (cannot model ambient nondeterminism in data
-    structures)
-  \item most simple 'fixes' for the problem are problematic
-  \item key points of implementation without deep effects (mighty be useful for
-    some readers)
-\end{itemize}
+In this chapter, we tired to implement scoped effects using the higher order
+syntax approach by \textcite{DBLP:conf/haskell/WuSH14}.
+We continued Bunkeburg's~\cite{bunkenburg2019modeling} investigation of this
+approach and uncovered a deep seated problem while implementing it in Agda,
+which arises due to more restrictive requirements for programs compared to
+Haskell.
+The problem occurs because of size issues.
+When using higher order syntax, computations potentially have to store types and
+therefore are larger than the data they hold. 
+This prevents scoping operations from capturing other computations, without
+switching to a larger type of computations.
+In case of deep sharing this leads to a dependence between universe levels and
+the depth of data structures.
+We discussed two general approaches to avoid increasing universe levels when
+working with effectful data, however both of them do not allow a concise
+implementation.
+Because deep effects are an uncommon requirement, we still presented key points
+of the limited implementation.
