@@ -72,7 +72,7 @@
 \newunicodechar{₄}{\textsubscript{4}}
 \newunicodechar{₅}{\textsubscript{5}}
 
-\usepackage{hyperref}
+\usepackage[hidelinks]{hyperref}
 \usepackage[links]{agda}
 \usepackage{mathtools}
 
@@ -183,11 +183,11 @@
 
       \vskip 2cm
 
-    \textbf{Implementing a Library for Scoped Algebraic Effects in Agda}\\
+      \textbf{Implementing a Library for Scoped Algebraic Effects in Agda}\\
 
       \vfill
 
-      Author: Jonas Höfer\\
+      Autor: Jonas Höfer\\
 
       \vskip 2cm
 
@@ -215,11 +215,12 @@
   verification, the composability of representations is important.
   Algebraic effects and handlers are generally a more modular approach than
   traditional monad transformers.
-  Furthermore, algebraic effects have proven them self to be a convenient
-  representation of computational effects in constructive type theory.
-  For example, they can be used to explicitly represent ambient effect, such as
-  Haskell's partiality, in proof assistants like
-  Coq~\cite{DBLP:journals/programming/DylusCT19,DBLP:conf/haskell/ChristiansenDB19}.
+  Furthermore, algebraic effects are convenient representation of computational
+  effects in constructive type theory.
+  For example,
+  \cite{DBLP:journals/programming/DylusCT19,DBLP:conf/haskell/ChristiansenDB19}
+  used them to explicitly represent ambient effect, such as Haskell's
+  partiality, in proof assistants like Coq.
 
   In the traditional approach, operations with scope can only be implemented as
   an effect handler.
@@ -229,6 +230,8 @@
   associated operations with scopes.
   To fix this problem \textcite{DBLP:conf/haskell/WuSH14} introduced scoped
   effects.
+  Furthermore, to simulate sharing of potentially effectful programs, we need
+  operations with scopes.
 
   In this thesis we explore how well three different Haskell implementations of
   scoped effects by
@@ -273,7 +276,7 @@ Although, they can represent a large set of effects, not all operations from the
 corresponding monad for the effect fit in the algebraic effect framework.
 More precisely, they cannot represent non-algebraic operations, for example
 operations with scopes, such as
-\texttt{catch}\textcite{DBLP:journals/acs/PlotkinP03}.
+\texttt{catch}~\cite{DBLP:journals/acs/PlotkinP03}.
 
 Effect handlers were introduced by \textcite{DBLP:conf/esop/PlotkinP09} as a
 generalization of exception handlers.
@@ -282,12 +285,13 @@ with algebraic effects~\cite{DBLP:journals/corr/PlotkinP13}.
 Algebraic effects and handlers have a wide field of applications.
 In functional programming they are used as a less boiler plate intensive
 alternative to monad transformers.
-They can used as a theoretical foundation for reasoning about computational
+% doppelt
+They can be used as a theoretical foundation for reasoning about computational
 effects.
 Furthermore, they can be used to model semantics of programming languages.
 Most functional programming languages allow a limited set of side
 effects, which are not represented in the type system of the language.
-These effects are usually called ambient effects.
+These effects are usually called \textit{ambient effects}.
 For example, to allow easier development, Haskell programs can contain traces
 and functions are allowed to be partial.
 \textcite{DBLP:journals/programming/DylusCT19,DBLP:conf/haskell/ChristiansenDB19}
@@ -322,7 +326,8 @@ To allow use as a proof assistant, Agda programs are subject to constraints not
 present in other functional languages, such as Haskell.
 All Agda programs have to be total (and therefore terminate), all data types
 have to be strictly positive and all universe levels have to be consistent.
-These restrictions prevent a direct translation of Haskell code to Agda.
+These restrictions prevent a direct translation of Haskell code to Agda and
+therefore complicate porting of Haskell code to Agda.
 
 This thesis explores multiple Haskell implementations of scoped effects and
 studies how well these translate to Agda.
@@ -409,7 +414,7 @@ translate to Agda.
 
 \section{Results}
 
-In chapter \ref{chapter:first-order} we first implemented ordinary algebraic
+In Chapter \ref{chapter:first-order} we first implemented ordinary algebraic
 effects in Agda.
 The implementation only depends on the definition of the free monad, which
 we implemented using containers, a well known approach.
@@ -422,7 +427,7 @@ for simulating call-time choice semantics.
 A problem with this approach is that it inherently allows mismatched scope
 delimiters, that is malformed syntax, which potentially complicates proofs.
 
-In chapter \ref{chapter:higher-order} we tried implementing effects using higher
+In Chapter \ref{chapter:higher-order} we tried implementing effects using higher
 order syntax, as described by \textcite{DBLP:conf/haskell/WuSH14}.
 This approach turned out to be problematic, because it relies on existential
 types to capture subcomputations.
@@ -437,7 +442,7 @@ expressive enough to model Curry's ambient nondeterminism in data structures, we
 still presented the key points of a limited implementation of normal scoped
 effects using higher order syntax.
 
-Due to the deep-seated problem of the approach from chapter
+Due to the deep-seated problem of the approach from Chapter
 \ref{chapter:higher-order} we experimented with an novel representation by
 \textcite{DBLP:conf/lics/PirogSWJ18}, which allowed us to remove the existential
 type.
@@ -477,7 +482,7 @@ His work focuses on program verification.
 For each of the three approach, the basic infrastructure as well as some
 exemplary effects were presented.
 Based on them, the corresponding library could be extended with more effects.
-In case of the approaches from chapter \ref{chapter:higher-order} and chapter
+In case of the approaches from Chapter \ref{chapter:higher-order} and Chapter
 \ref{chapter:scoped-algebras} a simplified syntax was used.
 Some scoped operations, for example \texttt{pass} and \texttt{listen} for the
 \texttt{Writer} effect, have fundamentally different shape, which cannot be
@@ -487,7 +492,7 @@ For higher-order approach alternative container representations were mentioned.
 For scoped algebras \textcite{DBLP:conf/lics/PirogSWJ18} also note a
 generalization for more expressive syntax.
 
-The modularisation of effect in the chapter \ref{chapter:scoped-algebras} is
+The modularisation of effect in the Chapter \ref{chapter:scoped-algebras} is
 quite experimental.
 Implementing more tests for the current set of handlers as well as adding more
 effects with scoping operations to test the modularization should be the next
@@ -515,7 +520,7 @@ approaches described implemented in thesis.
 Vice versa, one could try extending one of the approaches presented here with
 recourse dependent effects.
 
-
+\emergencystretch=2em
 \printbibliography
 
 \end{document}

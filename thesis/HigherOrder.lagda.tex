@@ -27,32 +27,34 @@ variable
   C : ∀ {ℓ} → Set ℓ → Set ℓ
 \end{code}
 
-To address problems of the first order approach, noted in section
+To address problems of the first order approach, noted in Section
 \ref{first-order:results}, \citeauthor{DBLP:conf/haskell/WuSH14} introduce a
 second approach using higher order abstract
 syntax~\cite{DBLP:conf/haskell/WuSH14} to directly represent scoping
-constructs. 
+constructs.
 By changing the syntax, this approach moves away from the exact definition of
 algebraic effects, but the general concept of defining syntax and inducing
 semantics using a handler is still present.
-This approach is usually used in Haskell to implement scoped effects.
+This approach is usually used in Haskell to implement scoped effects[polysemy,
+fused-effects].
 \citeauthor{bunkenburg2019modeling} already tried to implement some scoped
-effects using this approach, but failed due to limitations of
-Coq~\cite{bunkenburg2019modeling}.
-Due to other limitations, needed for the consistency of Agda, this approach
+effects using this approach in Coq.
+His approach failed due to issues with Coq's positivity
+checker~\cite{bunkenburg2019modeling}.
+Due to sizes issues, needed for the consistency of Agda, this approach
 ultimately failed again.
 
-In section \ref{higher-order:syntax} introduce the concept of higher order
+In Section \ref{higher-order:syntax} we introduce the concept of higher order
 syntax as described by \textcite{DBLP:conf/haskell/WuSH14}.
 We partially follows Bunkenburg's approach, because the limitation of Coq
 described by him does not exist in Agda.
-In section \ref{higher-order:container} we discuss different
+In Section \ref{higher-order:container} we discuss different
 representation for higher order syntax in Agda.
-We present a central problem with all of these representations, which generally
+We explain a size issue with all of these representations, which generally
 prohibits us from implementing deep effects, without making excessive changes.
-In section \ref{higher-order:fixes} we discuss some potential changes to the
+In Section \ref{higher-order:fixes} we discuss some potential changes to the
 representation and their consequences.
-Because deep effects are an uncommon requirement, in section
+Because deep effects are an uncommon requirement, in Section
 \ref{higher-order:limited-impl} we still presents a limited implementation,
 to highlight some details specific to Agda.
 
@@ -70,7 +72,7 @@ In the following we explain the basic construction of higher order syntax in
 Haskell by \textcite{DBLP:conf/haskell/WuSH14}, before we present results
 regarding an Agda implementation.
 
-In the first order approach the functors, which describe the syntax, are applied
+In the first order approach the functors, that describe the syntax, are applied
 to types of the form \texttt{Free F A} i.e. programs consisting of syntax
 described by \texttt{Free F}, which produce values of type \texttt{A}.
 In the higher order approach these functors are generalized to higher order
@@ -78,7 +80,7 @@ functors, that is in Haskell data types of kind \texttt{(* -> *) -> (* -> *)}.
 These functors are applied to \texttt{Free F} and \texttt{A} separately.
 
 Because the program type is separated in syntax and result type it is possible
-to store programs, which use the same signature but produce values of different
+to store programs, that use the same signature but produce values of different
 types.
 Consider the following definition of the higher order exception syntax as given
 by \textcite{DBLP:conf/haskell/WuSH14}.
@@ -100,7 +102,7 @@ Figure \ref{higher-order:syntax:bind} demonstrates the action of
 The program in scope and the $e$ indexed subprogram (the exception handler) both
 produce values of the captured type $X$, therefore \AgdaFunction{>>=} does not
 affect them.
-Only the third computation is of type \AgdaArgument{A} and therefore effected by
+Only the third computation is of type \AgdaArgument{A} and therefore affected by
 \AgdaFunction{>>=}.
 Therefore these operations are not algebraic, but also capture the notation of
 scopes.
@@ -135,7 +137,7 @@ scopes.
       ;
     \end{tikzpicture}
   \end{center}
-  \caption{calling \bind{} on an operation with a local scope}
+  \caption{Calling \bind{} on an operation with a local scope}
   \label{higher-order:syntax:bind}
 \end{figure}
 
@@ -204,7 +206,7 @@ necessarily strictly positive.
 This is a necessary requirement to define recursive, effectful data structures.
 
 There are multiple ways to fix this problem.
-Following the pattern from chapter \ref{chapter:first-order} we could replace
+Following the pattern from Chapter \ref{chapter:first-order} we could replace
 the returned functor with normal \AgdaDatatype{Container}.
 This option is the most expressive, but also quite complex.
 Furthermore, for most effects this level of control over syntax is not needed.
@@ -225,7 +227,7 @@ differentiate between container extension which do or do not contain
 \textcite{bunkenburg2019modeling} fixed this problem by switching to version of
 a bi-container.
 A bi-container has two position types for each shape.
-Its extension is a bifunctor, which is strictly positive in both arguments.
+Its extension is a bifunctor, that is strictly positive in both arguments.
 Bunkenburg extended the usual bi-functor to an indexed bi-functor by adding a
 context, similar to the above definition, to one of the positions.
 The definition of an indexed bi-container and its extension is given below.
@@ -243,18 +245,19 @@ open Effect
 ⟦_⟧ : Effect → (Set → Set₁) → Set → Set₁
 ⟦ S ◁ P + PX / C ⟧ F A = Σ[ s ∈ S ] (((p : P s) → F A) × ((p : PX s) → F (C s p)))
 \end{code}
-An indexed bi-container has two sets of positions for each shape.
+An indexed bi-container has two sets of positions for each shape \AgdaField{Pos}
+and \AgdaField{PosX}.
 Its extension consists of a shape and two position functions, one for each set
 of positions.
 In the above definition, the second set of positions is augmented with a context
 function, identical to the second indexed container definition.
 In Agda this definition is recognized as strictly positive in \AgdaArgument{A}.
-The analogous definition in Bunkeburg's Coq
-implementation is not~\cite{bunkenburg2019modeling}.
+The analogous definition in Bunkeburg's Coq implementation is
+not~\cite{bunkenburg2019modeling}.
  
 Ultimately the choice of representation for the functor does not matter, because
 all approaches based on storing a type directly encounter the problem described
-in section \ref{higher-order:eff-data-ext-types}.
+in Section \ref{higher-order:eff-data-ext-types}.
 Going forward we will use Bunkeburg's indexed bi-container for examples, because
 it allows us to continue where he left of and it is the easiest to work with.
 As a side note, some operations with more complex syntax, like \texttt{pass :: m
@@ -341,58 +344,99 @@ Holding on to the idea of storing types in the \AgdaField{Shape}, the only way t
 fix this problem is to let all levels vary as needed.
 Calling a scoped operation on an effectful data structure containing
 computations with level $\ell$ produces a computation on level $\ell + 1$.
-This leads to different levels across the program, which are difficult to unify.
+This leads to different levels across the program, which are difficult to unify,
+because they require manual lifting of types.
 Furthermore, when mapping a scoped operation over a recursive data structure
 (e.g. \AgdaFunction{share}) the increase in the universe level depends on the
 depth of the structure.
-Both of these phenomena are hard to deal with and in a complex program
-potentially unsolvable.
+Both of these phenomena are hard to deal with and lead in our implementations to
+an impractical library interface.
+We were not able to solve the problem of data dependent levels in recursive data
+structures.
 
 
 \subsection{Indexing and Integrating Data}
 \label{higher-order:fixes}
 
-To solve the problem from section \ref{higher-order:eff-data-ext-types} we
+To solve the problem from Section \ref{higher-order:eff-data-ext-types} we
 explored two approaches.
-Both of them seemed promising, but turned out to be rather complex.
+For an effect system it seems reasonable to not let universe level vary or in
+the best case not increase it, that is either make \AgdaDatatype{Progᵂ} an
+element of \AgdaDatatype{Set} or represent effectful data in \AgdaDatatype{Set}.
+In this section we mention two ideas, one for each approach.
+Unfortunately, in our tests non of them lead to a concise solution.
 
 \paragraph{Indexing}
 One could try solving the problem of increasing universe levels by indexing the
 program over a typing context.
 The level of the index is independent from the level of the structure, therefore
-the chain of reasoning from section \ref{higher-order:eff-data-ext-types} does
+the chain of reasoning from Section \ref{higher-order:eff-data-ext-types} does
 not apply.
 The typing context needs to have the same structure as the program.
 This is possible by reusing the arbitrary branching mechanism, known from the
 free monad.
 
+% data Env (Σ : Effect) (A : Set) : Set₁ where
+%   ∙     : A → Env Σ A
+%   _,-   : ⟦ Ops  Σ ⟧ (Env Σ A) → Env Σ A
+%   _,_+_ : (X : Set) → ⟦ Scps Σ ⟧ (Env Σ X) → Env Σ A → Env Σ A
+% 
+% data Prog (Σ : Effect) (A : Set) : Env Σ A → Set where
+%   var : (a : A) → Prog Σ A (∙ a)
+%   op  : (op : Shape (Ops Σ)) →
+%     -- ^ Current operation symbol
+%     {Γ : Pos (Ops Σ) op → Env Σ A} →
+%     -- ^ Typing environment for each subcomputation
+%     (κ : (p : Pos (Ops Σ) op) → Prog Σ A (Γ p)) →
+%     -- ^ Subcomputations
+%     Prog Σ A ((op , Γ) ,-)
+%     scp : (op : Shape (Scps Σ)) →
+%     -- ^ Current scope operation symbol
+%     {Γ : Pos (Scps Σ) op → Env Σ X} →
+%     -- ^ typing environment for each subcomputation
+%     {Γ′ : Env Σ A} →
+%     -- ^ typing environment for continuation
+%     (ω : (p : Pos (Scps Σ) op) → Prog Σ X (Γ p)) →
+%     -- ^ Subcomputations
+%     (κ : X → Prog Σ A Γ′) →
+%     -- ^ Continuation
+%     Prog Σ A (X , (op , Γ) + Γ′)
+
 A central problem with this approach is that every call of \AgdaFunction{>>=}
-changes the structure of the program and therefore the context.
-These changes now have to be reflected on the type level, because the typing
-context has to reflect the programs shape.
+potentially grows the tree described by \AgdaDatatype{Prog} and therefore the
+context.
+These changes now have to be reflected on the type level, because the context is
+embedded in the type of \AgdaDatatype{Prog}
 If \AgdaFunction{>>=} substitutes leaves differently based on their stored
-values, the changes to the context are not simple substitutions, but depend on
-the stored value.
+values, the changes to the context are not simple substitutions with  value,
+but described by a function.
 As with increasing universe levels, this complications are increasingly hard to
 deal with and are hard to hide from the user of the library.
+For example, in our tests the changes to the context require the definition of
+helper function, that describe the modification.
 
 \paragraph{Integrating Data and Computations}
 All of the above modellings of the problem ignore a central fact.
-The problem arises, because we cannot store arbitrary values from
-\AgdaDatatype{Set₁} in \AgdaDatatype{Prog}\AgdaSpace{}\AgdaArgument{effs}, but
-we do not want to store \textit{arbitrary} values.
-The only too large types we want to store are data structures from
-\AgdaDatatype{Set} with interleaved
-\AgdaDatatype{Prog}\AgdaSpace{}\AgdaArgument{effs} layers.
-Conceptually, the effectful values stored in the leafs simply extend the
-computation tree.
+We cannot model deep effects, because effectful data structures are an element
+of \AgdaDatatype{Set₁}, but data is required to be an element of
+\AgdaDatatype{Set}.
+These special data structures are only to large, because they contain values of
+type \AgdaDatatype{Prog}, not arbitrary values from \AgdaDatatype{Set₁}.
+Conceptually these data structures continue the computation tree.
 
-By representing data structures using a small type and creating the actual
-structure, described by the effectful data structure, using a new
-\AgdaDatatype{Prog} constructor, it could be possible to avoid the size issues.
+\begin{code}[hide]
+data Progᴰ (Effs : Effect) : Set → Set₁ where
+  var     : A → Progᴰ Effs A
+  impure  : ⟦ Effs ⟧ (Progᴰ Effs) A → Progᴰ Effs A
+  _,_     : ⟦ Effs ⟧ (Progᴰ Effs) A → ⟦ Effs ⟧ (Progᴰ Effs) B → Progᴰ Effs (A × B)
+\end{code}
+
+By representing an data structures using a small type and creating its actual
+structure, using a new \AgdaDatatype{Prog} constructor, it is possible to avoid
+the size issues.
 We tried implementing this idea, but failed when trying to represent generic
 structures.
-Furthermore, working with data described this way is intuitive.
+Furthermore, working with data described this way is unintuitive.
 
 
 \section{Limited Implementation}
@@ -408,7 +452,7 @@ because they model effects with a simple continuation accurately.
 In a more complex implementation, where more control over the type of the
 continuation is needed, a container with a \AgdaField{Ctx} for \AgdaArgument{A}
 might be needed\footnote{To guarantied strict positivity one of the solutions
-  mentioned in section \ref{higher-order:container} is needed.}.
+  mentioned in Section \ref{higher-order:container} is needed.}.
 
 First we port over the infrastructure for modular effects.
 The coporduct carries over seamlessly.
@@ -421,7 +465,7 @@ _⊕_ : Effect → Effect → Effect
   (S₁ ⊎ S₂) ◁ [ P₁ , P₂ ] + [ PX₁ , PX₂ ] / [ C₁ , C₂ ]
 \end{code}
 To easily work in the higher order setting we adapt the \AgdaDatatype{Prog}
-data type similarly to \AgdaDatatype{Free} monad from chapter
+data type similarly to \AgdaDatatype{Free} monad from Chapter
 \ref{chapter:first-order} i.e. we parameterize over a list of effects and add a
 \AgdaDatatype{Size} parameter.
 To avoid excessive use of universe levels and to avoid the \texttt{--cumulativity}
@@ -482,12 +526,12 @@ run : Prog [] A → A
 run (pure x) = x
 \end{code}
 The definition for \AgdaFunction{>>=} is identical to the one in Haskell.
-Using the \AgdaKeyword{INLINE} pragma, as explained in section \ref{container},
+Using the \AgdaKeyword{INLINE} pragma, as explained in Section \ref{container},
 we can define \AgdaFunction{emap} separately without obscuring the termination.
 
 The infrastructure from chapter carries over with
 minimal changes.
-We reuse the \AgdaDatatype{\_∈\_} proposition from chapter
+We reuse the \AgdaDatatype{\_∈\_} proposition from Chapter
 \ref{chapter:first-order}.
 The \AgdaFunction{inj} and \AgdaFunction{op} functions have to be modified
 slightly for the new program type.
@@ -560,7 +604,7 @@ arbitrary operation from its signature is evaluated.
 
 Notice that the given operations contain computations of an arbitrary size.
 Furthermore, the given handler works on computations of the same size.
-This will be important in section \ref{higher-order:limited-impl} when we define
+This will be important in Section \ref{higher-order:limited-impl} when we define
 handlers, which pass them self to \AgdaFunction{handle}.
 
 \begin{code}
@@ -598,7 +642,7 @@ An an example for an effect in the higher order setting we define exceptions.
 Exceptions support two operations, the usual algebraic operation
 
 \paragraph{Syntax}
-The two operations are the equivalent of the Haskell definition from section
+The two operations are the equivalent of the Haskell definition from Section
 \ref{higher-order:syntax}.
 \AgdaFunction{throw} as well as the scoped operation \AgdaFunction{catch}.
 \AgdaDatatype{throw} takes the thrown exception as an additional parameter an
@@ -739,7 +783,7 @@ given function simply to each element of the list.
 
 Next we will look at the computations in scope i.e. the computations stored by
 \AgdaArgument{σ}.
-As in chapter \ref{chapter:first-order} and explained in
+As in Chapter \ref{chapter:first-order} and explained in Section
 \ref{preliminaries:scoped-effects}, the handler should be evaluated on the
 computation in scope in isolation i.e. not reuse the previous state.
 In the first order case this was accomplished by calling the handler again when
@@ -800,7 +844,7 @@ runExc (Catch κ σ)  = runExc (σ mainᵖ) >>= λ where
   (inj₂ x) → runExc (κ x)
 \end{code}
 Lastly we handle \AgdaInductiveConstructor{Other} operations.
-As in chapter \ref{chapter:first-order} we reconstruct the operation using
+As in Chapter \ref{chapter:first-order} we reconstruct the operation using
 \AgdaInductiveConstructor{impure}.
 Moving the handler along now requires us to use \AgdaFunction{handle}.
 We call \AgdaFunction{handle} on the given value of the container extension,
@@ -921,7 +965,7 @@ instance
 
 \paragraph{Example: Nondet}
 Using the above function and \AgdaKeyword{instance} we can lift the
-nondeterminism syntax from chapter \ref{chapter:first-order} to the higher-order
+nondeterminism syntax from Chapter \ref{chapter:first-order} to the higher-order
 setting.
 
 \begin{code}[hide]
@@ -947,7 +991,7 @@ instance
   Context._<$>_ List-Context f (x ∷ xs)  = f x ∷ (f <$> xs)
 \end{code}
 The first three cases of the handler are identical to the implementation in
-section \ref{nondeterminism}.
+Section \ref{nondeterminism}.
 The interesting new case is the one for \AgdaInductiveConstructor{Other} syntax.
 We must use use \AgdaFunction{handle} to traverse the arbitrary operation.
 Analougous to exceptions we evaluate \AgdaFunction{handle} on the reconstructed,
@@ -960,7 +1004,7 @@ parts of the program.
 \AgdaDatatype{Nondet} syntax to a compuation without \AgdaDatatype{Nondet}
 syntax and a \AgdaDatatype{List} as value type.
 Consider the \AgdaDatatype{Syntax} instance for \AgdaDatatype{Exc}, given in
-section \ref{higher-order:exceptions}.
+Section \ref{higher-order:exceptions}.
 The two compuations in scope use the inital context i.e. the given list is a
 singleton.
 The continuation uses \AgdaFunction{<\$>} to apply the rest of the program to
@@ -985,7 +1029,7 @@ runNondet (Other s κ σ)  = impure (handle (tt ∷ []) hdl (s , κ , σ))
 \end{code}
 Notice that the argument of the handler as well as the \AgdaFunction{hdl}
 function are of size \AgdaArgument{i} to guaranty termination, following the
-pattern explained in section \ref{higher-order:exceptions}.
+pattern explained in Section \ref{higher-order:exceptions}.
 
 \begin{code}
 _⁇_ : ⦃ Nondet ∈ effs ⦄ → Prog effs A → Prog effs A → Prog effs A
@@ -1035,7 +1079,7 @@ syntax.
 \subsection{Modular Higher Order Effects}
 
 In the last to sections we presented effects in isolation.
-Similar to the combined semantics described in
+Similar to the combined semantics described in Section
 \ref{first-order:combined-effects} we can induced different semantics by
 reordering the handlers.
 Consider the following program, which chooses between a
@@ -1090,20 +1134,21 @@ When using higher order syntax, computations potentially have to store the type
 of data they produce and therefore are larger than the data.
 This prevents scoping operations from capturing other computations, without
 switching to a larger type of computations.
-This specifically includes effectful data structures, which are needed to
-implement deep effects.
+This specifically includes effectful data structures, which are needed for the
+implementation of deep effects.
 In case of deep sharing this leads to a dependence between universe levels and
 the depth of data structures.
 We discussed two general approaches to avoid increasing universe levels when
 working with effectful data.
 However, both of them require a more complex representation for either types or
-data, probably leading to a complex implementations, which are hard to work with
-in real programs.
+data, probably leading to a more complex implementations, which is harder to
+work with in real programs.
 
 Because deep effects are an uncommon requirement, we still presented key points
 of a limited implementation.
-Although we removed deep effects as a requirement, we still had to work with
-different universe levels, while implementing the \AgdaDatatype{Syntax}.
+Although, we removed deep effects as a requirement, we still had to work with
+different universe levels, while implementing the \AgdaDatatype{Syntax}
+instances.
 This lead to manual lifting between universes and structures involving
 \AgdaDatatype{Setω}, which should generally be avoided.
 A level polymorphic implementation, needed for increasing the size of the

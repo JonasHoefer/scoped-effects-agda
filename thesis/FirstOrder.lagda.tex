@@ -66,7 +66,7 @@ As a more complex example we implement the sharing handler by
 choice semantics in Agda.
 
 
-\section{Functors {\`{a}} la carte}
+\section{Functors {\`{a}} la Carte}
 \label{first-order:functor}
 
 When modelling effects each functor represents the signature i.e. the operations for
@@ -82,7 +82,7 @@ To combine the syntax of multiple effects we can combine the underlying
 functors, because the free monad preserves coproducts\footnote{This follows from
 the facts that \texttt{Free} is the left half of a free-forgetful adjunction and
 that all left-adjoints preserve colimits.}.
-This method of modularization syntax was first presented by
+This method of modularization of syntax was presented by
 \textcite{DBLP:journals/jfp/Swierstra08}.
 
 The approach for modularization functors described by
@@ -209,7 +209,8 @@ The \AgdaKeyword{instance} keyword marks the two constructors as possible
 solution for instance arguments.
 Instance arguments are special hidden arguments which are denoted using
 $\lBrace$ and $\rBrace$.
-Instances and instance arguments can be used similar to Haskell's type classes
+Instances and instance arguments are resolved using a special instance
+resolution algorithm and can be used similar to Haskell's type classes
 and type class constraints.
 
 The two instances still overlap resulting in a potentially exponential slowdown
@@ -219,6 +220,8 @@ tactic to infer \AgdaDatatype{\_∈\_} arguments.
 For simplicity the following code will still use instance arguments.
 This version can easily be adapted to one using macros, by replacing the
 instance arguments with hidden ones with \AgdaKeyword{tactic} annotations.
+The repository contains an implementation using \AgdaKeyword{tactic}s, based on
+the work by Ulf Norell.
 
 Using this proposition we can define functions for injection into and projection
 out of coproducts.
@@ -230,10 +233,10 @@ inject (there ⦃ p ⦄)  prog      with inject p prog
 ... | s , pf = (inj₂ s) , pf
 
 project : ∀ {C ops ℓ} {A : Set ℓ} → C ∈ ops → ⟦ sum ops ⟧ A → Maybe (⟦ C ⟧ A)
-project here           (inj₁ s , pf)  = just (s , pf)
-project here           (inj₂ _ , _ )  = nothing
-project there          (inj₁ _ , _ )  = nothing
-project (there ⦃ p ⦄)  (inj₂ s , pf)  = project p (s , pf)
+project here           (inj₁ s  , pf  )  = just (s , pf)
+project here           (inj₂ _  , _   )  = nothing
+project there          (inj₁ _  , _   )  = nothing
+project (there ⦃ p ⦄)  (inj₂ s  , pf  )  = project p (s , pf)
 \end{code}
 Both \AgdaFunction{inject} and \AgdaFunction{project} require a proof that
 specific effect is an element of the list used to construct the coproduct.
@@ -241,19 +244,20 @@ specific effect is an element of the list used to construct the coproduct.
 Let us consider \AgdaFunction{inject} first.
 By pattern matching on the evidence we acquire more information about the type
 \AgdaFunction{sum}\AgdaSpace{}\AgdaArgument{ops}.
-In case of \AgdaInductiveConstructor{here} we know that \AgdaArgument{op} is in
-the head of the list i.e. that the given value \AgdaArgument{C}
-is the same as the one in the head of the list.
-Therefore the \AgdaField{Shape} types are the same and we can use our given
-\AgdaArgument{s} and \AgdaArgument{pf} to construct the coproduct.
+In case of \AgdaInductiveConstructor{here} we know that \AgdaArgument{C} is in
+the head of the list of containers.
+Because the returntype is constructed using \AgdaFunction{sum} over the given
+list, we know that the given value
+\AgdaArgument{s}\AgdaSpace{}\AgdaInductiveConstructor{,}\AgdaSpace{}\AgdaArgument{pf}
+has the same type as the left alternative in the returned coproduct.
 In case of \AgdaInductiveConstructor{there} we obtain a proof that the container
-is in the tail of the list, which we can use to make a recursive call.
-By pattern matching on and repackaging the result we obtain a value of the right
-type.
+is in the tail of the list, which we use to make a recursive call.
+By pattern matching on and repackaging the result we obtain a value of the
+correct type.
 
 \AgdaFunction{project} functions similarly.
 By pattern matching on the proof we either know that the value we found has
-the correct type or we obtain a proof for the tail of the list allowing us to
+the correct type or we obtain a proof for the tail of the list, allowing us to
 either make a recursive call or stop the search.
 Notice that in both cases we do not handle cases related to the empty list,
 because it is impossible to prove that the empty list has a member.
@@ -264,16 +268,16 @@ because it is impossible to prove that the empty list has a member.
 
 Using the coproduct machinery we can now define a version of the free monad,
 suitable for working with effects.
-In contrast to the first definition, this free monad is parameterized over a
-list of containers.
+In contrast to our first definition in section \ref{preliminaries:free-monad},
+this version is parameterized over a list of containers.
 In the \AgdaInductiveConstructor{impure} constructor the containers are combined
 using \AgdaFunction{sum}.
 The parameterization over a list ensures that the containers are not combined
 prematurely.
 We could store a proof that some effect \AgdaArgument{E} is an element of
 \AgdaArgument{effs} directly.
-This would allow us to use \AgdaArgument{E} directly, but raise the universe
-level of \AgdaDatatype{Free}.
+This would allow us to use \AgdaArgument{E} directly, allowing us to omit the
+\AgdaFunction{sum}, but also raise the universe level of \AgdaDatatype{Free}.
 
 \begin{code}
 data Free (ops : List Container) (A : Set) : {Size} → Set where
@@ -368,9 +372,9 @@ The height of the tree is left unchanged.
 This fact is wittnessed by the same index \AgdaArgument{i} on the argument and
 return type.
 
-In contrast to \AgdaFunction{fmap}, \AgdaFunction{bind} does not preserve the
+In contrast to \AgdaFunction{fmap}, \AgdaFunction{>>=} does not preserve the
 size.
-\AgdaFunction{bind} replaces every \AgdaInductiveConstructor{pure} leaf with a
+\AgdaFunction{>>=} replaces every \AgdaInductiveConstructor{pure} leaf with a
 subtree, which is generated from the stored value.
 The resulting tree is therefore at least as high as the given one.
 Because there is no addition for sized types the only correct size estimate for
@@ -510,13 +514,14 @@ tail of \AgdaArgument{C} in its effect stack and potentially modify the type
 They transform an impure computation partially to a pure one.
 Furthermore, by interpreting the syntax of an effect (mapping to a model for
 the theory) the handler defines the semantics for the effect.
-For example a handler for exceptions would remove exception syntax and transform
-a program producing a value of type \AgdaArgument{A} to one producing a value of
-type \AgdaArgument{E}\AgdaSpace{}\AgdaFunction{⊎}\AgdaSpace{}\AgdaArgument{A},
+For example, a handler for exceptions would remove exception syntax and
+transform a program producing a value of type \AgdaArgument{A} to one producing
+a value of type
+\AgdaArgument{E}\AgdaSpace{}\AgdaFunction{⊎}\AgdaSpace{}\AgdaArgument{A},
 either an exception or a result.
-Internally the handler would map the \AgdaInductiveConstructor{pure}
+Internally the handler would map the \AgdaInductiveConstructor{impure}
 \AgdaFunction{throw} operation to a \AgdaInductiveConstructor{pure}
-computations, witch simply yields the exception.
+computations, witch simply yields the exception inside an either monad.
 Some later handlers will also modify syntax of other effects.
 These handlers are usually called \textit{non-orthogonal handlers}.
 
@@ -526,7 +531,8 @@ A program containing just \AgdaDatatype{Void} syntax contains no
 \AgdaInductiveConstructor{impure} constructors, because \AgdaDatatype{Void} has
 no operations i.e. its \AgdaField{Shape} type has no constructors.
 Pattern matching on the impure constructor yields $()$.
-Therefore, we can always produce a value of type \AgdaArgument{A}.
+Therefore, the program does not call impure operations and always yields a value
+of type \AgdaArgument{A}.
 The handler for \AgdaDatatype{Void} is important, because it can be used to
 escape the \AgdaDatatype{Free} context after all other effects have been
 handled.
@@ -545,10 +551,12 @@ lay ground work for more complex handlers.
 \subsection{Nondeterministic Choice}
 \label{nondeterminism}
 
-The nondeterminism effect has two operations \AgdaFunction{\_⁇\_} and
+The nondeterminism effect has two operations \AgdaFunction{⁇} and
 \AgdaFunction{fail}.
-\AgdaFunction{\_⁇\_} introduces a nondeterministic choice between two execution
+\AgdaFunction{⁇} introduces a nondeterministic choice between two execution
 paths and \AgdaFunction{fail} discards the current path.
+Nondeterministically choosing between two paths means that \AgdaFunction{⁇}
+nondeterministically produces a boolean or having two continuations.
 We therefore have a nullary and a binary operation, both without additional
 parameters.
 
@@ -556,13 +564,14 @@ $$
 \Sigma_{\text{Nondet}} = \{ ?\!? : \mathbf{1} \leadsto \mathbf{2}, \mathrm{fail}
 : \mathbf{1} \leadsto \mathbf{0} \}
 $$
-Expressed as a container we have a shape with two constructors, one for each
+Expressed as a container, we have a shape with two constructors, one for each
 operation and both without parameters.
 
 \begin{code}
 data Nondetˢ : Set where ⁇ˢ failˢ : Nondetˢ
 \end{code}
-When constructing the container we assign the correct arities to each shape.
+When constructing the container we assign the correct arities to each shape, by
+defining a $\Pi$-type which produces the correct type for each shape.
 
 \begin{code}
 Nondet : Container
@@ -573,7 +582,7 @@ These are not the generic operations, but helper functions based on them.
 The generic operations take no additional parameters and always use
 \AgdaInductiveConstructor{pure} as continuation.
 These versions of the operations already process the continuations parameter.
-The generic \AgdaFunction{⁇} operation nondeterministicly produces a boolean,
+The generic \AgdaFunction{⁇} operation nondeterministically produces a boolean,
 but usually we want to use it analogous to Curry's \texttt{?} operator,
 therefore we implement this refined version.
 \AgdaFunction{op}\AgdaSpace{}\AgdaInductiveConstructor{failˢ} produces a
@@ -611,8 +620,14 @@ pattern Choice κ   = impure (inj₁ ⁇ˢ , κ)
 \begin{AgdaAlign}
   The handler interprets \AgdaDatatype{Nondet} syntax and removes it from the
   program.
-  Therefore \AgdaDatatype{Nondet} is removed from the front of the effect stack
-  and the result is wrapped in a \AgdaDatatype{List}.
+  Therefore \AgdaDatatype{Nondet} is removed from the front of the effect stack.
+  For the handler different semantics are conceivable.
+  For example, a handler could implement backtracking i.e. search for the first
+  result that is not \AgdaFunction{fail}.
+  The result type of such a handler could be modelled using a
+  \AgdaDatatype{Maybe}.
+  In our case, we will implement a handler which returns all results.
+  Therefore, the result is wrapped in a \AgdaDatatype{List}.
   The \AgdaDatatype{List} contains the results of all successful execution
   paths.
   \begin{code}
@@ -620,7 +635,7 @@ runNondet : ∀ {ops} → Free (Nondet ∷ ops) A → Free ops (List A)
   \end{code}
   The \AgdaInductiveConstructor{pure} constructor represents a program without
   effects.
-  The singleton list is returned, because no nondeterminism is used in a
+  A singleton list is returned, because no nondeterminism is used in a
   \AgdaInductiveConstructor{pure} calculation.
   \begin{code}
 runNondet (pure x)     = pure (x ∷ [])
@@ -635,6 +650,10 @@ runNondet (Fail κ)     = pure []
   arbitrary number of results.
   We execute both programs recursively using \AgdaFunction{runNondet} and
   collect the results in a single \AgdaDatatype{List}.
+  Note that we invoked the continuation of the operation with all possible
+  arguments.
+  A handler just searching for a single result would potentially discard one
+  execution path.
 
   $\llparenthesis$ and $\rrparenthesis$ are \textit{idiom brackets} and denote
   applicative functor style function application i.e.
@@ -679,7 +698,7 @@ interpreting its syntax.
 The result of a handler should again be a model for the effect i.e. the
 equations characterizing the effect should hold.
 We can proof that our handler produces a valid (but not necessarily free) model
-for our equations by verifying that the laws holds after interpreting the terms.
+for our equations by verifying that after interpreting the terms the laws holds.
 The ability to rigorously prove properties of a program, such as these laws for
 our handler, the program is one of the main advantages of Agda.
 
@@ -820,8 +839,6 @@ Notice that this operation technical has $|S|$ continuations, but we only call a
 single one.
 In reality all continuations are of course implemented as a single function,
 which takes a parameter of type $S$.
-% Nondet -> all continuations ; more control -> flexible handler i.e.
-% backtracking; all results ; ..
 \begin{code}
 runState s₀ (Get κ)      = runState s₀ (κ s₀)
 \end{code}
@@ -832,12 +849,15 @@ runState _  (Put s₁ κ)   = runState s₁ (κ tt)
 \end{code}
 Similar to the handler for \AgdaDatatype{Nondet} we apply the handler to every
 subterm of non \AgdaFunction{State} operations.
+The current state is passed to the recursive calls of the handler for each
+continuation.
 \begin{code}
 runState s₀ (Other s κ)  = impure (s , runState s₀ ∘ κ)
 \end{code}
 \end{AgdaAlign}
-
-\begin{code}[hide]
+Lastly we define the usual helper function \AgdaFunction{evalState}, which
+simply drops the final state.
+\begin{code}
 evalState : ∀ {ops S} → S → Free (State S ∷ ops) A → Free ops A
 evalState s₀ p = proj₂ <$> runState s₀ p
 \end{code}
@@ -1015,29 +1035,48 @@ effects \cite{DBLP:conf/haskell/WuSH14}.
 They presented two syntactic approaches to explicitly declare how far an
 operations scopes over an arbitrary program.
 In the following section we implement the scoped effect
-\AgdaDatatype{Cut} following \cite{DBLP:conf/haskell/WuSH14} in Agda.
+\AgdaDatatype{Cut} following \textcite{DBLP:conf/haskell/WuSH14} in Agda.
 
-The central idea is to add new effect syntax, representing explicit scope
-delimiters.
-Whenever an opening delimiter is encountered the handler can be run again on the
-scoped program.
+The central idea by \textcite{DBLP:conf/haskell/WuSH14} is to add new effect
+syntax, representing explicit scope delimiters.
+Whenever an opening delimiter is encountered the handler implementing the
+non-algebraic operation can be run again on the program in scope.
+This allows a flexible ordering of the handlers and the implementation of scoped
+operations as handlers. 
+Furthermore, it allows calling all handlers for the program at once, similar to
+\texttt{runM} functions for monad transformers.
+A more in depth explanation, as well as an example were the handler orders for
+semantics and scoping do not coincide can be found in the original paper by
+\textcite{DBLP:conf/haskell/WuSH14} as well as the repository.
 Thanks to a closing delimiters the end of a scope can be found.
 Therefore, calling \AgdaFunction{>>=} on a scoped operation to extend the
 continuation is not a problem, because the continuation can be separated in the
 part inside and outside the scope.
+Separating the program into the parts inside and outside the scope requires a
+more complex recursive handler, because scopes could be nested. 
+Using our size annotated free monad we are able to transfer the implementation
+by \textcite{DBLP:conf/haskell/WuSH14}, without making large changes.
 
 
 \subsection{Cut and Call}
 
-First we define the syntax for the new effect and its delimiters.
+Following \textcite{DBLP:conf/haskell/WuSH14} the effect is implemented in two
+stages.
+First we implement the traditional effect \AgdaDatatype{Cut}, which can be used
+to prune nondeterministic computations.
+The handler for the effect determines the scope of the pruning operation.
+Second we implement an effect which marks the scopes and when handled isolates
+the programs in scope and evaluates the handler for \AgdaDatatype{Cut} on each
+of them.
+First we define the syntax for the actual effect and its delimiters.
 
 \begin{code}
-data Cutˢ : Set where cutfailˢ : Cutˢ
-data Callˢ : Set where bcallˢ ecallˢ : Callˢ
+data Cutˢ   : Set where cutfailˢ : Cutˢ
+data Callˢ  : Set where bcallˢ ecallˢ : Callˢ
 
-pattern Cutfail = impure (inj₁ cutfailˢ , _)
-pattern BCall κ = impure (inj₁ bcallˢ , κ)
-pattern ECall κ = impure (inj₁ ecallˢ , κ)
+pattern Cutfail   = impure (inj₁ cutfailˢ , _)
+pattern BCall  κ  = impure (inj₁ bcallˢ , κ)
+pattern ECall  κ  = impure (inj₁ ecallˢ , κ)
 
 Cut Call : Container
 Cut   = Cutˢ    ▷ λ _ → ⊥
@@ -1048,11 +1087,10 @@ The \AgdaDatatype{Cut} effect has just a single operation, \AgdaFunction{cutfail
 When \AgdaFunction{cutfail} is called it prunes all unexplored branches and
 calls \AgdaFunction{fail}.
 The structure of the Agda implementation of the handlers is identical to the one
-by \textcite{DBLP:conf/haskell/WuSH14}, but to proof termination we have to use
+by \textcite{DBLP:conf/haskell/WuSH14}, but to prove termination we have to use
 the size annotations.
 
 \begin{AgdaAlign}
-% TODO: mention that this sis essentially a parameter passing handler?
 The handler itself calls the function \AgdaFunction{go}, which accumulates the
 unexplored alternatives in its second argument using \AgdaFunction{⁇}.
 \AgdaFunction{fail} is the neutral element for \AgdaFunction{⁇} and therefore
@@ -1097,7 +1135,7 @@ Whenever we find syntax from another effect we can therefore try to project the
 \AgdaDatatype{Nondet} option from the coproduct.
 Notice that \AgdaFunction{prj} hides the structural recursion but decreases the
 \AgdaDatatype{Size} index.
-We can therefore still proof that the function terminates.
+We can therefore still prove that the function terminates.
 
 \begin{code}
     go q p@(Other s κ)  with prj {Nondet} p
@@ -1105,7 +1143,7 @@ We can therefore still proof that the function terminates.
 The case for \AgdaFunction{⁇} separates the main branch from the alternative.
 Using \AgdaFunction{go} the \AgdaDatatype{Cut} syntax is removed from both
 alternatives, but the results are handled asymmetrically.
-The left option is direclty passed to the recursive call of
+The left option is directly passed to the recursive call of
 \AgdaFunction{go}.
 The handeled right option is the new alternative for the left one and therefore
 could be pruned if left contains a \AgdaFunction{cutfail} call.
@@ -1131,7 +1169,7 @@ The implementation is again similar to the one presented by
 \textcite{DBLP:conf/haskell/WuSH14}, but to prove termination we again have to
 add \AgdaDatatype{Size} annotations to the functions.
 
-The \AgdaFunction{bcall} and \AgdaFunction{ecall} handler remove the scope
+The \AgdaFunction{bcall} and \AgdaFunction{ecall} handler removes the scope
 delimiter syntax from the program and run \AgdaFunction{call} (the handler
 for \AgdaDatatype{cut}) at the beginning of each scope.
 Whenever a \AgdaFunction{BCall} is found the handler \AgdaFunction{ecall} is
@@ -1148,7 +1186,6 @@ Remember that bind discards the size of its argument.
 For handlers following this pattern this is not a problem, because the returned
 program (i.e. the inner \AgdaDatatype{Prog} layer) is size annotated.
 Therefore, calling the handler recursively 
-
 
 Calling the handler on the extracted program guaranties that the handler does
 not interact with syntax outside the intended scope.
@@ -1205,7 +1242,7 @@ call′ p = do op bcallˢ ; x ← p ; op ecallˢ ; pure x
 \section{Call-Time Choice as Effect}
 
 Bunkenburg presented an approach to model call-time choice as a stack of
-scoped algebraic effects \cite{bunkenburg2019modeling}.
+scoped algebraic effects~\cite{bunkenburg2019modeling}.
 In this section we extend the nondeterminism effect from section
 \ref{nondeterminism} to one modelling call-time choice.
 
@@ -1224,7 +1261,7 @@ Furthermore, instead of producing a list the handler will now produce a tree of
 choices.
 This change allows to choose the evaluation strategy, e.g. depth first or breath
 first search, independent of the handler.
-
+% TODO: introduce renamed effect
 
 \subsection{Deep Effects}
 \label{first-order:deep-effects}
@@ -1233,7 +1270,8 @@ In Haskell and Curry ambient effects, like partiality, tracing and
 nondeterminism, can occur in components of data structures.
 Each argument of a constructor could be an effectful computation.
 For example, in Curry the tail of a list could be a nondeterministic choice
-between two possible tails.
+between two possible tails or in Haskell the list's tail could be
+\texttt{undefined}.
 Such effects are sometimes called \textit{deep effects}.
 
 We want to simulate this behavior with algebraic effects.
@@ -1266,7 +1304,7 @@ pattern []ᴹ          = pure nil
 pattern _∷ᴹ_ mx mxs  = pure (cons mx mxs)
 \end{code}
 The size annotations on the lifted data structures are needed to prove
-termination of structural recursive functions.
+structural recursive functions terminate.
 To pattern match on a lifted value we have to use \AgdaFunction{>>=}.
 Therefore, the structural recursion is obscured.
 
@@ -1277,7 +1315,7 @@ mxs ++ᴹ mys = mxs >>= λ where
   (cons mx mxs′)  → mx ∷ᴹ mxs′ ++ᴹ mys
 \end{code}
 
-\subsubsection{Normalization of Effectful Data}
+\paragraph{Normalization of Effectful Data}
 
 Based on the code by \textcite{bunkenburg2019modeling} we introduce a type
 class for normalizing effectful data structures i.e. moving interleaved
@@ -1285,8 +1323,7 @@ class for normalizing effectful data structures i.e. moving interleaved
 
 \begin{code}
 record Normalform (ops : List Container) (A B : Set) : Set where
-  field
-    nf : A → Free ops B
+  field nf : A → Free ops B
 open Normalform ⦃...⦄ public
 
 !_ : ⦃ Normalform ops A B ⦄ → Free ops A → Free ops B

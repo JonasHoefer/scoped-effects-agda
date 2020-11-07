@@ -234,7 +234,7 @@ cannot be translated as easily to Haskell.
 \subsection{Propositions as Types}
 
 The idea of propositions as types, also know as Curry-Howard correspondence,
-relates type theory to logic and is the basis for theorem proofing in
+relates type theory to logic and is the basis for theorem proving in
 dependently typed languages, like Agda.
 In this section we give a short overview over the idea.
 An more in depth explanation and an overview over the history of the idea can be
@@ -251,7 +251,7 @@ For example, the law of the excluded middle and double negation elimination do
 not hold in general.
 Intuitively speaking, in intuitionistic logic every proof has to be witnessed.
 When proving a disjunction one has to state which of the alternatives holds i.e.
-one cannot just proof existence.
+one cannot just prove existence.
 With this view point in mind it should be clear why intuitionists refute the law
 of the excluded middle, if $A \vee \neg A$ were true in general one would
 already have to know which alternative holds.
@@ -264,7 +264,7 @@ Unit and bottom type correspond to true and false, because one can always deduce
 true (construct a value of the unit type $\top$) and there exist no proof of
 falsity i.e. $\bot$ the type representing false is not inhabited.
 Under the above interpretation the usual logical connectives like $\wedge$,
-$\vee$ and $\Rightarrow$ correspond product, sum and function types.
+$\vee$ and $\rightarrow$ correspond product, sum and function types.
 
 For example, by the introduction rule for conjunctions, to construct a proof of
 $A\wedge B$ one has to construct a proof of $A$ and a proof of $B$.
@@ -283,28 +283,28 @@ Lambda abstracting of a value of type $A$ corresponds to assuming a proof of $A$
 i.e. implication introduction, while function application corresponds to
 implication elimination.
 
-As explained in section \ref{preliminaries:dependent-types}, Agda's type system
+As explained in Section \ref{preliminaries:dependent-types}, Agda's type system
 has dependent types.
 With dependent types the construction of a type (and therefore whether the type
 is inhabited) can change based on a value.
 Dependent types therefore correspond to predicates.
 $\Sigma$ and $\Pi$ types correspond to existential and universal quantification.
-To proof an existential one has to provide a value and a proof that the
+To prove an existential one has to provide a value and a proof that the
 proposition holds for this value.
 These two correspond to the two elements of a the $\Sigma$ type.
 The type of the second element depends on the first one i.e. it's a proof for a
 predicate on the first value.
-The prove a universal quantified proposition one has to proof that it holds for
+To prove a universal quantified proposition one has to prove that it holds for
 every possible value.
 A $\Pi$ type is a function whose return type depends on the given value i.e.
 given any value it returns a proof for the predicate on its argument.
 
 Extending the type system with dependent types corresponds to extending
 intuitionistic propositional logic to intuitionistic predicate logic.
-Using the above corresponds Agda can be used to state and proof theorems in
+Using the above corresponds Agda can be used to state and prove theorems in
 predicate logic.
 An overview over the correspondences between certain types and connectives, as
-well as the corresponding syntax in Agda can be found in table
+well as the corresponding syntax in Agda can be found in Table
 \ref{preliminaries:propositions-as-types:table}.
 
 \begin{table}
@@ -313,12 +313,12 @@ well as the corresponding syntax in Agda can be found in table
       FOL & MLTT & Agda \\\hline
       $\forall x \in A: P(x)$ & $\Pi_{x:A}P(x)$ & \mintinline{agda}{(x : A) → P x} \\
       $\exists x \in A: P(x)$ & $\Sigma_{x:A} P(x)$ & \mintinline{agda}{Σ[ x ∈ A ] P x} \\
-      $\neg A$ & $A \rightarrow 0$ & \mintinline{agda}{A → ⊥} \\
+      $\neg A$ & $A \rightarrow \mathbb 0$ & \mintinline{agda}{A → ⊥} \\
       $P \wedge Q$ & $P \times Q$ & \mintinline{agda}{A × B} \\
       $P \vee Q$ & $P + Q$ & \mintinline{agda}{A ⊎ B} \\
-      $P \Rightarrow Q$ & $P \rightarrow Q$ & \mintinline{agda}{A → B} \\
-      $\mathbf t$ & $\mathbf 1$ & \mintinline{agda}{⊤} \\
-      $\mathbf f$ & $\mathbf 0$ & \mintinline{agda}{⊥}
+      $P \rightarrow Q$ & $P \rightarrow Q$ & \mintinline{agda}{A → B} \\
+      $\mathbf t$ & $\mathbb 1$ & \mintinline{agda}{⊤} \\
+      $\mathbf f$ & $\mathbb 0$ & \mintinline{agda}{⊥}
     \end{tabular}
   \end{center}
   \label{preliminaries:propositions-as-types:table}
@@ -397,7 +397,7 @@ i.e. by inspecting the evidence that $x$ and $y$ are equal we obtain more
 information about the goal i.e. the return type of the function.
 Because \AgdaInductiveConstructor{refl} can only be constructed if the two
 values are the same the two variables are unified.
-We therefore have to produce a proof that $f x$ is equal to itself, which is
+Therefore, we have to produce a proof that $f x$ is equal to itself, which is
 given by reflexivity.
 
 By pattern matching on variables used in the equality type we can obtain more
@@ -505,7 +505,18 @@ For example, Agda does not inline functions containing pattern matches during
 termination checking.
 A common example are recursive calls in lambdas, which are passed to higher
 order functions like \AgdaFunction{map} and \AgdaFunction{>>=}.
+Consider the following definition of \mintinline{haskell}{mapRose}.
+The recursive call is made by the higher-order function
+\mintinline{haskell}{map} for lists.
+An equivalent definition in Agda does not obviously terminate, because the
+structural recursion is obscured.
 
+\begin{minted}{haskell}
+      data Rose a = Branch a [Rose a]
+
+      mapRose :: (a -> b) -> Rose a -> Rose b
+      mapRose f (Branch x rs) = Branch (f x) (map (mapRose f) rs)
+\end{minted}
 To still prove termination in such cases we can resort to type-based
 termination checking as described by \textcite{DBLP:journals/lmcs/Abel08}.
 The fundamental idea is to represent the size of a recursive data structure in
@@ -534,7 +545,7 @@ Given an \AgdaArgument{i} the type of all smaller sizes can be constructed using
 the \AgdaDatatype{Size<\_} family of type\footnote{We will not need this
   construction. It is usually used when working with \AgdaKeyword{coinductive}
   data types.}.
-If the size decreases across all recursive call of a function, termination
+If the size decreases across all recursive calls of a function, termination
 follows from the well-ordering on \AgdaDatatype{Size}.
 
 \begin{code}[hide]
@@ -554,7 +565,7 @@ constructors with the next larger size
 The size therefore corresponds to the height of the tree described by the term
 ($+$ the initial height for the lowest non-inductive constructor).
 
-A common example for sized types are rose trees.
+Let us again consider the rose tree example.
 The size index can be intuitively thought of as the height of the tree.
 
 \begin{code}
@@ -591,7 +602,7 @@ to large and unreadable programs.
 In a type system with arbitrary recursive types, it is possible to to implement a
 fixpoint combinator and therefore non terminating functions without explicit
 recursion.
-As explained in section \ref{sec:termination-checking} this entails logical
+As explained in Section \ref{sec:termination-checking} this entails logical
 inconsistency.
 Agda allows only strictly positive data types.
 A data type $D$ is strictly positive if all constructors are of the form
@@ -685,7 +696,7 @@ Using this definition we can define \AgdaFunction{fmap} for containers.
 fmap : ∀ {A B C} → (A → B) → (⟦ C ⟧ A → ⟦ C ⟧ B)
 fmap f (s , pf) = (s , f ∘ pf)
 \end{code}
-As mentioned in section \ref{sec:termination-checking}, Agda does not inline
+As mentioned in Section \ref{sec:termination-checking}, Agda does not inline
 functions containing a pattern match, even if the \AgdaDatatype{INLINE} pragma
 is used.
 Because container extensions are just \AgdaKeyword{record} types, we can define
@@ -800,33 +811,50 @@ As expected this function yields the results $0$ and $2$.
 
 \section{Algebraic Computational Effects}
 
-Giving a concrete definition for computational effects is hard.
-Examples include I/O, exceptions, nondeterminism, state and delimited
-continuations~\cite{DBLP:journals/corr/abs-1807-05923}.
+Computational effects are a wide concept and usually introduced by example.
+Examples include I/O, exceptions, nondeterminism, state and
+continuations~\cite{DBLP:conf/fossacs/PlotkinP02,DBLP:journals/corr/abs-1807-05923}.
 Algebraic effects are computational effects, which can be described using an
 algebraic theory.
 They were first presented \textcite{DBLP:conf/fossacs/PlotkinP02} as an
-alternative to monads for describing computational effects.
+alternative to monads for describing computational effects and capture a wide
+class of computational effects.
+Due to their uniform representation they provide a general way of defining,
+combining and reasoning about computational
+effects~\cite{DBLP:journals/corr/PlotkinP13}.
 
-Handlers for algebraic effects were first presented by Plotkin and Pretnar
-as a generalization of exception handlers~\cite{DBLP:conf/esop/PlotkinP09}.
-Handlers can be used to describe non-algebraic operations, which include
-operations with scopes such as \texttt{catch} and \texttt{once}.
+Handlers for algebraic effects were first presented by
+\citeauthor{DBLP:conf/esop/PlotkinP09} as a generalization of exception
+handlers~\cite{DBLP:conf/esop/PlotkinP09}.
+They describe how to transform effectual computations and can be used to
+describe non-algebraic operations, that is operations which did not fit in the
+general theory of algebraic effects.
+Examples include operations with scopes such as \texttt{catch} and
+\texttt{once}.
 
 \textcite{DBLP:conf/haskell/WuSH14} describe a problem with this approach when
 multiple handlers interact.
 The ordering of handlers induces a semantic for the program, but simultaneously
-the handlers also delimit scopes.
+handlers which implement scoping operations also delimit scopes.
 The correct ordering for scoping and semantics maybe not coincide.
 Wu et al. fix this problem by introducing new syntactic constructs to delimit
 scopes, removing the responsibility from the
 handler~\cite{DBLP:conf/haskell/WuSH14,DBLP:conf/lics/PirogSWJ18}.
 
+In the following sections we give a short introduction to the classical notion
+of algebraic effects and handlers as described by
+\textcite{DBLP:journals/corr/abs-1807-05923} and used in Chapter
+\ref{chapter:first-order} as well as scoped effects as described by
+\textcite{DBLP:conf/haskell/WuSH14}.
 
 \subsection{Algebraic Theories}
 
-The following definition is similar to the one given by
-\textcite{DBLP:journals/corr/abs-1807-05923}.
+The following definition is similar\footnote{We use a slightly different
+  notation for the assignment of variables when interpreting terms.} to the one
+given by \textcite{DBLP:journals/corr/abs-1807-05923}.
+Bauer uses abstract algebra not arbitrary categories.
+We use his work to define some basic concepts and terminology regarding
+algebraic effects.
 
 An algebraic theory consists of a signature describing the syntax of the
 operations together with a set of equations.
@@ -860,8 +888,7 @@ parameters as a function from the arity set to the carrier set $|I|$.
 \]
 Given a function $\iota : \mathbb{X} \rightarrow |I|$, assigning each variable
 a value, we can give an interpretation for terms $\lBrack\cdot\rBrack_{(I,\iota)}$.
-\begin{align*}
-  \lBrack x \rBrack_{(I,\iota)} &= \iota(x) \\
+\begin{align*} \lBrack x \rBrack_{(I,\iota)} &= \iota(x) \\
   \lBrack \mathrm{op}_i(p, \kappa)\rBrack_{(I,\iota)} &= \lBrack op_i \rBrack_I (p, \lambda p. \lBrack\kappa(p)\rBrack_{(I, \iota)})
 \end{align*}
 An interpretation for $T$ is called $T$-model if it validates all equations in $\mathcal{E}_T$.
@@ -959,9 +986,10 @@ free) $T$ model.
 
 Because a handler is a homomorphism from a free model it is uniquely determent
 by a map $f : V \rightarrow |\mathrm{Free}_{T'}(V')|$ for the underlying
-values and a map $h_i : P_i \times |\mathrm{Free}_{T'}(V')|^{A_i} \rightarrow
-|\mathrm{Free}_{T'}(V')|$ for each operation $op_i$.
-Furthermore, the handler satisfies the following two equations.
+values and the interpretations $\lBrack op_i \rBrack : P_i \times
+|\mathrm{Free}_{T'}(V')|^{A_i} \rightarrow |\mathrm{Free}_{T'}(V')|$ for each
+operation $op_i$ in the target $T$-model.
+The handler is then given by the following two equations.
 \begin{align*}
   h([\mathrm{pure}\;x]_{\sim_T}) &= f(x) \\
   h([\mathrm{op}_i(p,\kappa)]_{\sim_T}) &= h_i(p, h\circ\kappa )
@@ -978,7 +1006,7 @@ For example, a handler for exceptions could be given by
   \mathrm{throw}(e, \kappa)&\mapsto \mathrm{pure}\; (inj_1\; e) 
 \end{align*}
 where the source is a free model for the theory of exceptions $E$ and the target
-is a free theory for the empty model.
+is a free model for the empty theory.
 The model for the theory of exceptions on the right-hand side is given by the
 extended set of values, which corresponds to the usual monad modelling the
 effect.
@@ -1052,7 +1080,7 @@ hold again.
 When defining the free monad in Agda we cannot use an arbitrary functor as in
 Haskell, because it would violate the strict positivity requirement.
 Instead we will represent the functor as the extension of a container as
-described in section \ref{container}.
+described in Section \ref{container}.
 Replacing arbitrary functors with container extension, especially to implement
 the free monad, is a well known
 approach~\cite{DBLP:journals/programming/DylusCT19,DBLP:conf/haskell/ChristiansenDB19,DBLP:conf/mpc/McBride15}.
@@ -1121,7 +1149,7 @@ The equations obviously does not hold, because if it would hold, \texttt{catch}
 could not differentiate between an exception thrown inside or outside its scope.
 The same pattern can be observed with other operations which delimit scopes.
 
-As noted in section \ref{preliminaries:handler} non-algebraic and in particular
+As noted in Section \ref{preliminaries:handler} non-algebraic and in particular
 operations with scopes can be implemented as a handler.
 \textcite{DBLP:conf/haskell/WuSH14} noted a general problem when working with
 multiple handlers describing scoped operations.
@@ -1135,10 +1163,8 @@ computation. % :/
 
 To fix this problem \textcite{DBLP:conf/haskell/WuSH14} introduced two solutions
 for syntactically delimiting scopes.
-Both can be used to add operations with scopes to an implementation of algebraic
-effects.
-In chapter \ref{chapter:first-order} and \ref{chapter:higher-order} we discuss
-how well these two approaches work in Agda.
+In Chapter \ref{chapter:first-order} and Chapter \ref{chapter:higher-order} we
+discuss how well these two approaches translate from Haskell to Agda.
 
 
 % TODO: context of evaluating handler on subcomputations or change text in HO Exc
