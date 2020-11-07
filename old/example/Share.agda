@@ -101,3 +101,15 @@ share-list-elems-test = refl
 
 shared-list-elem-test : 0 ∷ 2 ∷ [] ≡ runCTC shared-list-elem
 shared-list-elem-test = refl
+
+addSharedCoinTwice :
+  {@(tactic eff) _ : State (ℕ × ℕ) ∈ F}
+  {@(tactic eff) _ : Share         ∈ F}
+  {@(tactic eff) _ : Nondet        ∈ F}
+  → Free F ℕ
+addSharedCoinTwice = do
+  x ← share coin
+  ⦇ ⦇ x + coin ⦈ + ⦇ x + coin ⦈ ⦈
+
+runAddShareCoinTwice : runCTC addSharedCoinTwice ≡ (0 ∷ 1 ∷ 1 ∷ 2 ∷ 2 ∷ 3 ∷ 3 ∷ 4 ∷ [])
+runAddShareCoinTwice = refl

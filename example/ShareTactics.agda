@@ -42,3 +42,17 @@ doubleShare = do
 
 runDoubleShare : runCTC doubleShare ≡ 0 ∷ 2 ∷ 2 ∷ []
 runDoubleShare = refl
+
+coin : { @(tactic eff) _ : Nondet ∈ effs } → Prog effs ℕ
+coin = pure 0 ⁇ pure 1
+
+addSharedCoinTwice :
+  { @(tactic eff) _ : State SID ∈ effs } →
+  { @(tactic eff) _ : Share ∈ effs     } →
+  { @(tactic eff) _ : Nondet ∈ effs    } → Prog effs ℕ
+addSharedCoinTwice = do
+  x ← share coin
+  ⦇ ⦇ x + coin ⦈ + ⦇ x + coin ⦈ ⦈
+
+runAddShareCoinTwice : runCTC addSharedCoinTwice ≡ (0 ∷ 1 ∷ 1 ∷ 2 ∷ 2 ∷ 3 ∷ 3 ∷ 4 ∷ [])
+runAddShareCoinTwice = refl

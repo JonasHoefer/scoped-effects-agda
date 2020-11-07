@@ -45,19 +45,31 @@ share {Ops} {Scps} p = do
                 return x′
     return $ share⟨ i , j ⟩ p′
 
-runShare′ : ⦃ Nondet ∈ effs ⦄ → Prog (Share ∷ effs) A → SID → ℕ → Prog effs A
-runShare′ {effs} {A} ⦃ p ⦄ = foldP (λ i → ((λ X → SID → ℕ → Prog effs X) ^ i) A) 1 id
-  (λ z _ _ → var z)
+-- runShare′ : ⦃ Nondet ∈ effs ⦄ → Prog (Share ∷ effs) A → SID → ℕ → Prog effs A
+-- runShare′ {effs} {A} ⦃ p ⦄ = foldP (λ i → ((λ X → SID → ℕ → Prog effs X) ^ i) A) 1 id
+--   (λ z _ _ → var z)
+--   (λ{ (Other s pf) → case prj (ops-inj p) (s , pf) of λ where
+--     nothing                sid n → op (s , λ p → pf p sid n)
+--     (just (failˢ     , κ)) sid n → fail
+--     (just (choiceˢ _ , κ)) sid n → Op (choiceˢ (just (sid , n)) , λ p → κ p sid (suc n))
+--   }) λ where
+--     (ShareScp sid′ κ) sid n → κ tt sid′ 1 >>= λ r → r sid n
+--     (Other    s    κ) sid n → scp (s , λ p → (λ k → k sid n) <$> κ p sid n)
+
+runShare′ : ⦃ Nondet ∈ effs ⦄ → Prog (Share ∷ effs) A → Maybe (SID × ℕ) → Prog effs A
+runShare′ {effs} {A} ⦃ p ⦄ = foldP (λ i → ((λ X → Maybe (SID × ℕ) → Prog effs X) ^ i) A) 1 id
+  (λ z _ → var z)
   (λ{ (Other s pf) → case prj (ops-inj p) (s , pf) of λ where
-    nothing                sid n → op (s , λ p → pf p sid n)
-    (just (failˢ     , κ)) sid n → fail
-    (just (choiceˢ _ , κ)) sid n → Op (choiceˢ (just (sid , n)) , λ p → κ p sid (suc n))
+    nothing                cid              → op (s , λ p → pf p cid)
+    (just (failˢ     , κ)) cid              → fail
+    (just (choiceˢ _ , κ)) (just (sid , n)) → Op (choiceˢ (just (sid , n)) , λ p → κ p (just (sid , (suc n))))
+    (just (choiceˢ _ , κ)) nothing          → Op (choiceˢ nothing , λ p → κ p nothing)
   }) λ where
-    (ShareScp sid′ κ) sid n → κ tt sid′ 1 >>= λ r → r sid n
-    (Other    s    κ) sid n → scp (s , λ p → (λ k → k sid n) <$> κ p sid n)
+    (ShareScp sid′ κ) cid → κ tt (just (sid′ , 0)) >>= λ r → r cid
+    (Other    s    κ) sid → scp (s , λ p → (λ k → k sid) <$> κ p sid)
 
 runShare : ⦃ Nondet ∈ effs ⦄ → Prog (Share ∷ effs) A → Prog effs A
-runShare p = runShare′ p (0 , 0) 0
+runShare p = runShare′ p nothing
 
 runCTC : ⦃ Normalform (State SID ∷ Share ∷ Nondet ∷ []) A B ⦄ → Prog (State SID ∷ Share ∷ Nondet ∷ []) A → List B
 runCTC p = run $ runNondet $ runShare $ evalState (! p) (0 , 0)
