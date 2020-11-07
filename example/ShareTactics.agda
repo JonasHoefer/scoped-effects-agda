@@ -14,13 +14,15 @@ open import Variables
 open import Effect.Nondet renaming (_⁇_ to _⁇′_)
 open import Effect.Share renaming (share to share′)
 open import Effect.Share.Shareable
-open import Effect.State
+open import Effect.State hiding (local)
 open import Prog
 open import Prog.Instances
 
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong; sym; trans)
 
 open import Tactic.Eff
+
+-- Examples of how to adapt this implementation to tactics to avoid overlapping instances.
 
 share :
   { @(tactic eff) state : State SID ∈ effs } →
@@ -56,3 +58,25 @@ addSharedCoinTwice = do
 
 runAddShareCoinTwice : runCTC addSharedCoinTwice ≡ (0 ∷ 1 ∷ 1 ∷ 2 ∷ 2 ∷ 3 ∷ 3 ∷ 4 ∷ [])
 runAddShareCoinTwice = refl
+
+
+open import Effect.Reader renaming (local to local′)
+
+local :
+  { @(tactic eff) reader : Reader B ∈ effs } →
+  (B → B) →
+  Prog effs A → Prog effs A
+local {reader = reader} f p = local′ ⦃ reader ⦄ f p
+
+shareInScope :
+  { @(tactic eff) _ : Reader ℕ ∈ effs } →
+  { @(tactic eff) _ : State SID ∈ effs } →
+  { @(tactic eff) _ : Share ∈ effs     } →
+  { @(tactic eff) _ : Nondet ∈ effs    } →
+  Prog effs ℕ
+shareInScope = do
+  x ← share ⦇ local (λ x → x) coin + coin ⦈
+  ⦇ x + x ⦈
+
+runShareInScope : run (flip runReader 0 $ runNondet $ runShare ⦃ here refl ⦄ $ evalState (! shareInScope) (0 , 0)) ≡ (0 ∷ 2 ∷ 2 ∷ 4 ∷ [])
+runShareInScope = refl

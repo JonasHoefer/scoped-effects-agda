@@ -1327,31 +1327,42 @@ the caller.
 When handling a sharing scope the captured program is handled with the id stored
 in the shape of the scoping operation.
 The continuation is accessed via \AgdaFunction{>>=} and continuous with the
-outside i.e. the initial id.
-Scopes of foreign effects don't effect sharing.
-In contrast to \AgdaDatatype{State}, the captured program does not influence the
-continuation, therefore both use the same, initial id.
+outside id.
+Scopes of foreign effects do not effect sharing.
+The foreign scope is a subscope of the current sharing scope.
+Therefore, the choices are labeled with the same scope id.
+To guaranty the uniquenes of ids we have to thread the current choice id through
+the inner scope.
+We add the current choice id as an additional return value.
+After traversing a foreign scope we continue with the last id from the inner
+scope.
+In case of a sharing scope we numebr choices inside the scope unsing the scopes
+id and continue with the current outer id after the scope.
 
 \begin{code}
-runShare′ : ⦃ Nondet ∈ effs ⦄ → Prog (Share ∷ effs) A → SID → ℕ → Prog effs A
-runShare′ {effs} {A} ⦃ p ⦄ = fold (λ i → ((λ X → SID → ℕ → Prog effs X) ^ i) A) 1 id
-  (λ z _ _ → var z)
+runShare′ : ⦃ Nondet ∈ effs ⦄ → Prog (Share ∷ effs) A → 
+  Maybe CID → Prog effs (Maybe CID × A)
+runShare′ {effs} {A} ⦃ p ⦄ = fold 
+  (λ i → ((λ X → Maybe CID → Prog effs (Maybe CID × X)) ^ i) A) 1 id
+  (λ z cid → var (cid , z))
   (λ{ (Other s pf) → case prj (opsInj p) (s , pf) of λ where
-    nothing              sid n → op (s , λ p → pf p sid n)
-    (just (failˢ  , κ))  sid n → fail
-    (just (⁇ˢ _   , κ))  sid n → Op (⁇ˢ (just (sid , n)) , λ p → κ p sid (suc n))
+    nothing              sid                   → op (s , λ p → pf p sid)
+    (just (failˢ  , κ))  sid                   → fail
+    (just (⁇ˢ _   , κ))  nothing               → Op (⁇ˢ nothing , λ p → κ p nothing)
+    (just (⁇ˢ _   , κ))  cid@(just (sid , n))  → Op (⁇ˢ cid , λ p → κ p (just (sid , suc n)))
   }) λ where
-    (ShareScp sid′ κ) sid n → κ tt sid′ 0 >>= λ r → r sid n
-    (Other    s    κ) sid n → scp (s , λ p → (λ k → k sid n) <$> κ p sid n)
+    (ShareScp sid′ κ) sid → κ tt (just $ sid′ , 0) >>= λ (_ , r) → r sid
+    (Other    s    κ) sid → scp (s , λ p → (λ (sid′ , k) → k sid′) <$> κ p sid)
 
 runShare : ⦃ Nondet ∈ effs ⦄ → Prog (Share ∷ effs) A → Prog effs A
-runShare p = runShare′ p (0 , 0) 0
+runShare p = π₂ <$> runShare′ p nothing
 \end{code}
-For simplicity the handler is initial invoked with choice id $(0,0,0)$.
-This should not be a problem if the numbering of scopes starts with a higher ID,
-because after calling the \AgdaDatatype{Share} handler no scopes are duplicated.
-If such a situation should arrise the ID passed around by the handler can simply
-be made optional via \AgdaDatatype{Maybe}, removing IDs from outside choices.
+We introduce the helper function \AgdaFunction{runShare} to conviniently call
+the actuall sharing handler.
+The handler is initially called without an id, because by default choices are
+not shared.
+Furthermore, after evaluating all sharing syntax we discard the current id,
+because it is not needed anymore.
 
 \begin{code}[hide]
 record Shareable (effs : List Effect) (A : Set) : Set where
@@ -1404,8 +1415,8 @@ share {Ops} {Scps} p = do
     put (i + 1 , j)
     let p′ = do
           put (i , j + 1)
-          x  ← p
-          x′ ← shareArgs x
+          x   ← p
+          x′  ← shareArgs x
           put (i + 1 , j)
           pure x′
     pure $ share⟨ i , j ⟩ p′
