@@ -1366,8 +1366,7 @@ because it is not needed anymore.
 
 \begin{code}[hide]
 record Shareable (effs : List Effect) (A : Set) : Set where
-  field
-    shareArgs : A → Prog effs A
+  field shareArgs : A → Prog effs A
 open Shareable ⦃...⦄ public
 
 instance
@@ -1378,8 +1377,7 @@ instance
   Shareable.shareArgs Bool-Shareable = var
 
 record Normalform (effs : List Effect) (A B : Set) : Set where
-  field
-    nf : A → Prog effs B
+  field nf : A → Prog effs B
 
   infix 10 !_
   !_ : Prog effs A → Prog effs B
@@ -1406,11 +1404,11 @@ The constrcution of scope ids follows again the implementation by
 
 \begin{code}
 share⟨_⟩ : ⦃ Share ∈ effs ⦄ → SID → Prog effs A → Prog effs A
-share⟨_⟩ {Scps} {Ops} sid p = Scp (shareˢ sid , λ _ → pure <$> p)
+share⟨_⟩ sid p = Scp (shareˢ sid , λ _ → pure <$> p)
 
 share : ⦃ State SID ∈ effs ⦄ → ⦃ Share ∈ effs ⦄ → ⦃ Shareable effs A ⦄ →
   Prog effs A → Prog effs (Prog effs A)
-share {Ops} {Scps} p = do
+share p = do
     (i , j) ← get
     put (i + 1 , j)
     let p′ = do

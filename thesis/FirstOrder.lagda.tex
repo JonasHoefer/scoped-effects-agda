@@ -1208,8 +1208,8 @@ In a real application it would be advisable to inform the programmer about the
 error, either using exceptions or at least trace the error.
 
 \begin{code}
-bcall : ⦃ Nondet ∈ ops ⦄ → Free (Call ∷ Cut ∷ ops) A {i} → Free (Cut ∷ ops) A
-ecall : ⦃ Nondet ∈ ops ⦄ → Free (Call ∷ Cut ∷ ops) A {i}
+bcall  : ⦃ Nondet ∈ ops ⦄ → Free (Call ∷ Cut ∷ ops) A {i} → Free (Cut ∷ ops) A
+ecall  : ⦃ Nondet ∈ ops ⦄ → Free (Call ∷ Cut ∷ ops) A {i}
   → Free (Cut ∷ ops) (Free (Call ∷ Cut ∷ ops) A {i})
 
 bcall (pure x)     = pure x
@@ -1251,17 +1251,29 @@ describe the interaction between sharing and nondeterminism.
 The current implementation of \AgdaDatatype{Nondet} does not support sharing
 i.e. it is not possible for two choice to be linked.
 Based on Bunkenburg's implementation we make two changes to the
-nondeterminism effect.
+nondeterminism effect from Section \ref{nondeterminism}.
+In the following, the new effect and all its associated functions have names
+ending in \AgdaDatatype{′}.
 Each choice is augmented with an optional identifier consisting of a triple of
 natural numbers, called \textit{choice id}.
-The first two are used to identity the current scope and will be refereed to as
+The first two are used to identify the current scope and will be refereed to as
 \textit{scope id}.
 The third number identifies the choice inside its scope.
 Furthermore, instead of producing a list the handler will now produce a tree of
 choices.
+The modified handler is identical to the handler in Section
+\ref{nondeterminism}, except that it stores values using the
+\AgdaInductiveConstructor{leaf} constructor and concatenates results using
+\AgdaInductiveConstructor{branch}.
 This change allows to choose the evaluation strategy, e.g. depth first or breath
 first search, independent of the handler.
-% TODO: introduce renamed effect
+
+\begin{code}
+data Tree (A : Set) : Set where
+  branch  : Maybe ((ℕ × ℕ) × ℕ) → (l r : Tree A) → Tree A
+  leaf    : A → Tree A
+  failed  : Tree A
+\end{code}
 
 \subsection{Deep Effects}
 \label{first-order:deep-effects}
@@ -1395,21 +1407,16 @@ data NonDetˢ : Set where
 pattern Choice′ cid κ = impure (inj₁ (⁇ˢ cid) , κ)
 pattern Fail′ = impure (inj₁ failˢ , _)
 
-NonDet : Container
-NonDet = NonDetˢ ▷ λ where
+Nondet′ : Container
+Nondet′ = NonDetˢ ▷ λ where
   (⁇ˢ _) → Bool
   failˢ  → ⊥
 
-fail′ : ⦃ NonDet ∈ ops ⦄ → Free ops A
+fail′ : ⦃ Nondet′ ∈ ops ⦄ → Free ops A
 fail′ = inj (failˢ , λ())
 
-_⁇′_ : ⦃ NonDet ∈ ops ⦄ → Free ops A → Free ops A → Free ops A
+_⁇′_ : ⦃ Nondet′ ∈ ops ⦄ → Free ops A → Free ops A → Free ops A
 p ⁇′ q = inj (⁇ˢ nothing , (if_then p else q))
-
-data Tree (A : Set) : Set where
-  branch : Maybe ((ℕ × ℕ) × ℕ) → (l r : Tree A) → Tree A
-  leaf   : A → Tree A
-  failed : Tree A
 
 dfs : {A : Set} → Map Bool → Tree A → List A
 dfs mem failed                   = []
@@ -1419,11 +1426,11 @@ dfs mem (branch (just id)  l r) with lookup id mem
 ... | nothing  = dfs (insert id true mem) l ++ dfs (insert id false mem) r
 ... | just d   = if d then dfs mem l else dfs mem r
 
-runNonDet : Free (NonDet ∷ ops) A → Free ops (Tree A)
-runNonDet (pure x)         = pure (leaf x)
-runNonDet (Choice′ cid κ)  = branch cid <$> runNonDet (κ true) <*> runNonDet (κ false)
-runNonDet Fail′            = pure failed
-runNonDet (Other s κ)      = impure (s , runNonDet ∘ κ)
+runNondet′ : Free (Nondet′ ∷ ops) A → Free ops (Tree A)
+runNondet′ (pure x)         = pure (leaf x)
+runNondet′ (Choice′ cid κ)  = branch cid <$> runNondet′ (κ true) <*> runNondet′ (κ false)
+runNondet′ Fail′            = pure failed
+runNondet′ (Other s κ)      = impure (s , runNondet′ ∘ κ)
 \end{code}
 The handler has the same structure as other handlers for scoped effects like
 \AgdaDatatype{Cut}.
@@ -1433,7 +1440,7 @@ subsequently handled by \AgdaFunction{eshare}.
 unhandled continuations, which is again handled using \AgdaFunction{bshare}.
 Nested scopes are handled uisng recursive \AgdaFunction{eshare} calles.
 To implement sharing the handler modifies the program in scope.
-Using \AgdaFunction{prj}, \AgdaFunction{NonDet} syntax is extracted and
+Using \AgdaFunction{prj}, \AgdaFunction{Nondet′} syntax is extracted and
 reinjected.
 Choice nodes are modified to now include the unique choice id.
 The identifier is generated from the scope id of the current sharing scope and a
@@ -1447,8 +1454,8 @@ To implement the sharing handler it is not necessary to combine the two cases,
 as done by \textcite{bunkenburg2019modeling} in his Coq implementation.
 
 \begin{code}
-bshare  : ⦃ NonDet ∈ ops ⦄ → Free (Share ∷ ops) A {i} → Free ops A
-eshare  : ⦃ NonDet ∈ ops ⦄ → ℕ → ℕ × ℕ → Free (Share ∷ ops) A {i}
+bshare  : ⦃ Nondet′ ∈ ops ⦄ → Free (Share ∷ ops) A {i} → Free ops A
+eshare  : ⦃ Nondet′ ∈ ops ⦄ → ℕ → ℕ × ℕ → Free (Share ∷ ops) A {i}
   → Free ops (Free (Share ∷ ops) A {i})
 
 bshare (pure x)        = pure x
@@ -1459,7 +1466,7 @@ bshare (Other  s   κ)  = impure (s , bshare ∘ κ)
 eshare next sid (pure x)         = pure (pure x)
 eshare next sid (BShare sid′ κ)  = eshare 0 sid′ (κ tt) >>= eshare next sid
 eshare next sid (EShare sid′ κ)  = pure (κ tt) -- usually test that sid′ = sid
-eshare next sid p@(Other s κ) with prj {NonDet} p
+eshare next sid p@(Other s κ) with prj {Nondet′} p
 ... | just (⁇ˢ _  , κ′)  = inj $ ⁇ˢ (just $ sid , next) , eshare (1 + next) sid ∘ κ′
 ... | just (failˢ , κ′)  = inj $ failˢ , λ()
 ... | nothing            = impure (s , eshare next sid ∘ κ)
@@ -1548,7 +1555,7 @@ Call-time choice can be simulated with the following effect stack
 
 \begin{code}
 CTC : List Container
-CTC = State (ℕ × ℕ) ∷ Share ∷ NonDet ∷ []
+CTC = State (ℕ × ℕ) ∷ Share ∷ Nondet′ ∷ []
 \end{code}
 Before calling any handlers the data is normalized, so that not only surface,
 but also deep effects are evaluated.
@@ -1559,16 +1566,16 @@ branches, taking the scope ids into account.
 
 \begin{code}
 runCTC : ⦃ Normalform CTC A B ⦄ → Free CTC A → List B
-runCTC p = dfs empty $ run $ runNonDet $ bshare $ evalState (0 , 0) (! p)
+runCTC p = dfs empty $ run $ runNondet′ $ bshare $ evalState (0 , 0) (! p)
 \end{code}
 Now we can implement the \AgdaFunction{doubleCoin} example from section
 \ref{preliminaries:curry}.
 
 \begin{code}
-coin : ⦃ NonDet ∈ ops ⦄ → Free ops ℕ
+coin : ⦃ Nondet′ ∈ ops ⦄ → Free ops ℕ
 coin = pure 0 ⁇′ pure 1
 
-doubleCoin : ⦃ Share ∈ ops ⦄ → ⦃ State (ℕ × ℕ) ∈ ops ⦄ → ⦃ NonDet ∈ ops ⦄ →
+doubleCoin : ⦃ Share ∈ ops ⦄ → ⦃ State (ℕ × ℕ) ∈ ops ⦄ → ⦃ Nondet′ ∈ ops ⦄ →
   Free ops ℕ
 doubleCoin = share coin >>= λ c → ⦇ c + c ⦈
 \end{code}
@@ -1583,7 +1590,7 @@ computation.
 Binding \AgdaArgument{c} multiple times yields the same scope, because the scope
 identifier is captured.
 Equal scope identifier yield equal decisions during the evaluation of
-\AgdaDatatype{NonDet}.
+\AgdaDatatype{Nondet′}.
 
 \begin{center}
 \begin{code}[inline,hide]
@@ -1601,12 +1608,12 @@ choices, which are embedded in data structures.
 The following simple example demonstrates this possibility.
 
 \begin{code}
-headᴹ : ⦃ NonDet ∈ ops ⦄ → Free ops (Listᴹ ops A) → Free ops A
+headᴹ : ⦃ Nondet′ ∈ ops ⦄ → Free ops (Listᴹ ops A) → Free ops A
 headᴹ mxs = mxs >>= λ where
   nil         → fail′
   (cons mx _) → mx
 
-doubleHead : ⦃ Share ∈ ops ⦄ → ⦃ State (ℕ × ℕ) ∈ ops ⦄ → ⦃ NonDet ∈ ops ⦄ →
+doubleHead : ⦃ Share ∈ ops ⦄ → ⦃ State (ℕ × ℕ) ∈ ops ⦄ → ⦃ Nondet′ ∈ ops ⦄ →
   Free ops ℕ
 doubleHead = share (coin ∷ᴹ []ᴹ) >>= λ mxs → ⦇ headᴹ mxs + headᴹ mxs ⦈
 \end{code}
@@ -1631,7 +1638,7 @@ closely resemble their Curry version.
 Consider the example of nondeterministic insertion into a list.
 
 \begin{code}
-insertND : ⦃ NonDet ∈ ops ⦄ →
+insertND : ⦃ Nondet′ ∈ ops ⦄ →
   Free ops A → Free ops (Listᴹ ops A {i}) → Free ops (Listᴹ ops A {↑ i})
 insertND mx mxs = mxs >>= λ where
   nil            → mx ∷ᴹ []ᴹ
