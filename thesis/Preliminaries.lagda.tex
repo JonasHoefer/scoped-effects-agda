@@ -4,8 +4,8 @@
 
 Agda\footnote{\url{https://github.com/agda/agda}} is a dependently typed
 functional programming language.
-The current version (2.6.1.1 as of Nov 2020) was originally developed by Ulf
-Norell under the name Agda2~\cite{norell:thesis}.
+The current version (2.6.1.1 as of Nov 2020) was originally developed by
+\textcite{norell:thesis} under the name Agda2.
 Due to its type system Agda can be used as a programming language and as a proof
 assistant.
 
@@ -49,6 +49,11 @@ suc n  + m = suc (n + m)
 
 \subsection{Dependent Types}
 \label{preliminaries:dependent-types}
+Agda has a stronger type system than Haskell.
+Agda supports dependent types, i.e. types that can depended on values.
+In this section we give a short theoretical introduction to dependent types and
+show how they can be used to write programs in Agda.
+
 The following type theoretic definitions are taken from the
 book ``\citetitle{hottbook}'' ~\cite{hottbook}.
 In type theory a type of types is called a universe.
@@ -63,7 +68,7 @@ To avoid Russell's paradox, a hierarchy of universes $\mathcal{U}_1 :
 \mathcal{U}_2 : \dots$ is introduced.
 In Agda the universes are named \AgdaDatatype{Setₙ}, where \AgdaDatatype{Set₀}
 can be abbreviated as \AgdaDatatype{Set}.
-Usually, the universes are cumulative i.e. if $\tau : \mathcal{U}_n$ then
+Usually, the universes are cumulative, i.e. if $\tau : \mathcal{U}_n$ then
 $\tau : \mathcal{U}_k$ for $k>n$.
 By default this is not the case in Agda.
 Each type is member of a unique universe, but it is possible to lift a type to a
@@ -86,10 +91,10 @@ In Agda the builtin function type $\rightarrow$ is a $\Pi$-type.
 An argument can be named by replacing the type $\tau$ with $x : \tau$, allowing
 us to use the value as part of later types.
 
-\paragraph{Dependent Sum Types ($\Sigma$-Types)} are a generalization of product
+\paragraph{Dependent Pair Types ($\Sigma$-Types)} are a generalization of product
 types.
-The type of the second component is not fixed, but varies with the value of the
-first.
+A value of a $\Sigma$-type is a pair, but the type of the second component is
+not fixed, but varies with the value of the first.
 $$
 \sum_{a : A} B(a) \quad \text{with}\quad B : A \rightarrow\mathcal{U}
 $$
@@ -126,7 +131,7 @@ indexed by \AgdaDatatype{ℕ}.
 The \AgdaInductiveConstructor{[]} constructor allows us to create an empty
 vector of any type, but forces the index to be zero.
 The \AgdaInductiveConstructor{\_∷\_} constructor appends an element to the front
-of a vector of the same element type and increases the index by $1$.
+of a vector of the same element type and increases the index by one.
 Only these two constructors can be used to construct vectors.
 Therefore, the index is always equal to the amount of elements stored in the
 vector.
@@ -150,7 +155,8 @@ Therefore, the \AgdaInductiveConstructor{[]} case does not apply.
 By constraining the type of the function we were able to avoid the case, which
 usually requires error handling or introduces partiality.
 
-We can extend this idea to type safe indexing.
+We can extend the idea of a type safe \AgdaFunction{head} function to type safe
+indexing.
 A vector of length \AgdaArgument{n} is indexed by the first \AgdaArgument{n}
 natural numbers.
 The type \AgdaDatatype{Fin}\AgdaSpace{}\AgdaArgument{n} represents the subset of
@@ -221,14 +227,30 @@ Notice that the types for the recursive call change.
 The tail of the vector \AgdaArgument{xs} and the smaller index \AgdaArgument{i}
 are indexed over the predecessor of \AgdaArgument{n}.
 
+As last example we implement the function \AgdaFunction{replicate}.
+\begin{code}
+replicate : ∀ {A} → A → (n : ℕ) → Vec A n
+replicate a 0        = []
+replicate a (suc n)  = a ∷ replicate a n
+\end{code}
+Given an element of type \AgdaArgument{A} and a natural number \AgdaArgument{n}
+the function produces a vector of the given length.
+Therefore, the function is a $\Pi$-type in its second argument.
+The type of the returned value dependes on the value of $n$.
+By pattern matching on the given argument we obtain more information about the
+return type.
+
 The above, quite simple examples can also be implemented in Haskell, for
-example using type level natural numbers.
+example using GADTs and type level natural numbers.
 One of the advantages of Agda is the seamless and complete implementation of
 dependent types.
 For example, in contrast to a Haskell implementation we could simply reuse the
 normal type of natural numbers to index other types.
-Furthermore, we will later see more complex uses of dependent types, which
-cannot be translated as easily to Haskell.
+The last example of the function replicate, which simply uses a $\Pi$-type is
+more difficult to implement in Haskell, because it requires translating between
+a value and type level number.
+Later we will see more complex uses of dependent types, which cannot be
+translated as easily to Haskell.
 
 
 \subsection{Propositions as Types}
@@ -244,7 +266,7 @@ As described by \textcite{DBLP:journals/cacm/Wadler15}, the idea of propositions
 as types is a deep correspondents, relating \textit{propositions to types},
 \textit{proofs to programs} and \textit{simplification of proofs to evaluation
 of programs}.
-We will first consider the connection between the simple typed lambda calculus
+First we will consider the connection between the simple typed lambda calculus
 (with product and sum types) and \textit{intuitionistic} propositional logic.
 The intuitionistic version of propositional logic uses weaker axioms than
 classical propositional logic.
@@ -288,22 +310,22 @@ As explained in Section \ref{preliminaries:dependent-types}, Agda's type system
 has dependent types.
 With dependent types the construction of a type (and therefore whether the type
 is inhabited) can change based on a value.
-Dependent types therefore correspond to predicates.
+Therefore, dependent types correspond to predicates.
 $\Sigma$ and $\Pi$ types correspond to existential and universal quantification.
 To prove an existential one has to provide a value and a proof that the
 proposition holds for this value.
 These two correspond to the two elements of a the $\Sigma$ type.
-The type of the second element depends on the first one i.e. it is a proof for a
+The type of the second element depends on the first one, i.e. it is a proof for a
 predicate on the first value.
 To prove a universal quantified proposition one has to prove that it holds for
 every possible value.
-A $\Pi$ type is a function whose return type depends on the given value i.e.
-given any value it returns a proof for the predicate on its argument.
+A $\Pi$ type is a function whose return type depends on the given value.
+Given any value it returns a proof for the predicate on its argument.
 
 Extending the type system with dependent types corresponds to extending
 intuitionistic propositional logic to intuitionistic predicate logic.
 Using the above corresponds Agda can be used to state and prove theorems in
-predicate logic.
+this logic.
 An overview over the correspondences between certain types and connectives, as
 well as the corresponding syntax in Agda can be found in Table
 \ref{preliminaries:propositions-as-types:table}.
@@ -331,7 +353,7 @@ well as the corresponding syntax in Agda can be found in Table
 
 In the last section we saw how we can encode propositions from propositional and
 predicate logic as types.
-One of the most important proposition is equality i.e. the proposition that
+One of the most important proposition is equality, i.e. the proposition that
 given two terms $a, b : A$ that $a$ and $b$ are equal.
 When using Agda for theorem proving we have to express propositions like $a + b
 = b + a$ and $2 = 1$, which could be true or false, to be able to prove or
@@ -345,8 +367,8 @@ we are making an \textit{equality judgement}.
 The symbol \AgdaFunction{truth} is \textit{definitionally equal} to
 \AgdaNumber{42}.
 A judgment is always true.
-We define one term to be equal to another one i.e. we allow Agda to reduce the
-left-hand side of the equality to the right-hand side.
+We define one term to be equal to another one and as result allow Agda to reduce
+the left-hand side of the equality to the right-hand side.
 
 The next notion of equality is \textit{computational equality}.
 Two terms $t_1$ and $t_2$ are computationally equal if they reduce to the same
@@ -359,8 +381,9 @@ variable $n$ none of the program rules for $+$ can be used to reduce the term
 further.
 
 To talk about the equality of two terms we have to use \textit{propositional
-equality} i.e. we have to define a proposition representing the fact that two
-terms of type $A$ are equal.
+equality}.
+We define a proposition representing the fact that two terms of type $A$ are
+equal.
 This proposition is usually encapsulated in an \textit{equality type} of
 $A$~\cite{hottbook,DBLP:conf/afp/Norell08,DBLP:journals/scp/KokkeSW20}.
 
@@ -375,8 +398,8 @@ The type
 \AgdaArgument{x}\AgdaSpace{}\AgdaDatatype{≡}\AgdaSpace{}\AgdaArgument{y}
 represents the proposition that $x$ and $y$ are equal.
 The only way to construct evidence for the proposition is using the
-\AgdaInductiveConstructor{refl} constructor i.e. if $x$ and $y$ are actually the
-same.
+\AgdaInductiveConstructor{refl} constructor, i.e. if $x$ and $y$ are actually
+the same.
 
 This notion of equality has the usually expected properties like transitivity,
 symmetry and congruence.
@@ -387,15 +410,15 @@ equality proofs.
 cong : ∀ {A B x y} → (f : A → B) → x ≡ y → f x ≡ f y
 cong f refl = refl
 \end{code}
-We expect that $≡$ is a congruence relation i.e. if $x$ and $y$ are equal then
-$f x$ and $f y$ should also be equal.
+We expect that $≡$ is a congruence relation, i.e. if $x$ and $y$ are equal then
+$f x$ and $f y$ are also equal.
 We cannot produce a value of type
-\AgdaArgument{f}\AgdaSpace{}\AgdaArgument{x}\AgdaSpace{}\AgdaDatatype{≡}\AgdaSpace{}\AgdaArgument{f}\AgdaSpace{}\AgdaArgument{y}
-because the two are not equal.
+\AgdaArgument{f}\AgdaSpace{}\AgdaArgument{x}\AgdaSpace{}\AgdaDatatype{≡}\AgdaSpace{}\AgdaArgument{f}\AgdaSpace{}\AgdaArgument{y},
+because the two are not equal, because $x$ and $y$ are arbitrary variables.
 By pattern matching in the argument of type 
-\AgdaArgument{x}\AgdaSpace{}\AgdaDatatype{≡}\AgdaSpace{}\AgdaArgument{y}
-i.e. by inspecting the evidence that $x$ and $y$ are equal we obtain more
-information about the goal i.e. the return type of the function.
+\AgdaArgument{x}\AgdaSpace{}\AgdaDatatype{≡}\AgdaSpace{}\AgdaArgument{y},
+i.e. by inspecting the evidence that $x$ and $y$ are equal, we obtain more
+information about the return type of the function.
 Because \AgdaInductiveConstructor{refl} can only be constructed if the two
 values are the same the two variables are unified.
 Therefore, we have to produce a proof that $f x$ is equal to itself, which is
@@ -432,7 +455,7 @@ The left hand side still contains the free variable $m$, but reduces to
 using the second rule for \AgdaFunction{\_+\_}.
 Using a recursive call we obtain evidence for
 \AgdaArgument{m}\AgdaSpace{}\AgdaFunction{+}\AgdaSpace{}\AgdaNumber{0}\AgdaSpace{}\AgdaDatatype{≡}\AgdaSpace{}\AgdaArgument{m}.
-The recursive call to obtain evidence for a smaller case corresponds to the use
+The recursive call, to obtain evidence for a smaller case, corresponds to the use
 of the induction hypothesis in an inductive proof.
 By applying \AgdaInductiveConstructor{suc} on both sides of the equality we
 obtain a proof for the correct proposition.
@@ -471,7 +494,12 @@ preserving Agda's consistency.
 \label{sec:termination-checking}
 
 Under the idea of propositions as types, non-terminating functions correspond to
-ill-formed, for example circular arguments. % cite?
+ill-formed.
+For example, the term
+\AgdaFunction{loop}\AgdaSpace{}$=$\AgdaSpace{}\AgdaFunction{loop} has an
+arbitrary type, i.e. it should be a proof for any proposition.
+Although, evaluating \AgdaFunction{loop} does not yield evidence for the
+proposition, but a term without normal form or a circular argument.
 Therefore, allowing the definition of non-terminating functions entails logical
 inconsistency.
 When defining functions Agda allows general recursion, but only terminating
@@ -493,7 +521,7 @@ map f []        = []
 \end{code}
 The \AgdaInductiveConstructor{[]} case does not contain a recursive call.
 In the \AgdaInductiveConstructor{\_∷\_} case the recursive call to
-\AgdaFunction{map} occurs on a structural smaller argument i.e.
+\AgdaFunction{map} occurs on a structural smaller argument, i.e.
 \AgdaArgument{xs} is a subterm of the argument
 \AgdaArgument{x}\;\AgdaInductiveConstructor{∷}\;\AgdaArgument{xs}.
 Because elements of \AgdaDatatype{List A} are finite the function
@@ -506,7 +534,7 @@ Because elements of \AgdaDatatype{List A} are finite the function
 In more complex recursive functions the structural recursion can be obscured.
 For example, Agda does not allow inlining of functions containing pattern
 matches during termination checking.
-A common example are recursive calls in lambdas, which are passed to higher
+A common example are recursive calls in lambdas, that are passed to higher
 order functions like \AgdaFunction{map} and \AgdaFunction{>>=}.
 Consider the following definition of \mintinline{haskell}{mapRose}.
 The recursive call is made by the higher-order function
@@ -540,14 +568,14 @@ with a value which represents an upper bound on the size of the types values.
 A set of builtin functions and types can be used to establish relations between
 different sizes and therefore assist the termination checker.
 The elements of \AgdaDatatype{Size} are well ordered.
-\AgdaFunction{↑\_} is the successor operation on \AgdaDatatype{Size} i.e. 
+\AgdaFunction{↑\_} is the successor operation on \AgdaDatatype{Size}, i.e. 
 \AgdaArgument{i}$\;<\;$\AgdaFunction{↑}\AgdaSpace{}\AgdaArgument{i}.
 \AgdaFunction{\_⊔ˢ\_} is the supremum with respect to the relation.
-\AgdaInductiveConstructor{∞} is the top element in \AgdaArgument{Size}.
-Given an \AgdaArgument{i} the type of all smaller sizes can be constructed using
-the \AgdaDatatype{Size<\_} family of types\footnote{We will not need this
-  construction. It is usually used when working with \AgdaKeyword{coinductive}
-  data types.}.
+\AgdaInductiveConstructor{∞} is the top element in \AgdaDatatype{Size}.
+Given a \AgdaDatatype{Size} \AgdaArgument{i}, the type of all smaller sizes can
+be constructed using the \AgdaDatatype{Size<\_} family of types\footnote{We will
+  not need this construction. It is usually used when working with
+  \AgdaKeyword{coinductive} data types.}.
 If the size decreases across all recursive calls of a function, termination
 follows from the well-ordering on \AgdaDatatype{Size}.
 
@@ -572,8 +600,8 @@ Let us again consider the rose tree example.
 The size index can be intuitively thought of as the height of the tree.
 
 \begin{code}
-data Rose (A : Set) : Size → Set where
-  rose : ∀ {i} → A → List (Rose A i) → Rose A (↑ i)
+data Rose (A : Set) : Size → Set where 
+  rose : {i : Size} → A → List (Rose A i) → Rose A (↑ i)
 \end{code}
 When \AgdaFunction{mapRose} is defined in terms of
 \AgdaFunction{map} the termination is obscured.
@@ -590,7 +618,7 @@ By pattern matching on the argument of type
 \AgdaFunction{↑}\AgdaSpace{}\AgdaArgument{i} we obtain a \AgdaDatatype{List} of
 trees of size \AgdaArgument{i}.
 The recursive calls via \AgdaFunction{map} therefore occur on tree of type 
-\AgdaDatatype{Rose}\AgdaSpace{}\AgdaArgument{A}$($\AgdaFunction{↑}\AgdaSpace{}\AgdaArgument{i}$)$.
+\AgdaDatatype{Rose}\AgdaSpace{}\AgdaArgument{A}\AgdaSpace{}$($\AgdaFunction{↑}\AgdaSpace{}\AgdaArgument{i}$)$.
 Therefore, the functions has to terminate.
 
 In this case inlining the call of \AgdaFunction{map} also solves the termination
@@ -604,7 +632,7 @@ to large and unreadable programs.
 \subsection{Strict Positivity}
 
 In a type system with arbitrary recursive types, it is possible to to implement a
-fixpoint combinator and therefore non terminating functions without explicit
+fixpoint combinator and therefore non-terminating functions without explicit
 recursion.
 As explained in Section \ref{sec:termination-checking} this entails logical
 inconsistency.
@@ -613,11 +641,11 @@ A data type $D$ is strictly positive if all constructors are of the form
 $$
   A_1 \rightarrow A_2 \rightarrow \dots \rightarrow A_n \rightarrow D
 $$
-where each $A_i$ is either not inductive (does not mention $D$) or is of the form
+where each $A_i$ does not mention $D$ or is of the form
 $$
 B_1 \rightarrow B_2 \rightarrow \dots \rightarrow B_n \rightarrow D
 $$
-where $B_j$ is not inductive.
+where $B_j$ does not mention $D$.
 By restricting recursive occurrences of a data type in its definition to strict
 positive positions strong normalization is
 preserved~\cite{Wadler1991RecursiveTF}.
@@ -627,7 +655,7 @@ preserved~\cite{Wadler1991RecursiveTF}.
 \label{container}
 
 Because of the strict positivity requirement it is not allowed to apply generic
-type constructors to inductive occurrences of a data type in its definition.
+type constructors to recursive occurrences of a data type in its definition.
 The reason for this restriction is that a type constructor is not required to
 use its argument only in strictly positive positions.
 To still work generically with type constructors or more precise functors we
@@ -635,7 +663,7 @@ need a more restrictive representation, which only uses its argument in a
 strictly positive position.
 One representation of such strictly positive functors are containers.
 
-Containers are a generic representation of data type, that store values of an
+Containers are generic representations of data types, that store values of an
 arbitrary type.
 They were introduced by \textcite{DBLP:conf/fossacs/AbbottAG03}.
 A container is defined by a type of shapes $S$ and a type of positions for each
@@ -776,7 +804,7 @@ calls.
 \end{minted}
 When calling \texttt{double} with a nondeterministic value two behaviors are
 conceivable.
-The first possibility is that the choice is moved into the function i.e. both
+The first possibility is that the choice is moved into the function, i.e. both
 \texttt{x} choose independent of each other, yielding the results $0$, $1$, $1$
 and $2$.
 The second possibility is choosing a value before calling the function and
@@ -927,7 +955,7 @@ An interpretation for $T$ is called $T$-model if it validates all equations in $
 
 For each algebraic theory $T$ we can generate a so called free model
 $\mathrm{Free}_T(\mathbb{X})$.
-The free model is the optimal model for the theory i.e. it validates just
+The free model is the optimal model for the theory, i.e. it validates just
 equations from $\mathcal{E}_T$ and the ones directly following from them and no
 more.
 
@@ -946,7 +974,7 @@ The free model for $T$ is given by
 where $\sim_T$ is the least equivalence relation, such that for all equations
 $x\;|\;l=r\in\mathcal{E}_T$, $l\sim_T r$.
 Furthermore $\sim_T$ is required to be a congruence relation for the operations
-of the signature i.e.
+of the signature, i.e.
 \[
   \forall i\in\{1,\dots ,n\}. x_i\sim_T y_i \Rightarrow \mathrm{op}(x_1,\dots , x_n)
   \sim_T \mathrm{op}(y_1,\dots , y_n)
@@ -971,7 +999,7 @@ of elements.
 Because identities can be freely omitted, the only important term involving
 identity is $e$.
 It is easy to show that $\mathrm{Tree}_{\mathrm{Mon}}(A)
-\;/\sim_{\mathrm{Mon}} = \mathrm{Free}_{\mathrm{Mon}}(A) \cong A^*$ i.e. the
+\;/\sim_{\mathrm{Mon}} = \mathrm{Free}_{\mathrm{Mon}}(A) \cong A^*$, i.e. the
 free model for the theory of a monoid over a set of values $A$ are words over
 $A$.
 The empty word $\varepsilon$ corresponds to the identity element and $\cdot$
@@ -1013,7 +1041,7 @@ The handler is then given by the following two equations.
 \end{align*}
 Usually when defining a handler the operations of the theory of the right-hand
 side are a subset of the ones from the left-hand side.
-The operations are interpreted by extending the structure on the values i.e.
+The operations are interpreted by extending the structure on the values, i.e.
 mapping the impure model, given by $\mathrm{Free}_T(V)$, to a pure one.
 For example, a handler for exceptions could be given by
 \begin{align*}
@@ -1029,10 +1057,10 @@ extended set of values, which corresponds to the usual monad modelling the
 effect.
 
 If the source and target theory share operations it is possible to interpret an
-operations by itself i.e. not handling it.
+operations by itself, i.e. not handling it.
 This allow us to handle more complex, combined theories using multiple modular
 handlers.
-It is also possible to interpret operations using other operations i.e. to
+It is also possible to interpret operations using other operations, i.e. to
 simulate an effect in the source theory using effects in the target theory.
 For example, one could simulate a logging effect (in Haskell \texttt{Writer String
   a}) using a state effect (in Haskell \texttt{State String a}).
@@ -1061,8 +1089,8 @@ The usual definition of the free monad in Haskell is given below.
       Impure fa >>= k = Impure (fmap (>>= k) fa)
 \end{minted}
 The free monad essential represents computation trees.
-Computations are either \texttt{pure} i.e. they yield a value without calling
-other operations or \texttt{impure}.
+Computations are either \texttt{pure}, they yield a value without calling
+other operations, or \texttt{impure}.
 An \texttt{impure} computation is given by a value of the free monad, which was
 lifted using the functor.
 The constructors for \texttt{f a} correspond to operations and arguments of type
@@ -1083,7 +1111,7 @@ functor.
 from their stored value.
 
 The free monad corresponds to the free model for an algebraic theory $T$ without
-equations i.e. the equivalence relation $\sim_T$ is just the identity relation on
+equations, i.e. the equivalence relation $\sim_T$ is just the identity relation on
 $\mathrm{Tree}_T(\mathbb{X})$.
 When implementing algebraic effect one simply uses theories without effects,
 i.e. just the signatures.

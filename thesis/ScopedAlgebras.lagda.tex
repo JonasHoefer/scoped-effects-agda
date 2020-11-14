@@ -37,19 +37,19 @@ postulate
 
 Due to the deep-rooted problem with the higher order approach from Chapter
 \ref{chapter:higher-order} it seemed reasonable to search for another
-formulation of scoped effects, which does not rely on existential types.
+formulation of scoped effects, that does not rely on existential types.
 \textcite{DBLP:conf/lics/PirogSWJ18} present a novel formalization for
 scoped operations and their algebras, that fulfils this requirement.
-Their approach does not describe the combination of multiple effects, but due to
-the different structure the approach seemed worth exploring nonetheless.
+In their paper they do not describe the combination of multiple effects, but due
+to the different structure the approach seemed worth exploring nonetheless. % :/
 
-This chapter transfers the basic implementation by
+This chapter transfers the basic implementation Haskell by
 \textcite{DBLP:conf/lics/PirogSWJ18} to Agda.
-To implement scoped algebras in an obviously terminating way we derive a
+To implement scoped algebras in an obviously terminating way, we derive a
 different implementation of the \AgdaFunction{fold} by
-\textcite{DBLP:conf/lics/PirogSWJ18} based on the work by
+\textcite{DBLP:conf/lics/PirogSWJ18}, based on the work by
 \textcite{DBLP:journals/corr/abs-1806-05230}.
-To test our implementation we implement the nondeterminism example by
+To test our implementation, we implement the nondeterminism example by
 \textcite{DBLP:conf/lics/PirogSWJ18}, exceptions, state and sharing as defined
 by \textcite{bunkenburg2019modeling}.
 Furthermore, we presents a new implementation for naive modularisation of
@@ -61,7 +61,7 @@ handlers.
 \textcite{DBLP:conf/lics/PirogSWJ18} describe a monad, which is suited for
 modelling operations with scopes.
 The monad is the result of rewriting a slightly modified version of the monad
-from ``Effect Handlers in Scope'' i.e. the monad used in Chapter
+from ``Effect Handlers in Scope'', i.e. the monad used in Chapter
 \ref{chapter:higher-order}.
 
 In the following we describe the original and the resulting monad in Agda.
@@ -113,23 +113,26 @@ An operation without scopes, that is the functor $\Sigma$ applied to the monad
 itself.
 Notice that this case corresponds to the \AgdaInductiveConstructor{impure}
 constructor in the free monad.
-Or Lastly, an operations with local scope, represented by the second signature
+Or lastly, an operations with a local scope, represented by the second signature
 $\Gamma$.
-An operation with a local scope always quantifies over some type $X$, which is the
+Operations with a local scope always quantifies over some type $X$, which is the
 type for the intermediate result.
 Furthermore, they provided a continuation, which transforms values of the
 internal result type to the result type of the whole program.
 The operations with scopes from Chapter \ref{chapter:higher-order} followed
 exactly this pattern.
-The shape of the by bi-container stored the intermediate result type and the
-\AgdaField{Ctx} was used to provide computations returning the result type as
-well as the continuation of the operation.
+The shape of the by bi-container stored the intermediate result type and the two
+position functions provided continuations resulting in programs with value type
+\AgdaArgument{A} or \AgdaArgument{X}.
+%\AgdaField{Ctx} and second position function were used to provide computations
+%returning the result type and the second position function provided a
+%continuation of the operation. % :/
 
-Notice again that this definition requires $X$ to be a smaller type than
+Notice that this definition also requires $X$ to be a smaller type than
 \AgdaDatatype{ProgE}, i.e. it is not sufficient to model deep effects as
 explained in Chapter \ref{chapter:higher-order}.
 \textcite{DBLP:conf/lics/PirogSWJ18} also note size issues with this definition.
-\textcite{DBLP:conf/lics/PirogSWJ18} rewrite this definition using a left Kan
+\textcite{DBLP:conf/lics/PirogSWJ18} rewrite this monad using a left Kan
 extension and derive the following equivalent monad without the existential
 type.
 
@@ -150,10 +153,11 @@ The outer layer corresponds to the part of program in scope.
 By evaluating it (i.e. the part of the program in scope) one obtains a
 computation, the rest of the program producing a result of type $A$.
 This resulting program corresponds to the continuation in the higher order
-approach, which was a function mapping from the result of the scoped program
+approach, which is a function mapping from the result of the scoped program
 to the rest of the whole program.
 In their paper, \textcite{DBLP:conf/lics/PirogSWJ18} develop a theory of
-\textit{scoped algebras}.
+\textit{scoped algebras} for a second equivalent monad and us them to define a
+sensible evaluation for this monad.
 In Section \ref{scoped-algebra:monad} we define a more practical version of the
 monad and translate part their practical results form Haskell to Agda. 
 
@@ -168,8 +172,7 @@ therefore \AgdaDatatype{Container}s.
 
 \begin{code}
 record Effect : Set₁ where
-  field
-    Ops Scps : Container
+  field Ops Scps : Container
 open Effect public
 \end{code}
 The functions \AgdaFunction{ops} and \AgdaFunction{scps} combine the
@@ -185,7 +188,7 @@ Using these helper functions we define a modular version of the monad by
 \textcite{DBLP:conf/lics/PirogSWJ18}.
 It is equivalent to the fixpoint and the Haskell definition from the paper
 (assuming that signatures are given by functors which can be represented as
-container).
+container). % needed? see last section
 
 \begin{code}
 data Prog (effs : List Effect) (A : Set) : Set where
@@ -1336,7 +1339,7 @@ the inner scope.
 We add the current choice id as an additional return value.
 After traversing a foreign scope we continue with the last id from the inner
 scope.
-In case of a sharing scope we numebr choices inside the scope unsing the scopes
+In case of a sharing scope we number choices inside the scope unsing the scopes
 id and continue with the current outer id after the scope.
 
 \begin{code}

@@ -41,7 +41,7 @@ open Container public
 \end{code}
 
 In this chapter we present our first implementation of algebraic effects in Agda.
-The implementation uses a traditional approach i.e. it represents effects as
+The implementation uses a traditional approach, i.e. it represents effects as
 functors and uses the free monad, as described in section
 \ref{preliminaries:free-monad}.
 We focus on implementation details specific to Agda, for example termination and
@@ -59,7 +59,7 @@ In section \ref{fist-order:scoped-effects} we implement scoped effects using
 explicit scoped delimiters as described by \textcite{DBLP:conf/haskell/WuSH14}.
 To define handlers for effects with and without scopes we use a general
 construction using sized types to prove termination.
-This allows us to conveniently implement handlers in Agda i.e. without changing
+This allows us to conveniently implement handlers in Agda, i.e. without changing
 the structure of handlers to prove termination.
 As a more complex example we implement the sharing handler by
 \textcite{bunkenburg2019modeling}, providing a way of simulating call-time
@@ -69,14 +69,14 @@ choice semantics in Agda.
 \section{Functors {\`{a}} la Carte}
 \label{first-order:functor}
 
-When modelling effects each functor represents the signature i.e. the operations for
+When modelling effects each functor represents the signature, i.e. the operations for
 an effect.
 Theoretically, it is possible to represent each operation as a functor.
 Usually, operations which are handled together are implemented as a single functor.
 For containers each shape constructor corresponds to an operation symbol and the
 type of position for a shape corresponds to the arity set for the operation.
 The additional parameter of an operation is embedded in the shape.
-The free monad over a container describes a program using the effect's syntax
+The free monad over a container describes a program using the effect's syntax,
 i.e. it is the free model for the algebraic theory without the equations.
 To combine the syntax of multiple effects we can combine the underlying
 functors, because the free monad preserves coproducts\footnote{This follows from
@@ -96,7 +96,7 @@ In section \ref{preliminaries:free-monad} we defined the free monad over
 a strictly positive functor, which was represented by a
 \AgdaDatatype{Container}.
 We could use a similar data type to combine the extensions of two containers,
-but we would lose the advantages of containers i.e. that container extension is
+but we would lose the advantages of containers, i.e. that container extension is
 a strictly positive functor.
 Containers are closed under multiple operations, coproducts being one of
 them~\cite{DBLP:conf/fossacs/AbbottAG03}.
@@ -173,8 +173,8 @@ used in a right associative way to avoid backtracking.
 Because in Agda the result of \AgdaFunction{\_⊕\_} is another container, not
 just a value of a simple data type, instance resolution using
 \AgdaFunction{\_⊕\_} is not as straight forward as in Haskell and in some cases
-extremely slow\footnote{We encountered cases where type checking of overlapping
-instances involving \AgdaFunction{\_⊕\_} did not seem to terminate.}.
+slow\footnote{We encountered cases where type checking of overlapping instances
+  involving \AgdaFunction{\_⊕\_} did not seem to terminate.}.
 
 We used an similar approach similar to the Idris effect library
 \cite{DBLP:conf/icfp/Brady13}.
@@ -197,8 +197,14 @@ data _∈_ {ℓ : Level} {A : Set ℓ} (x : A) : List A → Set ℓ where
 \end{code}
 The type
 \AgdaArgument{x}\AgdaSpace{}\AgdaDatatype{∈}\AgdaSpace{}\AgdaArgument{xs}
-represents the proposition that \AgdaArgument{x} is an element of
-\AgdaArgument{xs}.
+represents the proposition\footnote{This proposition is just a special case of
+  the \AgdaDatatype{Any} proposition on \AgdaDatatype{List}s.
+  For simplicity, we implement the proposition here directly.
+  Types like \AgdaDatatype{\_∈\_} are an example of a common pattern in
+  dependently typed languages called \textit{view}.
+  The purpose view type is just to pattern match on its values, to reveal more
+  information about its indices~\cite{DBLP:conf/afp/Norell08}.}
+that \AgdaArgument{x} is an element of \AgdaArgument{xs}.
 The two constructors can be read as inference rules.
 One can always construct a proof that \AgdaArgument{x} is in a list with
 \AgdaArgument{x} in its head and given a proof that
@@ -474,7 +480,7 @@ interchange a (impure (s , κ))  = cong (impure ∘ (s ,_)) (extensionality (int
 \end{code}
 This definition of the free monad also satisfies the three monad laws.
 Written using the kleisli composition (\AgdaFunction{>=>}) they reduce to the
-laws for morphism composition in a category i.e.
+laws for morphism composition in a category, i.e.
 \AgdaInductiveConstructor{pure} is the left and right identity for the
 associtative composition.
 We are more interessted in this formulation, because it is the one occuring more
@@ -505,15 +511,16 @@ formally.
 In this section we implement algebraic effect and their handlers in Agda.
 
 All handlers in the following sections will have the same basic structure.
-They will take a program i.e. a variable of type
+They will take a program, a variable of type
 \AgdaDatatype{Free}\AgdaSpace{}\AgdaArgument{C}\AgdaSpace{}\AgdaArgument{A},
 where the head of \AgdaArgument{C} is the effect interpreted by the handler.
-Each handler produces a program without the interpreted syntax i.e. just the
-tail of \AgdaArgument{C} in its effect stack and potentially modify the type
-\AgdaArgument{A} to one modelling the result of the effect.
+Each handler produces a program without the interpreted syntax, i.e. just the
+tail of \AgdaArgument{C} in its effect stack.
+Furthermore, they potentially modify the type \AgdaArgument{A} to one modelling
+the result of the effect.
 They transform an impure computation partially to a pure one.
-Furthermore, by interpreting the syntax of an effect (mapping to a model for
-the theory) the handler defines the semantics for the effect.
+By interpreting the syntax of an effect (mapping to a model for the theory) the
+handler defines the semantics for the effects syntax.
 For example, a handler for exceptions would remove exception syntax and
 transform a program producing a value of type \AgdaArgument{A} to one producing
 a value of type
@@ -529,10 +536,10 @@ A simple but important handler is the one handling the empty effect stack and
 therefore the \AgdaDatatype{Void} effect.
 A program containing just \AgdaDatatype{Void} syntax contains no
 \AgdaInductiveConstructor{impure} constructors, because \AgdaDatatype{Void} has
-no operations i.e. its \AgdaField{Shape} type has no constructors.
+no operations, because its \AgdaField{Shape} type has no constructors.
 Pattern matching on the impure constructor yields $()$.
-Therefore, the program does not call impure operations and always yields a value
-of type \AgdaArgument{A}.
+The program does not call \AgdaInductiveConstructor{impure} operations and
+always yields a value of type \AgdaArgument{A}.
 The handler for \AgdaDatatype{Void} is important, because it can be used to
 escape the \AgdaDatatype{Free} context after all other effects have been
 handled.
@@ -556,13 +563,13 @@ The nondeterminism effect has two operations \AgdaFunction{⁇} and
 \AgdaFunction{⁇} introduces a nondeterministic choice between two execution
 paths and \AgdaFunction{fail} discards the current path.
 Nondeterministically choosing between two paths means that \AgdaFunction{⁇}
-nondeterministically produces a boolean or having two continuations.
-We therefore have a nullary and a binary operation, both without additional
+nondeterministically produces a boolean or has two continuations.
+Therefore, we have a nullary and a binary operation, both without additional
 parameters.
 
 $$
-\Sigma_{\text{Nondet}} = \{ ?\!? : \mathbf{1} \leadsto \mathbf{2}, \mathrm{fail}
-: \mathbf{1} \leadsto \mathbf{0} \}
+\Sigma_{\text{Nondet}} = \{ ?\!? : \mathbb{1} \leadsto \mathbb{2}, \mathrm{fail}
+: \mathbb{1} \leadsto \mathbb{0} \}
 $$
 Expressed as a container, we have a shape with two constructors, one for each
 operation and both without parameters.
@@ -586,7 +593,7 @@ The generic \AgdaFunction{⁇} operation nondeterministically produces a boolean
 but usually we want to use it analogous to Curry's \texttt{?} operator,
 therefore we implement this refined version.
 \AgdaFunction{op}\AgdaSpace{}\AgdaInductiveConstructor{failˢ} produces a
-computation with result type \AgdaDatatype{⊥} i.e. the operation has no
+computation with result type \AgdaDatatype{⊥}, i.e. the operation has no
 continuations.
 To avoid continuing with $λ()$ after every call of \AgdaFunction{fail} (to
 produce a computation of the correct type) we add the continuation to the smart
@@ -604,12 +611,12 @@ for the effect.
 \textcite{DBLP:conf/haskell/WuSH14} use Haskell language extensions like pattern
 synonyms and view patterns to simplify their implementations.
 Agda also has \AgdaKeyword{pattern} synonyms, which we use to simplify at least
-simple effect handlers i.e. those which do not rely on \AgdaFunction{prj}.
+simple effect handlers, i.e. those which do not rely on \AgdaFunction{prj}.
 Similar to Haskell, the left-hand side of a \AgdaKeyword{pattern} defines an
 abbreviate for the right-hand side, which can be used on the left- and
 right-hand side of function rules.
 We introduce \AgdaKeyword{pattern}s for each operation from the signature as
-well as for other operations i.e. those who are not part of the currently
+well as for other operations, i.e. those who are not part of the currently
 handled signature.
 
 \begin{code}
@@ -622,7 +629,7 @@ pattern Choice κ   = impure (inj₁ ⁇ˢ , κ)
   program.
   Therefore \AgdaDatatype{Nondet} is removed from the front of the effect stack.
   For the handler different semantics are conceivable.
-  For example, a handler could implement backtracking i.e. search for the first
+  For example, a handler could implement backtracking, i.e. search for the first
   result that is not \AgdaFunction{fail}.
   The result type of such a handler could be modelled using a
   \AgdaDatatype{Maybe}.
@@ -656,10 +663,10 @@ runNondet (Fail κ)     = pure []
   execution path.
 
   $\llparenthesis$ and $\rrparenthesis$ are \textit{idiom brackets} and denote
-  applicative functor style function application i.e.
+  applicative functor style function application, i.e.
   \AgdaInductiveConstructor{pure}\AgdaSpace{}\AgdaArgument{f}\AgdaSpace{}\AgdaFunction{<*>}$\dots$\AgdaFunction{<*>}$\dots$\AgdaFunction{<*>}$\dots$.
   In this case the function \AgdaArgument{f} is the mixfix operator
-  \AgdaFunction{\_++\_} which can still be written in infix notation.
+  \AgdaFunction{++} which can still be written in infix notation.
   \begin{code}
 runNondet (Choice κ)   = ⦇ runNondet (κ true) ++ runNondet (κ false) ⦈
   \end{code}
@@ -667,15 +674,16 @@ runNondet (Choice κ)   = ⦇ runNondet (κ true) ++ runNondet (κ false) ⦈
   on every subtree by mapping the function over the container.
   Note that the newly constructed value has a different type.
   \AgdaInductiveConstructor{Other} hides the \AgdaInductiveConstructor{inj₂}
-  constructor, therefore the newly constructed \AgdaInductiveConstructor{impure}
-  value is of type
+  constructor.
+  Therefore, the newly constructed \AgdaInductiveConstructor{impure} value is of
+  type
   \AgdaDatatype{Free}\AgdaSpace{}\AgdaArgument{ops}\AgdaSpace{}$($\AgdaDatatype{List}\AgdaSpace{}\AgdaArgument{A}$)$.
   Furthermore, notice that this function rule corresponds to one of the equations
   for handlers, given in section \ref{preliminaries:handler}.
   \begin{code}
 runNondet (Other s κ)  = impure (s , runNondet ∘ κ)
   \end{code}
-  Even though, this handler is defined recursive the definition from section
+  Even though, this handler is defined recursively the definition from section
   \ref{preliminaries:handler} can still be recognized.
   The case for \AgdaInductiveConstructor{pure} corresponds to the function
   mapping values to computations.
@@ -691,11 +699,11 @@ runNondet (Other s κ)  = impure (s , runNondet ∘ κ)
 \label{first-order:nondet:properties}
 
 As explained in section \ref{preliminaries:free-monad}, the free monad
-represents the free model for the theory without equations i.e. some terms
+represents the free model for the theory without equations, i.e. some terms
 should be equal but are not.
-The handler for an algebraic effect defines its semantics by removing and
-interpreting its syntax.
-The result of a handler should again be a model for the effect i.e. the
+The handler for an algebraic effects syntax defines its semantics by removing
+and interpreting its syntax.
+The result of a handler should again be a model for the effect, i.e. the
 equations characterizing the effect should hold.
 We can proof that our handler produces a valid (but not necessarily free) model
 for our equations by verifying that after interpreting the terms the laws holds.
@@ -779,16 +787,16 @@ The whole effect is parameterized over the state type \AgdaArgument{S}.
 The operation takes no additional parameters and has \AgdaArgument{S} positions.
 This can either be interpreted as \AgdaFunction{get} being an
 \AgdaArgument{S}-ary operation (one argument for each possible state) or
-simply the parameter of the continuation being a value of type \AgdaArgument{s}.
+simply the parameter of the continuation being a value of type \AgdaArgument{S}.
 
 \AgdaFunction{put} updates the current state.
 The operation takes an additional parameter, the new state.
-The operation itself is unary i.e. the continuation is called with
+The operation itself is unary, i.e. the continuation is called with
 \AgdaInductiveConstructor{tt} to start the rest of the program.
 
 $$
-\Sigma_{State} = \{ \mathrm{get} : \mathbf{1} \leadsto S, \mathrm{put} :
-S \leadsto \mathbf{1} \}
+\Sigma_{State} = \{ \mathrm{get} : \mathbb{1} \leadsto S, \mathrm{put} :
+S \leadsto \mathbb{1} \}
 $$
 As before we translate this definition in a corresponding container and
 define \AgdaKeyword{pattern}s to simplify the handler.
@@ -837,13 +845,15 @@ By applying \AgdaArgument{s₀} to \AgdaArgument{κ} we obtain the rest of the
 computation for the current state, which we evaluate recursively.
 Notice that this operation technical has $|S|$ continuations, but we only call a
 single one.
-In reality all continuations are of course implemented as a single function,
+The handler for \AgdaDatatype{Nondet} always uses all of its continuations.
+In reality the continuations are of course implemented as a single function,
 which takes a parameter of type $S$.
 \begin{code}
 runState s₀ (Get κ)      = runState s₀ (κ s₀)
 \end{code}
-\AgdaFunction{put} updates the current state, therefore we pass the new state
-\AgdaArgument{s₁} to the recursive call of \AgdaFunction{runState}.
+\AgdaFunction{put} updates the current state.
+Therefore, we pass the new state \AgdaArgument{s₁} to the recursive call of
+\AgdaFunction{runState}.
 \begin{code}
 runState _  (Put s₁ κ)   = runState s₁ (κ tt)
 \end{code}
@@ -892,7 +902,7 @@ example₁ = refl
 
 \subsubsection{Properties}
 
-To show that our implementation of \AgdaDatatype{State} is correct i.e. that it
+To show that our implementation of \AgdaDatatype{State} is correct, i.e. that it
 is a model, we have to show that the equations characterizing the effect hold.
 Because some equations use just \AgdaFunction{get} and \AgdaFunction{put},
 \AgdaArgument{ops} cannot be automatically inferred.
@@ -965,7 +975,7 @@ For the interaction of \AgdaDatatype{State} and \AgdaDatatype{Nondet} two
 semantics are conceivable.
 \paragraph{Local State}
 Each branch in the nondeterministic calculation has its own state.
-When \AgdaFunction{⁇} is used to choose between two reuslts both branches
+When \AgdaFunction{⁇} is used to choose between two results both branches
 continue with their own states with the same value.
 \paragraph{Global State}
 All branches share a single, global state.
@@ -976,7 +986,7 @@ The state operations are executed in this order and all act on the same state.
 
 The handlers for the two effects define semantics for their operations.
 Operations of the other siganture are just traversed.
-The interaction smeantics are induced by the ordering of the handlers.
+The interaction semantics are induced by the ordering of the handlers.
 We obtain two combined handlers, each corresponding to one of the two cases
 above.
 
@@ -1248,7 +1258,7 @@ In this section we extend the nondeterminism effect from section
 
 As explained in section \ref{call-time-choice}, call-time choice semantics
 describe the interaction between sharing and nondeterminism.
-The current implementation of \AgdaDatatype{Nondet} does not support sharing
+The current implementation of \AgdaDatatype{Nondet} does not support sharing,
 i.e. it is not possible for two choice to be linked.
 Based on Bunkenburg's implementation we make two changes to the
 nondeterminism effect from Section \ref{nondeterminism}.
@@ -1330,7 +1340,7 @@ mxs ++ᴹ mys = mxs >>= λ where
 \paragraph{Normalization of Effectful Data}
 
 Based on the code by \textcite{bunkenburg2019modeling} we introduce a type
-class for normalizing effectful data structures i.e. moving interleaved
+class for normalizing effectful data structures, i.e. moving interleaved
 \AgdaDatatype{Free} layers to the outside using \AgdaFunction{>>=}.
 
 \begin{code}
@@ -1505,7 +1515,7 @@ identifiers.
 \AgdaDatatype{State} is later executed as first effect in the stack, to generate
 concrete identifier values for the sharing handler.
 Given a computation producing values of type \AgdaArgument{A} the operator
-returns a computation of computations of type \AgdaArgument{A} i.e. the result
+returns a computation of computations of type \AgdaArgument{A}, i.e. the result
 has two \AgdaDatatype{Free}\AgdaSpace{}\AgdaArgument{ops} layers.
 The outer layer is usually execute immediately (i.e. injected into the larger
 program at the current position) using \AgdaFunction{>>=}.

@@ -69,7 +69,7 @@ local :
 local {reader = reader} f p = local′ ⦃ reader ⦄ f p
 
 shareInScope :
-  { @(tactic eff) _ : Reader ℕ ∈ effs } →
+  { @(tactic eff) _ : Reader ℕ ∈ effs  } →
   { @(tactic eff) _ : State SID ∈ effs } →
   { @(tactic eff) _ : Share ∈ effs     } →
   { @(tactic eff) _ : Nondet ∈ effs    } →

@@ -61,6 +61,7 @@
 \newunicodechar{ˢ}{\textsuperscript{s}}
 \newunicodechar{ˣ}{\textsuperscript{x}}
 \newunicodechar{ᴵ}{\textsuperscript{I}}
+\newunicodechar{ᴰ}{\textsuperscript{D}}
 \newunicodechar{ᴸ}{\textsuperscript{L}}
 \newunicodechar{ᴹ}{\textsuperscript{M}}
 \newunicodechar{ᴾ}{\textsuperscript{P}}
@@ -117,6 +118,8 @@
   {\ensuremath{\$}}
   {\ifthenelse{\equal{#1}{<\$>\AgdaUnderscore{}}}
   {\fmap\AgdaUnderscore{}}
+  {\ifthenelse{\equal{#1}{Context.\AgdaUnderscore{}<\$>\AgdaUnderscore{}}}
+  {Context.\AgdaUnderscore{}\fmap\AgdaUnderscore{}}
   {\ifthenelse{\equal{#1}{\AgdaUnderscore{}<\$>\AgdaUnderscore{}}}
   {\AgdaUnderscore{}\fmap\AgdaUnderscore{}}
   {\ifthenelse{\equal{#1}{\AgdaUnderscore{}<*>\AgdaUnderscore{}}}
@@ -125,7 +128,7 @@
   {\AgdaUnderscore{}\ap}
   {\ifthenelse{\equal{#1}{<*>}}
   {\ap}
-  {#2}}}}}}}}}}}}}}}}}}}}}
+  {#2}}}}}}}}}}}}}}}}}}}}}}
 
 \usepackage{graphicx}
 \graphicspath{{images/}}
@@ -218,9 +221,9 @@
   Furthermore, algebraic effects are convenient representation of computational
   effects in constructive type theory.
   For example,
-  \cite{DBLP:journals/programming/DylusCT19,DBLP:conf/haskell/ChristiansenDB19}
+  \textcite{DBLP:journals/programming/DylusCT19,DBLP:conf/haskell/ChristiansenDB19}
   used them to explicitly represent ambient effect, such as Haskell's
-  partiality, in proof assistants like Coq.
+  partiality, in the proof assistants Coq.
 
   In the traditional approach, operations with scope can only be implemented as
   an effect handler.

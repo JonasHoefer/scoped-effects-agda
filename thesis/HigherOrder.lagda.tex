@@ -8,7 +8,7 @@ open import Function using (_∘_; id; case_of_; const; _$_)
 open import Level using (Level; 0ℓ; Lift; lift; Setω)
 
 open import Data.Bool using (Bool; true; false; if_then_else_)
-open import Data.Empty using (⊥)
+open import Data.Empty.Polymorphic using (⊥)
 open import Data.Product using (Σ-syntax; _×_; _,_) renaming (proj₁ to π₁; proj₂ to π₂)
 open import Data.Maybe using (Maybe; fromMaybe; nothing; just)
 open import Data.Nat using (ℕ; suc; zero)
@@ -57,7 +57,7 @@ representation and their consequences.
 Because deep effects are an uncommon requirement, in Section
 \ref{higher-order:limited-impl} we still presents a limited implementation,
 to highlight some details specific to Agda and lay groundwork for Chapter
-\ref{chapter:scoped-algebra}.
+\ref{chapter:scoped-algebras}.
 
 
 \section{Higher Order Syntax}
@@ -70,28 +70,31 @@ the scope.
 In the higher order approach by \textcite{DBLP:conf/haskell/WuSH14} scoped
 operations store their continuation as well as the part of the program in their
 scope.
-Therefore, the handler can directly access the program in scope.
+Therefore, the handler can directly access the program in scope as well as the
+rest of the program.
 In the following, we explain the basic construction of higher order syntax in
 Haskell by \textcite{DBLP:conf/haskell/WuSH14}.
-Afterwards, we present results regarding an Agda implementation.
+Afterwards, we present results regarding our Agda implementation.
 
 In the first order approach the functors, that describe the syntax, are applied
-to types of the form \texttt{Free F A} i.e. programs consisting of syntax
-described by \texttt{Free F}, which produce values of type \texttt{A}.
+to types of the form \texttt{Free F A}.
+These type represent programs consisting of syntax described by \texttt{Free F},
+which produce values of type \texttt{A}.
 In the higher order approach these functors are generalized to higher order
-functors, that is in Haskell data types of kind \texttt{(* -> *) -> (* -> *)}.
-The \mintinline{haskell}{Prog sig a} data type represents syntax.
+functors, that is, in Haskell data types of kind \texttt{(* -> *) -> (* -> *)}.
+In the implementation by \textcite{DBLP:conf/haskell/WuSH14}, the
+\mintinline{haskell}{Prog sig a} data type represents syntax.
 It is a slight generalization from the free monad in the first order approach.
-In the \mintinline{haskell}{Impure} constructor the now higher-roder functors
-are applied to the syntax (represented by \mintinline{haskell}{Prog sig}) and
-the result type \mintinline{haskell}{a} separately.
+In the \mintinline{haskell}{Impure} constructor the higher-order functor is
+applied to the syntax (represented by \mintinline{haskell}{Prog sig}) and the
+result type \mintinline{haskell}{a} separately.
 
 \begin{minted}{haskell}
     data Prog sig a = Pure a | Impure (sig (Prog sig) a)
 \end{minted}
 Because the program type is separated in syntax and result type it is possible
-to store programs, that use the same signature but produce values of different
-types.
+to store programs, that use the same signature but produce values of different a
+type.
 Consider the following definition of the higher order exception syntax as given
 by \textcite{DBLP:conf/haskell/WuSH14}.
 
@@ -116,10 +119,10 @@ Figure \ref{higher-order:syntax:bind} demonstrates the action of
 The program in scope and the $e$ indexed subprogram (the exception handler) both
 produce values of the captured type $X$, therefore \AgdaFunction{>>=} does not
 affect them.
-Only the third computation is of type \AgdaArgument{A} and therefore affected by
-\AgdaFunction{>>=}.
-The programs in scope are not modified.
-Just the actual rest of the program, described by the continuation, is affected.
+Only the third computation produces values of type \AgdaArgument{A} and
+therefore is affected by \AgdaFunction{>>=}.
+In terms of operation, the programs in scope are not modified and just the
+actual rest of the program, described by the continuation, is affected.
 Therefore, by generalizing the syntax \textcite{DBLP:conf/haskell/WuSH14} allow
 a direct representation of operations with scopes.
 Before we can implement the infrastructure, we have to choose an appropriate
@@ -168,9 +171,9 @@ In Haskell the generalization to higher order syntax is straight forward.
 introduce type constructor classes to define higher-order functors as well as
 the notion of syntax in this implementation of scoped effects.
 
-In Agda we again have to find an appropriate representation for functors to
-guaranty strict positivity, which leads to the idea of an indexed container as
-described by \textcite{DBLP:journals/jfp/AltenkirchGHMM15}
+In Agda we again have to find an appropriate representation for higher-order
+functors to guaranty strict positivity, which leads to the idea of an indexed
+container, as described by \textcite{DBLP:journals/jfp/AltenkirchGHMM15}
 \footnote{Note that this is not the first publication related to indexed
   containers. Papers of the same name, by the same author(s) exist, as well as
   data types, known as ``Interaction Structures'' with essentially the same
@@ -189,6 +192,11 @@ record IndexedContainer (I O : Set₁) : Set₂ where
   ⟦_⟧ : (I → Set₁) → (O → Set₁)
   ⟦_⟧ F A = Σ[ s ∈ Shape A ] ((p : Pos s) → F (Ctx s p))
 \end{code}
+Similar to the Haskell data type \mintinline[breaklines]{haskell}{HExc e m a} we
+have to store an arbitrary type, when defining scoping operations.
+Therefore the higher-order functor has to produce elements of the larger
+universe \AgdaDatatype{Set₁}.
+
 Allowing indicies of arbitrary levels and instantiating \AgdaArgument{I} and
 \AgdaArgument{O} with \AgdaDatatype{Set} gives rise to a container extension
 of the correct shape.
@@ -208,7 +216,7 @@ record HContainer : Set₂ where
   ⟦_⟧ F A = Σ[ s ∈ Shape ] ((p : Pos s) → F (Ctx s p A))
 \end{code}
 In the second definition the \AgdaField{Shape} and \AgdaField{Pos} types cannot
-depend on the given index i.e. the argument for the returned functor.
+depend on the given index, i.e. the argument for the returned functor.
 Otherwise, both definitions are quite similar.
 All stored elements are lifted by the given functor \AgdaArgument{F}.
 \AgdaArgument{F}'s argument is generated using \AgdaField{Ctx}.
@@ -496,16 +504,25 @@ In a more complex implementation, where more control over the type of the
 continuation is needed, a container with a \AgdaField{Ctx} for \AgdaArgument{A}
 might be needed\footnote{To guarantied strict positivity one of the solutions
   mentioned in Section \ref{higher-order:container} is needed.}.
+Furthermore, we do not define a level polymorphic version of \AgdaDatatype{Prog},
+as its only advantage is a limited representation of deep effects.
+Instead we limit value types to elements of \AgdaDatatype{Set}, i.e. those which
+can always be scoped.
 
 First we port over the infrastructure for modular effects.
 The coporduct carries over seamlessly.
 We combine the position functions pairwise and handle the \AgdaFunction{Ctx}
 functions using the coproduct mediator.
+\AgdaDatatype{Void} is also define analogous to the first order
+setting.
 
 \begin{code}
 _⊕_ : Effect → Effect → Effect
 (S₁ ◁ P₁ + PX₁ / C₁) ⊕ (S₂ ◁ P₂ + PX₂ / C₂) =
   (S₁ ⊎ S₂) ◁ [ P₁ , P₂ ] + [ PX₁ , PX₂ ] / [ C₁ , C₂ ]
+
+Void : Effect
+Void = ⊥ ◁ (λ()) + (λ()) / λ()
 \end{code}
 To easily work in the higher order setting we adapt the \AgdaDatatype{Prog}
 data type similarly to \AgdaDatatype{Free} monad from Chapter
@@ -522,9 +539,6 @@ We try to avoid the flag in this exemplary implementation, because it weakens
 type inference, forcing us to write more implicit parameters explicitly.
 
 \begin{code}[hide]
-Void : Effect
-Void = Lift _ ⊥ ◁ (λ()) + (λ()) / λ()
-
 sum : List Effect → Effect
 sum = foldr _⊕_ Void
 
@@ -566,12 +580,15 @@ mf <*> ma = mf >>= λ f → ma >>= λ a → pure (f a)
 run : Prog [] A → A
 run (pure x) = x
 \end{code}
-The definition for \AgdaFunction{>>=} is identical to the one in Haskell.
-Using the \AgdaKeyword{INLINE} pragma, as explained in Section \ref{container},
-we can define \AgdaFunction{emap} separately without obscuring the termination.
+The definition of \AgdaFunction{>>=} is identical to the one in Haskell.
+Using the \AgdaKeyword{INLINE} pragma and projections, as explained in Section
+\ref{container}, we can define \AgdaFunction{emap} separately without obscuring
+the termination.
 Note that \AgdaFunction{emap} only applies the given function to the result of
 the first position function, because only it has access to \AgdaArgument{A}.
 The programs in scope are ignored.
+Therefore, the recursive calls to \AgdaFunction{>>=} also only apply to the
+continuation.
 
 The infrastructure from Chapter \ref{chapter:first-order} carries over with
 minimal changes.
@@ -591,16 +608,25 @@ op ⦃ p ⦄ = impure ∘ inj {F = λ X → Prog _ X} p
 Usually, when an effect is handled the value type is lifted in a context,
 represented by a functor (e.g. \AgdaDatatype{List} for \AgdaDatatype{Nondet}).
 
-Following the approach by \citeauthor{DBLP:conf/haskell/WuSH14} we will define a
-type class \AgdaDatatype{Syntax}, which, given a handler, allows evaluating a
-computation in a context to a new computation producing values in the context.
-To define such a type class we first have to define a context.
-The normal definition of a functor does not suffice, because it lifts all type
+Following the approach by \citeauthor{DBLP:conf/haskell/WuSH14} we will define the
+type class \AgdaDatatype{Syntax} for effects.
+% Given a handler, the type class allows to partially interpret a program in a
+% context to a new program producing values in the context. % Interprets parts of syntax?
+Given a handler, the type class explains how to move handlers and evaluation contexts
+for other effects through syntax of the given effect.
+A handler is given by a function that transforms a program in a context to a new
+program producing values inside the context, i.e. in Haskell a function of type
+\mintinline[breaklines]{haskell}{c (Prog sig a) -> Prog sig' (c a)}.
+We first have to define a context.
+The normal definition of a functor does not suffice, because it lifts all types
 to the same \AgdaDatatype{Setₙ}.
+Because we have to lift programs as well as data, this would mean \AgdaDatatype{Set₁}.
+Later, we will have to lift the intermediate result type of scoped operations in
+the context.
 This is problematic, because scoped operations can only capture elements of
-\AgdaDatatype{Set}, while computations are elements of \AgdaDatatype{Set₁}.
-Therefore values and computations in context have different universe levels, but
-during the evaluating we have to lift both in the context.
+\AgdaDatatype{Set}.
+Therefore, the context should preserve the universe level of its argument, i.e.
+lift values to \AgdaDatatype{Set} and programs to \AgdaDatatype{Set₁}.
 Even with \texttt{--cumulativity} this behavior is not handled automatically by
 Agda\footnote{\url{https://agda.readthedocs.io/en/v2.6.1.1/language/cumulativity.html\#limitations}}.
 
@@ -610,7 +636,7 @@ A context is essentially a functor which respects the universes structure.
 Given a type from \AgdaDatatype{Setₙ} it lifts it to another type in the same
 \AgdaDatatype{Setₙ}.
 Furthermore, given a function between two data types in different universes it
-lifts the function to a function between the lifted types i.e. between
+lifts the function to a function between the lifted types, i.e. between
 universes.
 An instances should satisfy the functors laws, even though they are not enforced
 here.
@@ -633,22 +659,22 @@ open Context ⦃...⦄
 With the context in place we define the \AgdaDatatype{Syntax} type class by
 \citeauthor{DBLP:conf/haskell/WuSH14}.
 By generalizing to higher order abstract syntax it is possible to represent
-computations in scope and continuations explicitly.
+programs in scope and continuations explicitly.
 The order in which they are evaluated and therefore how an evaluation context
-should be moved through the computation is a semantic question.
+should be moved through the program is a semantic question.
 The type class explains how an arbitrary handler can be thread through an
-effects syntax.
+effects syntax using the function \AgdaFunction{handle}.
 The first argument is the initial context.
 Using \AgdaFunction{<\$} it is possible to move an arbitrary value or
 computation into the context.
 The second argument is a handler as defined by
 \citeauthor{DBLP:conf/haskell/WuSH14}.
-The handler takes a computation in a context and evaluates it.
-The resulting computation has a different effect stack, usually it is the tail
-of the given stack.
-By partially evaluating the computation the context was moved through the
-computation.
-As a result the values are now lifted into the resulting context.
+The handler takes a program in a context and interprets parts of the syntax.
+The resulting program has a different effect stack, usually the tail of the
+given stack.
+By partially evaluating the program the context is moved through the
+program.
+As a result, the values are now lifted into the resulting context.
 Using the initial context and the handler, the type class explains how an
 arbitrary operation from the signature \AgdaArgument{E} is traversed.
 
@@ -668,9 +694,9 @@ To finish the basic infrastructure we define two \AgdaDatatype{Syntax}
 instances.
 The instance for the empty signature \AgdaDatatype{Void} is trivial, because the
 type of container extensions is empty.
-Combined signatures are handled by inspecting the value, calling the
-\AgdaFunction{handle} for one of the given signatures and injecting the result
-in the combined signature.
+Combined signatures are handled by inspecting the given operation, calling the
+\AgdaFunction{handle} for its signatures and injecting the result in the
+combined signature.
 
 \begin{code}
 instance
@@ -696,8 +722,8 @@ Exceptions support two operations, the usual algebraic operation
 The two operations are equivalent to the Haskell definition from Section
 \ref{higher-order:syntax}.
 \AgdaDatatype{throw} takes the thrown exception as an additional parameter.
-\AgdaDatatype{catch}'s \AgdaField{Shape} stores the result type of the
-computations in scope.
+\AgdaDatatype{catch} has no additional parameters, but its \AgdaField{Shape}
+stores the result type of the computations in scope.
 
 \begin{code}
 data Excˢ (E : Set) : Set₁ where
@@ -706,12 +732,12 @@ data Excˢ (E : Set) : Set₁ where
 \end{code}
 We use Bunkenburg's indexed bi-container~\cite{bunkenburg2019modeling}.
 The extension of the container is equipped with two positions functions, one for
-computations resulting in
+programs resulting in
 \AgdaDatatype{Prog}\AgdaSpace{}\AgdaArgument{effs}\AgdaSpace{}\AgdaArgument{A}
-and one for computations in scope i.e. such resulting in computations of type
+and one for programs in scope, i.e. such resulting in programs of type
 \AgdaDatatype{Prog}\AgdaSpace{}\AgdaArgument{effs}\AgdaSpace{}\AgdaArgument{Y}
 where \AgdaArgument{Y} is defined by the context.
-Let us first consider the computations in scope.
+Let us first consider the positions for programs in scope.
 
 \begin{code}
 data ExcCatchᴾ (E X : Set) : Set where
@@ -726,17 +752,17 @@ Excᶜ : ∀ E s → Excᵖˣ E s → Set
 Excᶜ E (catchˢ X) mainᵖ        = X
 Excᶜ E (catchˢ X) (handleᵖ e)  = X
 \end{code}
-\AgdaFunction{throw} has no computations in scope and therefore no positions.
+\AgdaFunction{throw} has no programs in scope and therefore no positions.
 \AgdaFunction{catch}'s positions are given by \AgdaDatatype{ExcCatchᴾ}.
-The operation has two kinds of program in scope.
+The operation has two kinds of programs in scope.
 The first single program is given by \AgdaInductiveConstructor{mainᵖ}, the
 program whose exceptions should be caught.
 \AgdaInductiveConstructor{handleᵖ} provides a continuation for each exception,
 it corresponds to the exception handler.
-Both computations produce results of type \AgdaArgument{X}, which is expressed
-using \AgdaFunction{Excᶜ}
+Both programs produce results of type \AgdaArgument{X}, which is defined
+using the context \AgdaFunction{Excᶜ}
 
-Next we define the positions for the effects continuation, i.e the computations
+Next we define the positions for the effects continuation, i.e the programs
 producing values of type \AgdaArgument{A}.
 
 \begin{code}
@@ -747,7 +773,7 @@ Excᵖ E (catchˢ X)  = X
 Again, \AgdaFunction{throw} has no continuations, because it produces no
 results.
 \AgdaFunction{catch} provides a continuation which processes the result of the
-computations in scope, i.e. it provides a continuation for each value of
+program in scope, i.e. it provides a continuation for each value of
 \AgdaArgument{X}.
 
 Using the above definitions we define the \AgdaDatatype{Exc} effect.
@@ -766,8 +792,9 @@ Because \AgdaFunction{throw} has no continuations, we define the container
 extensions as $\lambda ()$.
 \AgdaFunction{catch} captures the program as well as the exception handler in
 scope, therefore they are returned by \AgdaArgument{σ}.
-The effects continuation \AgdaArgument{κ} is initially given by pure.
-It is later extended using \AgdaFunction{>>=}.
+The effects continuation \AgdaArgument{κ} is initially given by
+\AgdaInductiveConstructor{pure}.
+It is extended later using \AgdaFunction{>>=}.
 This is analogous to the generic operations in the first order approach.
 
 \begin{code}[hide]
@@ -796,7 +823,7 @@ instance
   Context._<$>_ _⊎-Context f (inj₂ x) = inj₂ (f x)
 \end{code}
 As explained above, the \AgdaDatatype{Syntax} instance is needed to thread the
-handler  through the syntax of other effects i.e. the instance for
+handler  through the syntax of other effects, i.e. the instance for
 \AgdaDatatype{Exc} is not needed for the \AgdaDatatype{Exc} handler.
 We still define a \AgdaDatatype{Syntax} instance for \AgdaDatatype{Exc} now to
 explain the usual structure.
@@ -811,12 +838,14 @@ explain the usual structure.
 \end{code}
 \end{AgdaAlign}
 The case for \AgdaInductiveConstructor{throwˢ} is trivial, because the operation
-has no continuations, one which to evaluate the handler.
+has no continuations on which to evaluate the handler.
 The case for \AgdaInductiveConstructor{catchˢ} is more complex.
 
 The idea behind the \AgdaDatatype{Syntax} type class is to thread the handler
 through the operations, i.e. to evaluate the syntax of another effect in all
-captured subprograms, while context moves through the computation.
+subprograms, while context moves through the computation.
+Moving the context correctly through the syntax is a semantic problem and
+therefore has to be defined on a case by case basis.
 The given handler \AgdaArgument{hdl} is slightly different from the final
 handler in that it only accepts computations inside its context.
 This is needed to thread the handlers current state through the computation.
@@ -828,7 +857,7 @@ continuation.
 Handlers for other effects should traverse the effect similarly.
 Therefore, the intermediate result is lifted into the handlers context.
 The effects continuation (the one producing a value of the actual result type
-\AgdaArgument{A}) now takes an argument of type \AgdaArgument{C X} i.e. the
+\AgdaArgument{A}) now takes an argument of type \AgdaArgument{C X}, i.e. the
 result of a program in scope inside the foreign handlers context.
 By mapping \AgdaArgument{κ} over the given \AgdaArgument{x} the continuation is
 applied to the argument \AgdaArgument{x} and continues inside its context.
@@ -840,7 +869,7 @@ syntax the context is a list.
 because \AgdaFunction{<\$>} applies the given function simply to each element of
 the list.
 
-Next we will look at the computations in scope i.e. the computations stored by
+Next we will look at the computations in scope, i.e. the computations stored by
 \AgdaArgument{σ}.
 As in Chapter \ref{chapter:first-order} the handler should be evaluated on the
 computation in scope in isolation and not reuse the previous state.
@@ -850,7 +879,7 @@ To call the handler, the program, given by the functions \AgdaArgument{κ}
 and \AgdaArgument{σ}, have to be inject into a context.
 In case of \AgdaArgument{κ} we were given a context, now we have to use the
 given context.
-The given value \AgdaArgument{cxt} holds a value of type \AgdaDatatype{⊤} i.e.
+The given value \AgdaArgument{cxt} holds a value of type \AgdaDatatype{⊤}, i.e.
 no information just handler state.
 \AgdaArgument{cxt} should be the initial handler context or state for the
 handler.
@@ -869,6 +898,12 @@ In contrast to the Haskell implementation by
 type.
 Using the curly brackets we access the hidden type constructor \AgdaArgument{C}
 for the context and simply evaluate it on the given type.
+Furthermore, injecting a program into a context is only possible because we
+defined special versions of the functor operators, that respect the universe
+structure.
+If we had used a normal functor we either could not have stored the lifted
+intermediate result type or not could not have injected results of
+\AgdaArgument{κ} and \AgdaArgument{σ} into the context.
 
 \paragraph{Handler}
 Lastly we define the handler for \AgdaDatatype{Exc}.
@@ -905,12 +940,12 @@ runExc (Catch κ σ)  = runExc (σ mainᵖ) >>= λ where
 Lastly we handle \AgdaInductiveConstructor{Other} operations.
 As in Chapter \ref{chapter:first-order} we reconstruct the operation using
 \AgdaInductiveConstructor{impure}.
-Moving the handler along now requires us to use \AgdaFunction{handle}.
+Moving the handler along requires us to use \AgdaFunction{handle}.
 We call \AgdaFunction{handle} on the given value of the container extension,
 constructed using \AgdaArgument{s}, \AgdaArgument{κ} and \AgdaArgument{σ}.
 Notice that \AgdaInductiveConstructor{Other} hides the
-\AgdaInductiveConstructor{inj₂}, therefore the newly constructed container
-extension has a different type.
+\AgdaInductiveConstructor{inj₂}.
+Therefore, the newly constructed container extension has a different type.
 It is an element of the signature without the exception syntax.
 \AgdaFunction{handle} requires two additional arguments, the initial context as
 well has the handler.
