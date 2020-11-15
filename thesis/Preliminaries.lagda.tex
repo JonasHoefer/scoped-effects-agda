@@ -820,9 +820,13 @@ That is, one cannot simply substitute in non-value function arguments, because
 they could contain choices.
 Instead one expects the above behavior of conceptually choosing before calling
 the function.}.
+The rational behind call-time choice is that deterministic functions behave the
+same for deterministic and non-deterministic inputs.
+A variable bound by a lambda or \texttt{let} always refers to just a single
+value.
 
 Similar to Haskell, Curry programs are evaluated lazily.
-The evaluation of an expression is delayed until its result is needed and each
+The evaluation of an expression is delayed until its result is demanded and each
 expression is evaluated at most once.
 The later is important when expressions are named and reused via \texttt{let}
 bindings or lambda abstraction.
@@ -843,6 +847,34 @@ Sharing allows delaying the evaluation of a function arguments as well as
 linking all their uses.
 Sharing a nondeterminism computations means making the same choices in all
 places the shared term is used.
+If the choice is demanded, the resulting behavior is identical to choosing
+before calling the function.
+
+% TODO: check and include example
+% TODO: update intro deep effects
+
+Because the program is evaluated lazily, it is possible that a choice is never demanded.
+In this case the number of branches does not increase.
+Consider the following example of the length and the sum of a nondeterministic list.
+\begin{minted}{haskell}
+     length :: [a] -> Int
+     length []     = 0
+     length (_:xs) = 1 + length xs
+
+     sum :: [Int] -> Int
+     sum []     = 0
+     sum (x:xs) = x + sum xs
+
+     coins :: [Int]
+     coins = [coin, coin]
+\end{minted}
+When summing up the list \texttt{coins}, all choices in the components is
+demanded.
+therefore, we obtain the four results $0$, $1$, $1$ and $2$.
+In case of length this does not happen.
+The function does not demand these values.
+Therefore, we obtain just the single result $2$.
+
 Furthermore, because the \texttt{let} primitive introduces sharing, we expect a
 variable bound by a \texttt{let} to behave similar to one bound by a function.
 

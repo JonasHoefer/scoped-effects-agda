@@ -20,7 +20,7 @@ open import Data.Product.Relation.Binary.Lex.Strict using (×-strictTotalOrder)
 open import Data.Sum using (_⊎_; inj₁; inj₂; [_,_])
 open import Data.Empty using (⊥)
 open import Data.List using (List; _∷_; []; _++_; foldr) renaming (map to mapᴸ)
-open import Data.List.Relation.Unary.Any using (Any; here; there) renaming (map to map∈)
+-- open import Data.List.Relation.Unary.Any using (Any; here; there) renaming (map to map∈)
 open import Data.Unit using (⊤; tt)
 
 order = ×-strictTotalOrder (×-strictTotalOrder <-strictTotalOrder <-strictTotalOrder) <-strictTotalOrder
@@ -646,28 +646,23 @@ variable
   e : Effect
 \end{code}
 
-\begin{code}[hide] % TODO: non stdlib version
-infix 3 _∈_
-_∈_ : ∀ {a} {A : Set a} → A → List A → Set a
-x ∈ xs = Any (_≡_ x) xs
-
-instance
-  ∈-head : ∀ {a} {A : Set a} {x : A} {xs} → x ∈ x ∷ xs
-  ∈-head = here refl
-
-  ∈-tail : ∀ {a} {A : Set a} {x y : A} {xs} → ⦃ x ∈ xs ⦄ → x ∈ y ∷ xs
-  ∈-tail ⦃ p ⦄ = there p
+\begin{code}[hide]
+infix 4 _∈_
+data _∈_ {ℓ : Level} {A : Set ℓ} (x : A) : List A → Set ℓ where
+  instance
+    here   : ∀ {xs} → x ∈ x ∷ xs
+    there  : ∀ {y xs} → ⦃ x ∈ xs ⦄ → x ∈ y ∷ xs
 
 inj : C ∈ Cs → ⟦ C ⟧ A → ⟦ sum Cs ⟧ A
-inj (here refl) (s , κ) = inj₁ s , κ
-inj (there p)   q       with inj p q
+inj here          (s , κ) = inj₁ s , κ
+inj (there ⦃ p ⦄) q       with inj p q
 ... | s , κ = inj₂ s , κ
 
 prj : C ∈ Cs → ⟦ sum Cs ⟧ A → Maybe (⟦ C ⟧ A)
-prj (here refl) (inj₁ s , κ) = just (s , κ)
-prj (here refl) (inj₂ s , κ) = nothing
-prj (there p)   (inj₁ s , κ) = nothing
-prj (there p)   (inj₂ s , κ) = prj p (s , κ)
+prj here           (inj₁ s , κ) = just (s , κ)
+prj here           (inj₂ s , κ) = nothing
+prj (there ⦃ p ⦄)  (inj₁ s , κ) = nothing
+prj (there ⦃ p ⦄)  (inj₂ s , κ) = prj p (s , κ)
 \end{code}
 Due to the component wise combination of \AgdaDatatype{Effect}s, a proof that an
 \AgdaDatatype{Effect} is an element of an effect stack implies that an
@@ -676,12 +671,12 @@ signature of the combined effect.
 
 \begin{code}
 opsInj : e ∈ effs → Ops e ∈ mapᴸ Ops effs
-opsInj (here refl)  = here refl
-opsInj (there p)    = there (opsInj p)
+opsInj here            = here
+opsInj (there ⦃ p ⦄)   = there ⦃ opsInj p ⦄
 
 scpsInj : e ∈ effs → Scps e ∈ mapᴸ Scps effs
-scpsInj (here refl)  = here refl
-scpsInj (there p)    = there (scpsInj p)
+scpsInj here           = here
+scpsInj (there ⦃ p ⦄)  = there ⦃ scpsInj p ⦄
 \end{code}
 Using the above proofs we can implement smart constructors for scoped and
 algebraic operations without requiring additional evidence.

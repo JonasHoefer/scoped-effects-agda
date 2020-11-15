@@ -971,12 +971,14 @@ variable
 chooseTick : ⦃ Nondet ∈ ops ⦄ → ⦃ State ℕ ∈ ops ⦄ → Free ops ℕ
 chooseTick = tick >> ((tick >> get) ⁇ (tick >> tick >> get))
 \end{code}
-For the interaction of \AgdaDatatype{State} and \AgdaDatatype{Nondet} two
-semantics are conceivable.
+As explained by \textcite{DBLP:conf/haskell/WuSH14}, for the interaction of
+\AgdaDatatype{State} and \AgdaDatatype{Nondet} two semantics are conceivable.
 \paragraph{Local State}
 Each branch in the nondeterministic calculation has its own state.
-When \AgdaFunction{⁇} is used to choose between two results both branches
-continue with their own states with the same value.
+When \AgdaFunction{⁇} is used to choose between two programs, both branches
+continue with their own state.
+The initial state for both branches is the current state of the branch calling
+\AgdaFunction{⁇}.
 \paragraph{Global State}
 All branches share a single, global state.
 Based on the evaluation strategy for the nondeterminism (first result/all
@@ -986,7 +988,8 @@ The state operations are executed in this order and all act on the same state.
 
 The handlers for the two effects define semantics for their operations.
 Operations of the other siganture are just traversed.
-The interaction semantics are induced by the ordering of the handlers.
+The interaction semantics are induced by the ordering of the
+handlers~\cite{DBLP:conf/haskell/WuSH14}.
 We obtain two combined handlers, each corresponding to one of the two cases
 above.
 
@@ -1040,7 +1043,7 @@ runChooseTickGlobal = refl
 \section{Effects with Scopes using Brackets}
 \label{fist-order:scoped-effects}
 
-To correctly handle operations with local scopes Wu et al. introduced scoped
+To correctly handle operations with local scopes Wu et al. introduce scoped
 effects \cite{DBLP:conf/haskell/WuSH14}.
 They presented two syntactic approaches to explicitly declare how far an
 operations scopes over an arbitrary program.
@@ -1049,23 +1052,30 @@ In the following section we implement the scoped effect
 
 The central idea by \textcite{DBLP:conf/haskell/WuSH14} is to add new effect
 syntax, representing explicit scope delimiters.
-Whenever an opening delimiter is encountered the handler implementing the
-non-algebraic operation can be run again on the program in scope.
-This allows a flexible ordering of the handlers and the implementation of scoped
-operations as handlers. 
-Furthermore, it allows calling all handlers for the program at once, similar to
-\texttt{runM} functions for monad transformers.
-A more in depth explanation, as well as an example were the handler orders for
-semantics and scoping do not coincide can be found in the original paper by
-\textcite{DBLP:conf/haskell/WuSH14} as well as the repository.
+When handling the new syntax, whenever an opening delimiter is encountered
+another handler, implementing the non-algebraic operation, can be run again on
+the program in scope.
+Whenever the second handler encounters a closing delimiter it stops the
+evaluation and returns the rest of the program.
 Thanks to a closing delimiters the end of a scope can be found.
 Therefore, calling \AgdaFunction{>>=} on a scoped operation to extend the
 continuation is not a problem, because the continuation can be separated in the
 part inside and outside the scope.
+by introducing scope delimiters \textcite{DBLP:conf/haskell/WuSH14} move the
+task of scoping from the handler to the syntax and therefore allows a flexible
+ordering of the handlers and the implementation of scoped operations.
+Furthermore, this change allows calling all handlers for the program at once,
+similar to \texttt{runM} functions for monad transformers.
+A more in depth explanation, as well as an example were the handler orders for
+semantics and scoping do not coincide can be found in the original paper by
+\textcite{DBLP:conf/haskell/WuSH14} as well as the repository.
+
 Separating the program into the parts inside and outside the scope requires a
 more complex recursive handler, because scopes could be nested. 
 Using our size annotated free monad we are able to transfer the implementation
 by \textcite{DBLP:conf/haskell/WuSH14}, without making large changes.
+In the following sections we will implement scoped effects and exemplary present
+how the Haskell implementation can be transferred to Agda.
 
 
 \subsection{Cut and Call}
@@ -1105,14 +1115,14 @@ The handler itself calls the function \AgdaFunction{go}, which accumulates the
 unexplored alternatives in its second argument using \AgdaFunction{⁇}.
 \AgdaFunction{fail} is the neutral element for \AgdaFunction{⁇} and therefore
 the default argument.
-Since this handler is not orthogonal (i.e it interacts with another effect)
+Since this handler is non-orthogonal (it interacts with another effects syntax)
 \AgdaDatatype{Nondet} is required to be in the effect stack, but its position is
 irrelevant.
 We require a proof that \AgdaDatatype{Nondet} is in the effect stack.
 Using \AgdaFunction{prj} we can inspect \AgdaDatatype{Nondet} syntax without
 explicitly knowing how the container coproduct was constructed.
 
-To prove termination we mark the second argument with an arbitrary but fixed size
+To prove termination we mark the second argument with an arbitrary size
 \AgdaArgument{i}.
 The continuations for each operation return subterms indexed with a smaller size.
 Therefore, recursive calls to \AgdaFunction{go} with these terms as argument
@@ -1145,7 +1155,7 @@ Whenever we find syntax from another effect we can therefore try to project the
 \AgdaDatatype{Nondet} option from the coproduct.
 Notice that \AgdaFunction{prj} hides the structural recursion but decreases the
 \AgdaDatatype{Size} index.
-We can therefore still prove that the function terminates.
+Therefore, we can still prove that the function terminates.
 
 \begin{code}
     go q p@(Other s κ)  with prj {Nondet} p
@@ -1161,13 +1171,13 @@ could be pruned if left contains a \AgdaFunction{cutfail} call.
 \begin{code}
     ... | just (⁇ˢ     , κ′)  = go (go q (κ′ false)) (κ′ true)
 \end{code}
-When encountering a \AgdaFunction{fail} we continue with the accumulated
+When encountering a \AgdaFunction{fail} we continue with the earlier accumulated
 alternatives.
 
 \begin{code}
     ... | just (failˢ  , _ )  = q
 \end{code}
-Syntax from other effects is handled as usual.
+Syntax of other effects is handled as usual.
 
 \begin{code}
     ... | nothing             = impure (s , go q ∘ κ)
@@ -1176,10 +1186,10 @@ Syntax from other effects is handled as usual.
 With the handler for \AgdaDatatype{Cut} in place we can define the handler for the
 scope delimiters.
 The implementation is again similar to the one presented by
-\textcite{DBLP:conf/haskell/WuSH14}, but to prove termination we again have to
-add \AgdaDatatype{Size} annotations to the functions.
+\textcite{DBLP:conf/haskell/WuSH14}, but to prove termination we again add
+\AgdaDatatype{Size} annotations to the functions.
 
-The \AgdaFunction{bcall} and \AgdaFunction{ecall} handler removes the scope
+The \AgdaFunction{bcall} and \AgdaFunction{ecall} handlers remove the scope
 delimiter syntax from the program and run \AgdaFunction{call} (the handler
 for \AgdaDatatype{cut}) at the beginning of each scope.
 Whenever a \AgdaFunction{BCall} is found the handler \AgdaFunction{ecall} is
@@ -1195,15 +1205,15 @@ This fact is curcial to prove that the recursive calls to \AgdaFunction{bcall} a
 Remember that bind discards the size of its argument.
 For handlers following this pattern this is not a problem, because the returned
 program (i.e. the inner \AgdaDatatype{Prog} layer) is size annotated.
-Therefore, calling the handler recursively 
 
 Calling the handler on the extracted program guaranties that the handler does
-not interact with syntax outside the intended scope.
+not interact with syntax outside the intended scope and the handlers state, in
+this case the separated branches, is isolated.
 Nested scopes are handled using recursive calls to \AgdaFunction{ecall} if
 \AgdaFunction{BCall} operations are encountered while searching a closing
 delimiter.
 
-Since the delimiters could be placed freely it is possible to mismatch them.
+Since the delimiters can be placed freely it is possible to mismatch them.
 If we encounter a closing before and operening delimiter, we know that they are
 mismatched.
 \textcite{DBLP:conf/haskell/WuSH14} use Haskell's \texttt{error} function to
@@ -1256,8 +1266,8 @@ scoped algebraic effects~\cite{bunkenburg2019modeling}.
 In this section we extend the nondeterminism effect from section
 \ref{nondeterminism} to one modelling call-time choice.
 
-As explained in section \ref{call-time-choice}, call-time choice semantics
-describe the interaction between sharing and nondeterminism.
+As explained in section \ref{call-time-choice}, in Curry call-time choice
+semantics are realised using sharing of nondeterministic choices.
 The current implementation of \AgdaDatatype{Nondet} does not support sharing,
 i.e. it is not possible for two choice to be linked.
 Based on Bunkenburg's implementation we make two changes to the
@@ -1270,7 +1280,7 @@ The first two are used to identify the current scope and will be refereed to as
 \textit{scope id}.
 The third number identifies the choice inside its scope.
 Furthermore, instead of producing a list the handler will now produce a tree of
-choices.
+values.
 The modified handler is identical to the handler in Section
 \ref{nondeterminism}, except that it stores values using the
 \AgdaInductiveConstructor{leaf} constructor and concatenates results using
@@ -1279,8 +1289,12 @@ This change allows to choose the evaluation strategy, e.g. depth first or breath
 first search, independent of the handler.
 
 \begin{code}
+SID CID : Set
+SID = ℕ × ℕ
+CID = SID × ℕ
+
 data Tree (A : Set) : Set where
-  branch  : Maybe ((ℕ × ℕ) × ℕ) → (l r : Tree A) → Tree A
+  branch  : Maybe CID → (l r : Tree A) → Tree A
   leaf    : A → Tree A
   failed  : Tree A
 \end{code}
@@ -1288,16 +1302,21 @@ data Tree (A : Set) : Set where
 \subsection{Deep Effects}
 \label{first-order:deep-effects}
 
-In Haskell and Curry ambient effects, like partiality, tracing and
-nondeterminism, can occur in components of data structures.
+In Haskell and Curry, ambient effects (e.g. partiality, tracing and
+nondeterminism) can occur in components of data structures.
 Each argument of a constructor could be an effectful computation.
 For example, in Curry the tail of a list could be a nondeterministic choice
 between two possible tails or in Haskell the list's tail could be
 \texttt{undefined}.
-Such effects are sometimes called \textit{deep effects}.
+These effects inside data structures are sometimes called \textit{deep effects}.
+Because Haskell and Curry are evaluated lazily, it is possible to never demand
+the effectful data.
+In this case the effect should not occur.
+For example, in Haskell it is possible to calculate the length of a list, that
+stores \mintinline[breaklines]{haskell}{undefined}s.
 
 We want to simulate this behavior with algebraic effects.
-The effects have to be modelled explicitly using the \AgdaDatatype{Free} type.
+The effects are modelled explicitly using the \AgdaDatatype{Free} type.
 We lift data types using a standard construction, which is commonly used
 to simulate ambient deep
 effects~\cite{DBLP:conf/haskell/AbelBBHN05, DBLP:journals/programming/DylusCT19,
@@ -1315,6 +1334,16 @@ data Listᴹ (ops : List Container) (A : Set) : {Size} → Set where
 \AgdaDatatype{Listᴹ}\AgdaSpace{}\AgdaArgument{ops}\AgdaSpace{}\AgdaArgument{A}
 represents a \AgdaDatatype{List}\AgdaSpace{}\AgdaArgument{A} in whose components
 effects from the given effect stack \AgdaArgument{ops} can occur.
+Notice that the lifted list directly stores programs, i.e. values of type
+\AgdaDatatype{Free}.
+This makes it possible to ignore parts of the data structure and their
+associated effects.
+Ignoring effects of certain components of the data structure is not possible
+with simple lifted lists, i.e. values of type
+\AgdaDatatype{Free}\AgdaSpace{}\AgdaArgument{ops}\AgdaSpace{}$($\AgdaDatatype{List}\AgdaSpace{}\AgdaArgument{A}$)$
+Furthermore, this construction allows us evaluate the effects of the different
+components at different points in time, by calling \AgdaFunction{>>=} on them
+separately. 
 To easily construct and work with lifted values we introduce smart constructors
 in the form of pattern synonyms.
 
@@ -1326,9 +1355,10 @@ pattern []ᴹ          = pure nil
 pattern _∷ᴹ_ mx mxs  = pure (cons mx mxs)
 \end{code}
 The size annotations on the lifted data structures are needed to prove
-structural recursive functions terminate.
+that structural recursive functions terminate.
 To pattern match on a lifted value we have to use \AgdaFunction{>>=}.
 Therefore, the structural recursion is obscured.
+Due to the size annotation it is still possible to prove termination.
 
 \begin{code}
 _++ᴹ_ : Free ops (Listᴹ ops A {i}) → Free ops (Listᴹ ops A) → Free ops (Listᴹ ops A)
@@ -1336,6 +1366,16 @@ mxs ++ᴹ mys = mxs >>= λ where
   nil             → mys
   (cons mx mxs′)  → mx ∷ᴹ mxs′ ++ᴹ mys
 \end{code}
+By calling \AgdaFunction{>>=} we extend the given computation tree at its leafs
+with the binds continuation.
+This corresponds to demeaning the value in a lazily evaluated language.
+The operations in the continuation are placed explicitly after the operations in
+the bound program.
+For example, in the above program, we bind the effects in the first lists
+constructors from head to tail.
+The values stored by each \AgdaInductiveConstructor{∷ᴹ} and therefore there
+effects are ignored.
+
 
 \paragraph{Normalization of Effectful Data}
 
@@ -1351,7 +1391,7 @@ open Normalform ⦃...⦄ public
 !_ : ⦃ Normalform ops A B ⦄ → Free ops A → Free ops B
 ! mx = mx >>= nf
 \end{code}
-The type class allow to normalize elements of type \AgdaArgument{A} (intuitively
+The type class allows to normalize elements of type \AgdaArgument{A} (intuitively
 containing effectful calculations) to computations producing of elements of type
 \AgdaArgument{B} (intuitively a version of \AgdaArgument{A} without the effects).
 Instead of \AgdaArgument{A} and \AgdaArgument{B} we could have parameterized the
@@ -1397,10 +1437,10 @@ effects, but interacts with existing \AgdaDatatype{Nondet} syntax.
 
 The scoping operation \AgdaFunction{share} takes an additional argument, the
 unique identifier for the created scope.
-Similar to \AgdaFunction{put} the parameter is part of the container shape.
+Similar to \AgdaFunction{put}, the parameter is part of the container shape.
 
 \begin{code}
-data Shareˢ : Set where bshareˢ eshareˢ : ℕ × ℕ → Shareˢ
+data Shareˢ : Set where bshareˢ eshareˢ : SID → Shareˢ
 pattern BShare  n κ = impure (inj₁ (bshareˢ n) , κ)
 pattern EShare  n κ = impure (inj₁ (eshareˢ n) , κ)
 
@@ -1465,7 +1505,7 @@ as done by \textcite{bunkenburg2019modeling} in his Coq implementation.
 
 \begin{code}
 bshare  : ⦃ Nondet′ ∈ ops ⦄ → Free (Share ∷ ops) A {i} → Free ops A
-eshare  : ⦃ Nondet′ ∈ ops ⦄ → ℕ → ℕ × ℕ → Free (Share ∷ ops) A {i}
+eshare  : ⦃ Nondet′ ∈ ops ⦄ → ℕ → SID → Free (Share ∷ ops) A {i}
   → Free ops (Free (Share ∷ ops) A {i})
 
 bshare (pure x)        = pure x
@@ -1528,7 +1568,7 @@ with the same id.
 An in depth explanation can be found in \citetitle{bunkenburg2019modeling}.
 
 \begin{code}
-share : ⦃ Shareable ops A ⦄ → ⦃ Share ∈ ops ⦄ → ⦃ State (ℕ × ℕ) ∈ ops ⦄ →
+share : ⦃ Shareable ops A ⦄ → ⦃ Share ∈ ops ⦄ → ⦃ State SID ∈ ops ⦄ →
   Free ops A → Free ops (Free ops A)
 share p = do (i , j) ← get
              put (1 + i , j)
@@ -1542,15 +1582,17 @@ share p = do (i , j) ← get
 \end{code}
 Using \AgdaFunction{share} we can implement a \AgdaDatatype{Shareable} instance
 for effectful lists.
-In the original Haskell implementation \AgdaFunction{shareArgs} is a higher
-order function, which takes the used sharing operator as an additional
+In the original Haskell implementation of \AgdaFunction{shareArgs} is a higher
+order function, that takes the used sharing operator as an additional
 argument.
 For simplicity and to avoid termination problems this is not the case in the
 Agda implementation.
+Note that we implement \AgdaDatatype{Shareable} for lists of size
+\AgdaArgument{i} to guaranty termination of \AgdaFunction{shareArgs}.
 
 \begin{code}
 instance
-  Listᴹ-shareable : ⦃ Shareable ops A ⦄ → ⦃ Share ∈ ops ⦄ → ⦃ State (ℕ × ℕ) ∈ ops ⦄
+  Listᴹ-shareable : ⦃ Shareable ops A ⦄ → ⦃ Share ∈ ops ⦄ → ⦃ State SID ∈ ops ⦄
       → Shareable ops (Listᴹ ops A {i})
   Shareable.shareArgs Listᴹ-shareable nil            = []ᴹ
   Shareable.shareArgs Listᴹ-shareable (cons mx mxs)  = cons <$> share mx <*> share mxs
@@ -1567,12 +1609,13 @@ Call-time choice can be simulated with the following effect stack
 CTC : List Container
 CTC = State (ℕ × ℕ) ∷ Share ∷ Nondet′ ∷ []
 \end{code}
-Before calling any handlers the data is normalized, so that not only surface,
+Before calling any handlers the data is normalized, such that not only surface,
 but also deep effects are evaluated.
-State is evaluated first to generate the identifiers for sharing.
-Sharing is evaluated next to tag all choices with their scopes identifiers.
+State is evaluated first to generate the identifiers for the sharing scopes.
+Sharing is evaluated next to tag all choices with their scopes identifier.
 At last nondeterminism is evaluated to collect the results of all possible
 branches, taking the scope ids into account.
+% TODO: dfs
 
 \begin{code}
 runCTC : ⦃ Normalform CTC A B ⦄ → Free CTC A → List B
@@ -1588,13 +1631,13 @@ coin = pure 0 ⁇′ pure 1
 doubleCoin : ⦃ Share ∈ ops ⦄ → ⦃ State (ℕ × ℕ) ∈ ops ⦄ → ⦃ Nondet′ ∈ ops ⦄ →
   Free ops ℕ
 doubleCoin = share coin >>= λ c → ⦇ c + c ⦈
-\end{code}
+\end{code} % TODO image shared coins
 By calling \AgdaFunction{share} the choice in \AgdaFunction{coin} is shared.
 By binding the result of \AgdaFunction{share} the computation tree generating
 the ids (i.e. the outer layer) is expanded.
-The argument of the continuation \AgdaArgument{c} is itself a program, it is the
-original coin function wrapped into a sharing scope, which captures the
-generated id of the outer scope.
+The argument of the continuation \AgdaArgument{c} is itself a program.
+It is the original \AgdaFunction{coin} function inside a sharing scope, which
+captures the generated id of the outer scope. % TODO ?
 By binding \AgdaArgument{c} this computation is injected into the whole
 computation.
 Binding \AgdaArgument{c} multiple times yields the same scope, because the scope
@@ -1613,8 +1656,8 @@ runDoubleCoin :
 runDoubleCoin = refl
 \end{code}
 \end{center}
-Thanks to the \AgdaDatatype{Shareable} type class it is also possible to share
-choices, which are embedded in data structures.
+Due to the \AgdaDatatype{Shareable} type class it is also possible to share
+choices, which are embedded into data structures.
 The following simple example demonstrates this possibility.
 
 \begin{code}
