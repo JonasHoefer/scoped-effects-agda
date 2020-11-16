@@ -79,13 +79,13 @@ Since Agda 2.6.1 an experimental \texttt{--cumulativity} flag exists.
 function types.
 The codomain of a $\Pi$-type is not fixed, but values with the argument the
 function is applied to.
-The codomain is defined using a type family of the domain, which specifies the
+The codomain is defined using a type family of the domain, that specifies the
 type of the result for each given argument.
 
 $$
 \prod_{a : A} B(a) \quad \text{with}\quad B : A \rightarrow\mathcal{U}
 $$
-An element of the above type is a function which maps every $a : A$ to a $b :
+An element of the above type is a function, that maps every $a : A$ to a $b :
 B(a)$.
 In Agda the builtin function type $\rightarrow$ is a $\Pi$-type.
 An argument can be named by replacing the type $\tau$ with $x : \tau$, allowing
@@ -849,11 +849,15 @@ Sharing a nondeterminism computations means making the same choices in all
 places the shared term is used.
 If the choice is demanded, the resulting behavior is identical to choosing
 before calling the function.
+Furthermore, because the \texttt{let} primitive introduces sharing, we expect a
+variable bound by a \texttt{let} to behave similar to one bound by a function.
+\begin{minted}{haskell}
+  sumCoin :: Int
+  sumCoin = let x = coin in x + x
+\end{minted}
+As expected this function yields the results $0$ and $2$.
 
-% TODO: check and include example
-% TODO: update intro deep effects
-
-Because the program is evaluated lazily, it is possible that a choice is never demanded.
+Because the program is evaluated lazily, it is possible to never demanded a choice.
 In this case the number of branches does not increase.
 Consider the following example of the length and the sum of a nondeterministic list.
 \begin{minted}{haskell}
@@ -868,21 +872,12 @@ Consider the following example of the length and the sum of a nondeterministic l
      coins :: [Int]
      coins = [coin, coin]
 \end{minted}
-When summing up the list \texttt{coins}, all choices in the components is
+When summing up the list \texttt{coins}, all choices in the components are
 demanded.
-therefore, we obtain the four results $0$, $1$, $1$ and $2$.
+Therefore, we obtain the four results $0$, $1$, $1$ and $2$.
 In case of length this does not happen.
-The function does not demand these values.
+The function does not demand the values stored in the list.
 Therefore, we obtain just the single result $2$.
-
-Furthermore, because the \texttt{let} primitive introduces sharing, we expect a
-variable bound by a \texttt{let} to behave similar to one bound by a function.
-
-\begin{minted}{haskell}
-     sumCoin :: Int
-     sumCoin = let x = coin in x + x
-\end{minted}
-As expected this function yields the results $0$ and $2$.
 
 
 \section{Algebraic Computational Effects}
@@ -890,7 +885,7 @@ As expected this function yields the results $0$ and $2$.
 Computational effects are a wide concept and usually introduced by example.
 They include I/O, exceptions, nondeterminism, state and
 continuations~\cite{DBLP:conf/fossacs/PlotkinP02,DBLP:journals/corr/abs-1807-05923}.
-Algebraic effects are computational effects, which can be described using an
+Algebraic effects are computational effects, that can be described using an
 algebraic theory.
 They were first presented \textcite{DBLP:conf/fossacs/PlotkinP02}, as an
 alternative to monads for describing computational effects.
@@ -899,6 +894,8 @@ They capture a wide class of computational effects.
 Due to their uniform representation they provide a general way of defining,
 combining and reasoning about computational
 effects~\cite{DBLP:journals/corr/PlotkinP13}.
+Furthermore, by describing computational effects in terms of operations and
+equations, they directly allow equational reasoning about effectful programs.
 
 Handlers for algebraic effects were first presented by
 \citeauthor{DBLP:conf/esop/PlotkinP09} as a generalization of exception
@@ -1046,7 +1043,7 @@ This is of course the usual definition of a free monoid over $A$.
 
 Lastly we introduce the notion of an effect handler, again as described by
 \textcite{DBLP:journals/corr/abs-1807-05923}.
-Effect handlers  were first presented by \textcite{DBLP:conf/esop/PlotkinP09}.
+Effect handlers were first presented by \textcite{DBLP:conf/esop/PlotkinP09}.
 They are a generalization of exception handlers and can be used to model a wide
 range of non-algebraic effects.
 A handler
@@ -1066,7 +1063,7 @@ by a map $f : V \rightarrow |\mathrm{Free}_{T'}(V')|$ for the underlying
 values and the interpretations $\lBrack op_i \rBrack : P_i \times
 |\mathrm{Free}_{T'}(V')|^{A_i} \rightarrow |\mathrm{Free}_{T'}(V')|$ for each
 operation $op_i$ in the target $T$-model.
-The handler is then given by the following two equations.
+The handler is then given by the following equations.
 \begin{align*}
   h([\mathrm{pure}\;x]_{\sim_T}) &= f(x) \\
   h([\mathrm{op}_i(p,\kappa)]_{\sim_T}) &= h_i(p, h\circ\kappa )
@@ -1087,9 +1084,14 @@ is a free model for the empty theory.
 The model for the theory of exceptions on the right-hand side is given by the
 extended set of values, which corresponds to the usual monad modelling the
 effect.
+Another handler for the theory of exceptions is the $\mathrm{catch}$ operation.
+The handler is parameterized of the function mapping exceptions to alternative
+results.
+The handler simply maps occurrences of $\mathrm{throw}\;i$ to the $\mathrm{pure}$
+alternative result for $e$.
 
 If the source and target theory share operations it is possible to interpret an
-operations by itself, i.e. not handling it.
+operations by itself, i.e. not handle it.
 This allow us to handle more complex, combined theories using multiple modular
 handlers.
 It is also possible to interpret operations using other operations, i.e. to
@@ -1141,18 +1143,24 @@ recursively on all subcomputations using \mintinline{haskell}{fmap} for the
 functor.
 \mintinline{haskell}{Pure} leafs are substituted with the subtree, generated
 from their stored value.
+Therefore, \bind{} allows processing the resulting values of an effectful
+program with another effectful program.
 
 The free monad corresponds to the free model for an algebraic theory $T$ without
 equations, i.e. the equivalence relation $\sim_T$ is just the identity relation on
 $\mathrm{Tree}_T(\mathbb{X})$.
-When implementing algebraic effect one simply uses theories without effects,
-i.e. just the signatures.
+When implementing algebraic effect one simply uses theories without equations,
+that is, just the signatures.
 By moving from free models to term trees we obtain a uniform representation of
 syntax as free monad over a functor.
 As a result, for theories with equation some trees which should be equal are
 not.
-These terms are just syntax without semantics.
-Semantics are completely determent by the handler, which interprets the syntax
+These terms are just syntax without semantics\footnote{For some effects these
+  two are the same, i.e. their corresponding monad is free.
+  For example, in case of exceptions the \texttt{throw} already has the correct
+  semantics.
+  Because it has no sub-computations, it aborts the program.}.
+Semantics are completely determent by the handler, that interprets the syntax
 by mapping it to an actual model.
 When interpreting the syntax using a handler falsely different values can again
 be equated, by treating them the identically.
@@ -1160,11 +1168,10 @@ Therefore, if syntax is interpreted by a correct handler the equations should
 hold again.
 Therefore, working directly on trees and not equivalence classes of trees is
 correct as long as the handlers are correct.
-
-% This allows a clear separation of syntax and semantics.
-% - delays evaluation
-% - different evaluation possible
-
+Furthermore, by representing effectful programs as computations trees one delays
+the actual evaluation.
+This allows a clear separation into syntax and semantics and allows choosing the
+semantics at a later point in time.
 
 \paragraph{Free Monads in Agda}
 When defining the free monad in Agda we cannot use an arbitrary functor as in
@@ -1209,7 +1216,7 @@ algebraic operations are required to have a certain natural condition.
 In the earlier definition this requirement is captured by restricting the shape
 of equations.
 When described by the free monad, algebraic operations are those which commute
-with \AgdaFunction{>>=} i.e. for an $n$-ary algebraic operations the following
+with \bind{}, i.e. for an $n$-ary algebraic operations the following
 holds~\cite{DBLP:conf/lics/PirogSWJ18}.
 
 \[
@@ -1217,7 +1224,7 @@ holds~\cite{DBLP:conf/lics/PirogSWJ18}.
   ,x_n\bind k)
 \]
 For common operations with scopes, such as \texttt{once}, \texttt{catch} or
-\texttt{fork} this does not hold.
+\texttt{fork}, this does not hold.
 Dealing with this limitation leads to the general notion of scoped effects.
 
 
@@ -1239,7 +1246,7 @@ If \texttt{catch} were algebraic the following equation would hold.
 \]
 The equations obviously does not hold, because if it would hold, \texttt{catch}
 could not differentiate between an exception thrown inside or outside its scope.
-The same pattern can be observed with other operations which delimit scopes.
+The same pattern can be observed with other operations that delimit scopes.
 
 As noted in Section \ref{preliminaries:handler} non-algebraic and in particular
 operations with scopes can be implemented as a handler.
@@ -1249,7 +1256,8 @@ syntax and are assigned meaning later by a handler.
 Furthermore, \textcite{DBLP:conf/haskell/WuSH14} note a general problem when
 working with multiple handlers describing scoped operations.
 The order of handlers determines the semantics of a program, but simultaneously
-the handlers are used to delimit scopes and therefore their position are fixed.
+the handlers are used to delimit scopes.
+Therefore, their position are fixed.
 Problems arise if the ordering for certain semantics and the forced positions
 for delimiting scopes do not coincide.
 It is either impossible to model certain semantics or one has to evaluate
@@ -1259,13 +1267,14 @@ computation.
 handlers combine syntax and semantics by delimiting scopes as well as
 interpreting syntax.
 
+% TODO: parser example + hand waving?
+
 To fix this problem \textcite{DBLP:conf/haskell/WuSH14} introduced two solutions
 for syntactically delimiting scopes.
 Using this new syntax, the handlers are freed from delimiting scopes and are
 again purely semantics constructs and can be moved freely to the outside of the
 program.
+By expanding the syntax, the handling of effects becomes more difficult.
 In Chapter \ref{chapter:first-order} and Chapter \ref{chapter:higher-order} we
-briefly explain these two approaches and discuss how well they translate from
-Haskell to Agda.
-
-% TODO: context of evaluating handler on subcomputations or change text in HO Exc
+explain these two approaches and discuss how well they translate from Haskell to
+Agda.
