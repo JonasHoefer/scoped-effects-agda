@@ -1,7 +1,7 @@
 \documentclass[10pt,a4paper,twoside,notitlepage]{report}
 
 \usepackage[english,ngerman]{babel}
-\usepackage[a4paper,width=150mm,top=25mm,bottom=25mm]{geometry}
+\usepackage[a4paper,left=30mm,right=30mm,width=150mm,top=25mm,bottom=25mm]{geometry}
 % \usepackage[twoside, inner=28mm, outer=37mm, top=35mm, bottom=49mm]{geometry}
 
 \usepackage{fontspec}
@@ -214,8 +214,8 @@
   as formal verification.
   Different representations for computational effects exist, notably monads and
   algebraic effects.
-  To allow development of modular programs and local reasoning in formal
-  verification, the composability of representations is important.
+  The composability of the representation is important, to allow the development
+  of modular programs and reasoning about them.
   Algebraic effects and handlers are generally a more modular approach than
   traditional monad transformers.
   Furthermore, algebraic effects are convenient representation of computational
@@ -235,8 +235,6 @@
   effects.
   With regards to verification, scoped effects are needed to model more
   complex effects, such as sharing.
-  % Furthermore, to simulate sharing of potentially effectful programs, we need
-  % operations with scopes. % :/
 
   In this thesis we explore how well three different Haskell implementations of
   scoped effects by
@@ -247,9 +245,9 @@
   capabilities.
   To test the applicability of our implementations, we implement effects related
   to modelling Curry's~\cite{Hanus95curry} ambient non-strict non-determinism.
-  Our main example for a scoped effect is sharing of nondeterminism, as described
-  by \textcite{bunkenburg2019modeling}, which was developed for simulating
-  Curry's call-time choice semantics.
+  Our main example for a scoped effect is sharing of nondeterminism, as modelled
+  by \textcite{bunkenburg2019modeling} to simulating Curry's call-time choice
+  semantics.
   To model ambient effects in data structures, the implementation also supports
   deep effects.
 \end{abstract}
@@ -259,15 +257,15 @@
   Programmierung und in der formalen Verifikation. 
   Es existieren verschiedene Repräsentationen von Nebenwirkungen, insbesondere 
   Monaden und algebraische Wirkungen.
-  Um modulare Entwicklung von Programmen und Folgerung über Stücken von
-  Programmen zu erlauben, ist die Modularität der Repräsentation entscheidend.
+  Um modulare Entwicklung von Programmen und Beweise über diese zu erlauben, ist
+  die Modularität der Repräsentation entscheidend.
   Algebraische Wirkungen und Wirkungs-Behandler sind generell ein modularerer
   Ansatz als traditionelle Monaden-Transformer.
   Des weiteren sind algebraische Wirkungen eine bequeme Repräsentation für
   Nebenwirkungen in totalen Sprachen mit Dependent-Types.
   Zum Beispiel haben
   \textcite{DBLP:journals/programming/DylusCT19,DBLP:conf/haskell/ChristiansenDB19}
-  diese Verwenden um ambiente Wirkungen, wie Haskells Parzialität, im
+  diese Verwendet um ambiente Wirkungen, wie Haskells Parzialität, im
   Beweisassistenten Coq zu modellieren.
 
   Im traditionellen Ansatz können Operationen mit Sichtbarkeitsbereichen nur
@@ -293,9 +291,9 @@
   Um die Anwendbarkeit unserer Implementierung zu testen, implementieren wir
   Wirkungen, welche verwendet werden können um Currys~\cite{Hanus95curry}
   ambienten, nicht strikten Nichtdeterminismus zu modellieren.
-  Unser Hauptbeispiel für einen Wirkung mit Sichtbarkeitsbereich ist Sharing von
-  Nichtdeterminismus nach \textcite{bunkenburg2019modeling}, welche verwendet
-  werden kann um Currys Call-Time Choice Semantik zu modellieren.
+  Unser Hauptbeispiel für eine Wirkung mit Sichtbarkeitsbereich ist Sharing von
+  Nichtdeterminismus, nach \citeauthor{bunkenburg2019modeling}s Modellierung, um
+  Currys Call-Time Choice Semantik zu simulieren.
   Um ambiente Wirkungen in Datenstrukturen zu modellieren, unterstützt die
   Implementierung tiefe Wirkungen.
 \end{abstract}

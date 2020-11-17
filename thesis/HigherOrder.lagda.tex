@@ -55,7 +55,7 @@ prohibits us from implementing deep effects, without making excessive changes.
 In Section \ref{higher-order:fixes} we discuss some potential changes to the
 representation and their consequences.
 Because deep effects are an uncommon requirement, in Section
-\ref{higher-order:limited-impl} we still presents a limited implementation,
+\ref{higher-order:limited-impl} we still presents a limited implementation
 to highlight some details specific to Agda and lay groundwork for Chapter
 \ref{chapter:scoped-algebras}.
 
@@ -68,8 +68,8 @@ If the operation has a local scope, the result of the continuation is expected
 to contain a closing scope delimiter, which the handler uses to reconstruct
 the scope.
 In the higher order approach by \textcite{DBLP:conf/haskell/WuSH14} scoped
-operations store their continuation as well as the part of the program in their
-scope.
+operations store the part of the program in their scope and their continuation
+separately.
 Therefore, the handler can directly access the program in scope as well as the
 rest of the program.
 In the following, we explain the basic construction of higher order syntax in
@@ -85,7 +85,7 @@ functors, that is, in Haskell data types of kind \texttt{(* -> *) -> (* -> *)}.
 In the implementation by \textcite{DBLP:conf/haskell/WuSH14}, the
 \mintinline{haskell}{Prog sig a} data type represents syntax.
 It is a slight generalization from the free monad in the first order approach.
-In the \mintinline{haskell}{Impure} constructor the higher-order functor is
+In the \mintinline{haskell}{Impure} constructor the higher order functor is
 applied to the syntax (represented by \mintinline{haskell}{Prog sig}) and the
 result type \mintinline{haskell}{a} separately.
 
@@ -196,12 +196,10 @@ Similar to the Haskell data type \mintinline[breaklines]{haskell}{HExc e m a} we
 have to store an arbitrary type, when defining scoping operations.
 Therefore the higher-order functor has to produce elements of the larger
 universe \AgdaDatatype{Set₁}.
+Instantiating \AgdaArgument{I} and \AgdaArgument{O} with \AgdaDatatype{Set}
+gives rise to a container extension of the correct shape.
 
-Allowing indicies of arbitrary levels and instantiating \AgdaArgument{I} and
-\AgdaArgument{O} with \AgdaDatatype{Set} gives rise to a container extension
-of the correct shape.
-
-Bunkenburg's approach also uses indexed container~\cite{bunkenburg2019modeling}.
+Bunkenburg's approach also uses indexed containers~\cite{bunkenburg2019modeling}.
 The above definition is similar to his first definition of a container
 representation for a higher order functor.
 His definition is given below.
