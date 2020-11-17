@@ -223,29 +223,29 @@
   For example,
   \textcite{DBLP:journals/programming/DylusCT19,DBLP:conf/haskell/ChristiansenDB19}
   used them to explicitly represent some ambient effects, such as Haskell's
-  partiality, in the proof assistants Coq.
+  partiality, in the proof assistant Coq.
 
-  In the traditional approach, operations with scope can only be implemented as
+  In the traditional approach, operations with scopes can only be implemented as
   an effect handler.
   \textcite{DBLP:conf/haskell/WuSH14} noted a lack of modularity, compared to
   monad transformers, when multiple effect with scoping operations are used.
-  This is an important limitation, because most commonly used effects have
+  This is an important limitation because most commonly used effects have
   associated operations with scopes.
   To fix this limitation \textcite{DBLP:conf/haskell/WuSH14} introduced scoped
   effects.
   With regards to verification, scoped effects are needed to model more
-  complex effects, such as sharing.
+  complex ambient effects, such as sharing.
 
   In this thesis we explore how well three different Haskell implementations of
   scoped effects by
   \textcite{DBLP:conf/haskell/WuSH14,DBLP:conf/lics/PirogSWJ18} translate in the
   dependently typed, functional programming language Agda.
-  We implement a library for scoped effects, that allows the implementation of
+  We implement a library for scoped effects that allows the implementation of
   effectful program as well as formal reasoning using Agda's theorem proving
   capabilities.
   To test the applicability of our implementations, we implement effects related
   to modelling Curry's~\cite{Hanus95curry} ambient non-strict non-determinism.
-  Our main example for a scoped effect is sharing of nondeterminism, as modelled
+  Our main example for a scoped effect is sharing of nondeterminism as modelled
   by \textcite{bunkenburg2019modeling} to simulating Curry's call-time choice
   semantics.
   To model ambient effects in data structures, the implementation also supports
@@ -278,7 +278,8 @@
   Um diese Limitation zu beheben, haben \textcite{DBLP:conf/haskell/WuSH14}
   Wirkungen mit Sichtbarkeitsbereichen vorgestellt.
   In Bezug auf Verifikation sind Wirkungen mit Sichtbarkeitsbereichen wichtig,
-  da diese nötig sind, um komplexere Nebenwirkungen wie Sharing zu modellieren.
+  da diese nötig sind, um komplexere ambiente Nebenwirkungen wie Sharing zu
+  modellieren.
 
   In dieser Arbeit erkunden wir, wie gut sich drei Haskell-Implementierungen von
   Wirkungen mit Sichtbarkeitsbereichen durch
@@ -336,7 +337,7 @@ They can be used as a theoretical foundation for reasoning about computational
 effects.
 Furthermore, they can be used to model semantics of programming languages.
 Most functional programming languages allow a limited set of side
-effects, which are not represented in the type system of the language.
+effects which are not represented in the type system of the language.
 These effects are usually called \textit{ambient effects}.
 For example, to allow easier development, Haskell programs can contain traces
 and functions are allowed to be partial.
@@ -347,12 +348,12 @@ for implementing effects in languages with dependent types and allow reasoning
 about Haskell programs taking ambient effects into account.
 
 \textcite{DBLP:conf/haskell/WuSH14} noticed a lack of modularity when
-combining multiple effects with scoping operations, because handlers delimit
+combining multiple effects with scoping operations because handlers delimit
 scopes as well as define semantics.
 They introduce two different solutions for the problem.
 They fix the problem by introducing new operations to mark scopes and by
 generalizing syntax to model scopes directly.
-Scoped effects are usually used to implement effect systems in Haskell, because
+Scoped effects are usually used to implement effect systems in Haskell because
 they provide a similar interface to normal monad transformers.
 Furthermore, they are needed to simulate more complex semantics of programming
 languages, such as sharing.
@@ -447,7 +448,7 @@ porting the two haskell implementations from
 
 Of particular significance was to work under Agda's constraints for consistency,
 which are needed for theorem proving.
-These included defining only function which Agda could prove terminate, defining
+These included defining only functions which Agda could prove terminate, defining
 only strictly positive recursive types and work with a consistent universe
 structure.
 As a running example we tried implementing effects related to simulating Curry's
@@ -464,7 +465,7 @@ In Chapter \ref{chapter:first-order} we first implemented ordinary algebraic
 effects in Agda.
 The implementation only depends on the definition of the free monad, which
 we implemented using containers, a well known approach.
-To prove termination we used sized types, which proved effective, because they
+To prove termination we used sized types, which proved effective because they
 allowed the definition of \textcite{DBLP:conf/haskell/WuSH14} handlers for
 explicit scope delimiters as well as avoided excessive inlining.
 Furthermore, it was possible to implement the sharing handler by
@@ -481,8 +482,8 @@ Holding onto the idea of storing types directly, we showed that it is not
 possible to implement deep effects in a setting with bounded universe levels.
 Furthermore, we discussed potential alternative approaches, although non of them
 seem promising.
-The repository for the library contains a sketch of an implementation with
-variable universe levels, which showcases the practical difficulties.
+The repository contains a sketch of an implementation with variable universe
+levels, which showcases the practical difficulties.
 Even thought this approach cannot model deep effects and therefore is not
 expressive enough to model Curry's ambient nondeterminism in data structures, we
 still presented the key points of a limited implementation of normal scoped
