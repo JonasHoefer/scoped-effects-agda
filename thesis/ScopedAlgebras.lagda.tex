@@ -750,7 +750,7 @@ The algebraic operations \textbf{fail} and \textbf{?} are handled using
 Notice that in the definition of \AgdaFunction{fold} they are guarantied an index
 $n\geqslant 1$ i.e. at least one list layer.
 They are implement identical to earlier versions of \AgdaDatatype{Nondet}.
-\textbf{?} concats the left and right list.
+\textbf{?} concatenates the left and right list.
 In the third step the lists are promoted again, because they enter the scope
 created by \textbf{once}.
 This is key, because for algebraic operations in the scope the multiple results
@@ -892,7 +892,7 @@ This happens implicitly due to the handling of the $0$-th layer.
 Notice that the functions from the \AgdaDatatype{ScopedAlgebra} correspond
 exactly to the ones expected by the \AgdaFunction{fold} from Section
 \ref{scoped-algebra:fold}.
-The values themself are not preprocessed and just get promoted, hence
+The values them self are not preprocessed and just get promoted, hence
 \AgdaFunction{id} is passed as the first of the four arguments.
 
 \begin{code}
@@ -938,7 +938,7 @@ of the computation in scope and the whole computation.
 Lastly we define a smart constructor for the \AgdaFunction{once} operation.
 To capture the program \AgdaArgument{p} in scope, \AgdaFunction{pure} is mapped
 over it.
-The orignial program is now the outer
+The original program is now the outer
 \AgdaDatatype{Prog}\AgdaSpace{}\AgdaArgument{effs} layer i.e. the first and
 second layers of the first term in Figure \ref{scoped-algebra:fig:reduction}.
 The original \AgdaInductiveConstructor{var}\AgdaSpace{}\AgdaArgument{x} nodes
@@ -1189,7 +1189,7 @@ interaction : ⦃ Nondet ∈ effs ⦄ → ⦃ Exc ⊤ ∈ effs ⦄ → Prog effs
 interaction = (throw tt ⁇ pure 2) catch λ tt → pure 1
 \end{code}
 Running the handler for exceptions first results in local exceptions, i.e. each
-nondetermistic computation branch returns either an exception or a value and
+nondeterministic computation branch returns either an exception or a value and
 the \AgdaFunction{catch} interacts with each branch in isolation.
 Therefore, the \AgdaFunction{catch} provides the alternative result
 \AgdaNumber{1} on the first branch and does nothing on the second branch.
@@ -1329,12 +1329,12 @@ outside id.
 Scopes of foreign effects do not effect sharing.
 The foreign scope is a subscope of the current sharing scope.
 Therefore, the choices are labeled with the same scope id.
-To guaranty the uniquenes of ids we have to thread the current choice id through
+To guaranty the uniqueness of ids we have to thread the current choice id through
 the inner scope.
 We add the current choice id as an additional return value.
 After traversing a foreign scope we continue with the last id from the inner
 scope.
-In case of a sharing scope we number choices inside the scope unsing the scopes
+In case of a sharing scope we number choices inside the scope using the scopes
 id and continue with the current outer id after the scope.
 
 \begin{code}
@@ -1355,8 +1355,8 @@ runShare′ {effs} {A} ⦃ p ⦄ = fold
 runShare : ⦃ Nondet ∈ effs ⦄ → Prog (Share ∷ effs) A → Prog effs A
 runShare p = π₂ <$> runShare′ p nothing
 \end{code}
-We introduce the helper function \AgdaFunction{runShare} to conviniently call
-the actuall sharing handler.
+We introduce the helper function \AgdaFunction{runShare} to conveniently call
+the actual sharing handler.
 The handler is initially called without an id, because by default choices are
 not shared.
 Furthermore, after evaluating all sharing syntax we discard the current id,
@@ -1397,7 +1397,7 @@ The \AgdaDatatype{Shareable} and \AgdaDatatype{Normalform} infrastructure from
 Chapter \ref{chapter:first-order} can be reused to define the
 \AgdaFunction{share} operator.
 The program in the scope is again captured by mapping \AgdaFunction{pure} over it.
-The constrcution of scope ids follows again the implementation by
+The construction of scope ids follows again the implementation by
 \textcite{bunkenburg2019modeling}.
 
 \begin{code}
@@ -1421,8 +1421,8 @@ share p = do
 \paragraph{Examples}
 Using \AgdaFunction{Nondet}, \AgdaFunction{State} and \AgdaFunction{Share} we
 can again simulate call-time choice semantics.
-We introduce the function \AgdaFunction{runCTC} to easily evaluate programms
-using normaliazable data and call-time choice smenarics.
+We introduce the function \AgdaFunction{runCTC} to easily evaluate programs
+using normalizable data and call-time choice semantics.
 
 \begin{code}
 runCTC : ⦃ Normalform (State SID ∷ Share ∷ Nondet ∷ []) A B ⦄ →

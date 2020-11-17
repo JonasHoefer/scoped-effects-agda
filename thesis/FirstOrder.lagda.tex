@@ -252,7 +252,7 @@ By pattern matching on the evidence we acquire more information about the type
 \AgdaFunction{sum}\AgdaSpace{}\AgdaArgument{ops}.
 In case of \AgdaInductiveConstructor{here} we know that \AgdaArgument{C} is in
 the head of the list of containers.
-Because the returntype is constructed using \AgdaFunction{sum} over the given
+Because the return type is constructed using \AgdaFunction{sum} over the given
 list, we know that the given value
 \AgdaArgument{s}\AgdaSpace{}\AgdaInductiveConstructor{,}\AgdaSpace{}\AgdaArgument{pf}
 has the same type as the left alternative in the returned coproduct.
@@ -378,7 +378,7 @@ fmap = _<$>_
 \AgdaFunction{fmap} applies the given function \AgdaArgument{f} to the values
 stored in the \AgdaInductiveConstructor{pure} leafs.
 The height of the tree is left unchanged.
-This fact is wittnessed by the same index \AgdaArgument{i} on the argument and
+This fact is witnessed by the same index \AgdaArgument{i} on the argument and
 return type.
 
 In contrast to \AgdaFunction{fmap}, \AgdaFunction{>>=} does not preserve the
@@ -389,7 +389,7 @@ The resulting tree is therefore at least as high as the given one.
 Because there is no addition for sized types the only correct size estimate for
 the returned value is unbounded (\AgdaInductiveConstructor{∞}).
 This means that by using \AgdaFunction{>>=} on a value we lose our size
-esstimate.
+estimate.
 This is a problem in recursive functions, because in terms of termination
 checking it renders the annotation useless.
 For later programs using effects this is not a problem, because they should not rely
@@ -482,8 +482,8 @@ Written using the Kleisli composition
 they reduce to the laws for morphism composition in a category, i.e.
 \AgdaInductiveConstructor{pure} is the left and right identity for the
 associtative composition.
-We are more interessted in this formulation using \AgdaFunction{>>=}, because it
-is the one occuring more directly in programs.
+We are more interested in this formulation using \AgdaFunction{>>=}, because it
+is the one occurring more directly in programs.
 
 \begin{code}[number=bind-ident-left]
 bind-identˡ : ∀ {ops} (f : A → Free ops B) (x : A) → (pure x >>= f) ≡ f x
@@ -820,13 +820,13 @@ get = op getˢ
 put : ∀ {ops S} → ⦃ State S ∈ ops ⦄ → S → Free ops ⊤
 put s = op (putˢ s)
 \end{code}
-Using these defintions for the syntax we can define the handler for
+Using these definitions for the syntax we can define the handler for
 \AgdaDatatype{State}.
 
 \begin{AgdaAlign}
 The effect handler for \AgdaDatatype{State} takes an initial state together
 with a program containing the effect syntax.
-The final state is returend in addition to the result.
+The final state is returned in addition to the result.
 
 \begin{code}
 runState : ∀ {ops S} → S → Free (State S ∷ ops) A → Free ops (S × A)
@@ -912,7 +912,7 @@ module StateLaws (S : Set) (ops : List Container) (s₀ : S) where
   go : Free (State S ∷ ops) A → Free ops (S × A)
   go = runState {_} {ops} s₀
 \end{code}
-Given an arbitrary inital state \AgdaArgument{s₀} and rest effect stack
+Given an arbitrary initial state \AgdaArgument{s₀} and rest effect stack
 \AgdaArgument{ops} the following equations have to hold.
 
 \begin{code}[hide]
@@ -985,7 +985,7 @@ operations in the tree is induced.
 The state operations are executed in this order and all act on the same state.
 
 The handlers for the two effects define semantics for their operations.
-Operations of the other siganture are just traversed.
+Operations of the other signature are just traversed.
 The interaction semantics are induced by the ordering of the
 handlers~\cite{DBLP:conf/haskell/WuSH14}.
 We obtain two combined handlers, each corresponding to one of the two cases
@@ -1170,7 +1170,7 @@ Using \AgdaFunction{go} the \AgdaDatatype{Cut} syntax is removed from both
 alternatives, but the results are handled asymmetrically.
 The left option is directly passed to the recursive call of
 \AgdaFunction{go}.
-The handeled right option is the new alternative for the left one and therefore
+The handled right option is the new alternative for the left one and therefore
 could be pruned if left contains a \AgdaFunction{cutfail} call.
 
 \begin{code}
@@ -1205,7 +1205,7 @@ The rest of the program is the result of the returned program.
 
 A valid upper bound for the size of the rest of the program is \AgdaArgument{i},
 the size of the program before separating the syntax after the closing delimiter.
-This fact is curcial to prove that the recursive calls to \AgdaFunction{bcall} and
+This fact is crucial to prove that the recursive calls to \AgdaFunction{bcall} and
 \AgdaFunction{ecall} using \AgdaFunction{>>=} terminate.
 Remember that bind discards the size of its argument.
 For handlers following this pattern this is not a problem, because the returned
@@ -1274,7 +1274,7 @@ In this section we extend the nondeterminism effect from section
 \ref{nondeterminism} to one modelling call-time choice.
 
 As explained in section \ref{call-time-choice}, in Curry call-time choice
-semantics are realised using sharing of nondeterministic choices.
+semantics are realized using sharing of nondeterministic choices.
 The current implementation of \AgdaDatatype{Nondet} does not support sharing,
 i.e. it is not possible for two choice to be linked.
 Based on Bunkenburg's implementation we make two changes to the
@@ -1504,7 +1504,7 @@ Choice operations are modified to include the unique choice id.
 The id is generated from the scope id of the current sharing scope and a
 counter, that is managed by the handler.
 When ever a choice is tagged with an id the counter is increased.
-The uniquenes of the scope identifiers is not managed by the handler, but the
+The uniqueness of the scope identifiers is not managed by the handler, but the
 share operator.
 
 \begin{code}

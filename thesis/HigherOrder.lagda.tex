@@ -291,13 +291,13 @@ type \AgdaArgument{F X}, where \AgdaArgument{X} does not contain
 \AgdaArgument{A}.
 Later they produce the continuation and the programs in scope respectively.
 In Agda this definition is recognized as strictly positive in \AgdaArgument{A}.
-The analogous definition in Bunkeburg's Coq implementation is
+The analogous definition in Bunkenburg's Coq implementation is
 not~\cite{bunkenburg2019modeling}.
  
 Ultimately the choice of representation for the functor does not matter because
 all approaches based on storing a type directly encounter the problem described
 in Section \ref{higher-order:eff-data-ext-types}.
-Going forward we will use Bunkeburg's indexed bi-container for examples because
+Going forward we will use Bunkenburg's indexed bi-container for examples because
 they are easiest to work with and allow us to continue the approach.
 As a side note, some operations with more complex syntax, like
 \mintinline[breaklines]{haskell}{pass :: m (a, w -> w) -> m a} and
@@ -511,7 +511,7 @@ Instead we limit value types to elements of \AgdaDatatype{Set}, i.e. those which
 can always be scoped.
 
 First we port over the infrastructure for modular effects.
-The coporduct carries over seamlessly.
+The coproduct carries over seamlessly.
 We combine the position functions pairwise and handle the \AgdaFunction{Ctx}
 functions using the coproduct mediator.
 \AgdaDatatype{Void} is also define analogous to the first order
@@ -1037,7 +1037,7 @@ The second position type and the context are precisely the generalization from
 the first-order to the higher-order setting.
 Therefore, we simply use \AgdaDatatype{⊥} to ignore them.
 
-We did not use the cumulativitiy flag to simplify this exemplary implementation.
+We did not use the cumulativity flag to simplify this exemplary implementation.
 This simplified the earlier implementation, but forces us now to do some manual
 lifting.
 The \AgdaDatatype{Lift} data type is element of an arbitrary universe and stores
@@ -1095,10 +1095,10 @@ The first three cases of the handler are identical to the implementation in
 Section \ref{nondeterminism}.
 The interesting new case is the one for \AgdaInductiveConstructor{Other} syntax.
 We must use \AgdaFunction{handle} to traverse the arbitrary operation.
-Analougous to exceptions we evaluate \AgdaFunction{handle} on the reconstructed
+Analogous to exceptions we evaluate \AgdaFunction{handle} on the reconstructed
 given operation.
 The initial context has to be singleton list, because empty lists would
-stop the compuation, while lists with two or more elements would duplicate
+stop the computation, while lists with two or more elements would duplicate
 parts of the program.
 
 \AgdaFunction{hdl} has to map from a \AgdaDatatype{List} of program with
@@ -1106,16 +1106,16 @@ parts of the program.
 syntax and a \AgdaDatatype{List} as value type.
 Consider the \AgdaDatatype{Syntax} instance for \AgdaDatatype{Exc}, given in
 Section \ref{higher-order:exceptions}.
-The two program in scope use the inital context, i.e. the given list is a
+The two program in scope use the initial context, i.e. the given list is a
 singleton.
 The continuation uses \AgdaFunction{<\$>} to apply the rest of the program to
-the given results of the compuatation in scope and evaluates them using
+the given results of the computation in scope and evaluates them using
 \AgdaFunction{hdl}.
 Conceptually, the argument of \AgdaFunction{hdl} corresponds to the
-programs that produce results for each result of some earlier compuatation.
+programs that produce results for each result of some earlier computation.
 We therefore use the obvious (and usually given) implementation of the
 \AgdaFunction{hdl} function i.e. we sequence the computations from left to right
-and concat the results.
+and concatenate the results.
 
 \begin{code}
 runNondet : ⦃ Syntax (sum effs) ⦄ → Prog (Nondet ∷ effs) A {i} → Prog effs (List A)
@@ -1225,7 +1225,7 @@ globalExc = refl
 
 In this chapter, we tired to implement scoped effects a higher order
 syntax representation approach by \textcite{DBLP:conf/haskell/WuSH14}.
-We continued Bunkeburg's~\cite{bunkenburg2019modeling} investigation of this
+We continued Bunkenburg's~\cite{bunkenburg2019modeling} investigation of this
 approach and uncovered a deep seated problem while implementing it in Agda,
 which arises due to more restrictive requirements for programs compared to
 Haskell.
