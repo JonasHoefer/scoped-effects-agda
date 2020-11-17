@@ -233,7 +233,7 @@
   associated operations with scopes.
   To fix this limitation \textcite{DBLP:conf/haskell/WuSH14} introduced scoped
   effects.
-  With regards to verification, scoped effects are needed to model more
+  Regarding verification, scoped effects are needed to model more
   complex ambient effects, such as sharing.
 
   In this thesis we explore how well three different Haskell implementations of
@@ -378,7 +378,7 @@ therefore complicate porting of Haskell code to Agda.
 
 This thesis explores multiple Haskell implementations of scoped effects and
 studies how well these translate to Agda.
-Furthermore we presents a set of standard solutions for common problems, arising
+Furthermore, we present a set of standard solutions for common problems, arising
 during the implementation of the Haskell approaches in Agda.
 
 Agda's builtin theorem proving capabilities allow direct, machine checked
@@ -461,7 +461,7 @@ translate to Agda.
 
 \section{Results}
 
-In Chapter \ref{chapter:first-order} we first implemented ordinary algebraic
+In Chapter \ref{chapter:first-order}, we first implemented ordinary algebraic
 effects in Agda.
 The implementation only depends on the definition of the free monad, which
 we implemented using containers, a well known approach.
@@ -474,7 +474,7 @@ for simulating call-time choice semantics.
 A problem with this approach is that it inherently allows mismatched scope
 delimiters, that is malformed syntax, which potentially complicates proofs.
 
-In Chapter \ref{chapter:higher-order} we tried implementing effects using higher
+In Chapter \ref{chapter:higher-order}, we tried implementing effects using higher
 order syntax, as described by \textcite{DBLP:conf/haskell/WuSH14}.
 This approach turned out to be problematic, because it relies on existential
 types to capture subcomputations.
@@ -539,7 +539,7 @@ For higher-order approach alternative container representations were mentioned.
 For scoped algebras \textcite{DBLP:conf/lics/PirogSWJ18} also note a
 generalization for more expressive syntax.
 
-The modularisation of effect in the Chapter \ref{chapter:scoped-algebras} is
+The modularization of effect in the Chapter \ref{chapter:scoped-algebras} is
 quite experimental.
 Implementing more tests for the current set of handlers as well as adding more
 effects with scoping operations to test the modularization should be the next

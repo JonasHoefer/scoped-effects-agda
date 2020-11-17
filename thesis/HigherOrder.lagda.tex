@@ -44,18 +44,18 @@ checker~\cite{bunkenburg2019modeling}.
 Due to sizes issues, needed for the consistency of Agda, this approach
 ultimately failed again.
 
-In Section \ref{higher-order:syntax} we introduce the concept of higher order
+In Section \ref{higher-order:syntax}, we introduce the concept of higher order
 syntax as described by \textcite{DBLP:conf/haskell/WuSH14}.
-We partially follows Bunkenburg's approach because the limitation of Coq
+We partially follow Bunkenburg's approach because the limitation of Coq
 described by him does not exist in Agda.
-In Section \ref{higher-order:container} we discuss different
+In Section \ref{higher-order:container}, we discuss different
 representation for higher order syntax in Agda.
 We explain a size issue with all of these representations, which generally
 prohibits us from implementing deep effects, without making excessive changes.
-In Section \ref{higher-order:fixes} we discuss some potential changes to the
+In Section \ref{higher-order:fixes}, we discuss some potential changes to the
 representation and their consequences.
 Because deep effects are an uncommon requirement, in Section
-\ref{higher-order:limited-impl} we still presents a limited implementation
+\ref{higher-order:limited-impl} we still present a limited implementation
 to highlight some details specific to Agda and lay groundwork for Chapter
 \ref{chapter:scoped-algebras}.
 
@@ -110,7 +110,7 @@ scope, to the rest of the computation.
 The three programs agree on an arbitrary but per \texttt{catch} fixed type
 \texttt{x} as well as on syntax, defined by \texttt{m}.
 
-For this generalized syntax the behavior of \AgdaFunction{>>=} is changed
+For this generalized syntax the behaviour of \AgdaFunction{>>=} is changed
 slightly.
 Calling \AgdaFunction{>>=} on a higher order term just extends the continuation,
 i.e. just substitutes the variables in terms of type \texttt{m a}.
@@ -126,7 +126,7 @@ actual rest of the program, described by the continuation, is affected.
 Therefore, by generalizing the syntax \textcite{DBLP:conf/haskell/WuSH14} allow
 a direct representation of operations with scopes.
 Before we can implement the infrastructure, we have to choose an appropriate
-representations for higher-order functors in Agda.
+representation for higher-order functors in Agda.
 
 \begin{figure}
   \begin{center}
@@ -344,7 +344,7 @@ private
 
 A central problem with this approach is that it cannot model deep effects
 without involving variable levels.
-Consider the the following definition of an effectful list.
+Consider the following definition of an effectful list.
 
 \begin{code}
 data Listᴹ (E : Effect) (A : Set₁) : Set₁ where
@@ -410,9 +410,9 @@ Unfortunately, in our tests non of them lead to a concise solution.
 \paragraph{Indexing}
 We could try to solve the problem of increasing universe levels by not storing
 the intermediate result types directly.
-Instead we index the program over a data type storing all intermediate result
+Instead, we index the program over a data type storing all intermediate result
 types, that is, we introduce a typing context.
-The level of the index is independent from the level of the structure.
+The level of the index is independent of the level of the structure.
 Therefore, the chain of reasoning from Section
 \ref{higher-order:eff-data-ext-types} does not apply.
 The typing context needs to have the same structure as the program.
@@ -452,7 +452,7 @@ These changes now have to be reflected on the type level because the context is
 embedded in the type of \AgdaDatatype{Prog}
 If \AgdaFunction{>>=} calls different operations for different values, leafs in
 the context are substituted with different new contexts.
-As with increasing universe levels, this complications are increasingly hard to
+As with increasing universe levels, these complications are increasingly hard to
 deal with and are hard to hide from the user of the library.
 For example, in our tests the changes to the context required the definition of
 helper functions that describe the modification.
@@ -462,7 +462,7 @@ This lead to an impractical interface.
 We cannot model deep effects because effectful data structures are an element
 of \AgdaDatatype{Set₁}, but data is required to be an element of
 \AgdaDatatype{Set}.
-But, these special data structures are only to large because they contain
+But, these special data structures are only too large because they contain
 values of the computation type \AgdaDatatype{Prog} itself, not arbitrary values
 from \AgdaDatatype{Set₁}.
 Conceptually these data structures continue the computation tree.
@@ -504,17 +504,17 @@ because they model effects with a simple continuation accurately.
 In a more complex implementation, where more control over the type of the
 continuation is needed, a container with a \AgdaField{Ctx} for \AgdaArgument{A}
 might be needed\footnote{To guarantied strict positivity one of the solutions
-  mentioned in Section \ref{higher-order:container} is needed.}.
+mentioned in Section \ref{higher-order:container} is needed.}.
 Furthermore, we do not define a level polymorphic version of \AgdaDatatype{Prog}
 as its only advantage is a limited representation of deep effects.
-Instead we limit value types to elements of \AgdaDatatype{Set}, i.e. those which
+Instead, we limit value types to elements of \AgdaDatatype{Set}, i.e. those which
 can always be scoped.
 
 First we port over the infrastructure for modular effects.
 The coproduct carries over seamlessly.
 We combine the position functions pairwise and handle the \AgdaFunction{Ctx}
 functions using the coproduct mediator.
-\AgdaDatatype{Void} is also define analogous to the first order
+\AgdaDatatype{Void} is also defined analogous to the first order
 setting.
 
 \begin{code}
@@ -560,7 +560,7 @@ The function has the same signature as the one by
 \textcite{DBLP:conf/haskell/WuSH14}.
 In contrast to the implementation by \textcite{DBLP:conf/haskell/WuSH14} the
 function can be defined generically for all effects because the indexed
-bi-container representation is more restrictive than the their haskell
+bi-container representation is more restrictive than their Haskell
 representation.
 
 \begin{code}
@@ -633,14 +633,14 @@ lift values to types in \AgdaDatatype{Set} and programs to types in
 Even with \texttt{--cumulativity} this behavior is not handled automatically by
 Agda\footnote{\url{https://agda.readthedocs.io/en/v2.6.1.1/language/cumulativity.html\#limitations}}.
 
-To simulate the above behavior we define the \AgdaDatatype{Context} type
+To simulate the above behaviour we define the \AgdaDatatype{Context} type
 constructor class.
 A context is essentially a functor that respects the universes structure.
 Given a type from \AgdaDatatype{Setₙ}, it lifts it to another type in the same
 \AgdaDatatype{Setₙ}.
 Furthermore, a function between two data types in different universes is
 lifted to a function the lifted types, i.e. between universes.
-An instances should satisfy the functors laws even though they are not enforced
+An instance should satisfy the functors laws even though they are not enforced
 here.
 Notice that \AgdaDatatype{Context} quantifies over arbitrary
 \AgdaDatatype{Level}s $\ell$ and therefore is an element of \AgdaDatatype{Setω},
@@ -664,8 +664,8 @@ By generalizing to higher order abstract syntax it is possible to represent
 programs in scope and continuations explicitly.
 The order in which they are evaluated and therefore how an evaluation context
 should be moved through the program is a semantic question.
-The type class explains how an arbitrary handler can be thread through an
-effects syntax using the function \AgdaFunction{handle}.
+The type class explains how an arbitrary handler can be threaded through an
+effect's syntax using the function \AgdaFunction{handle}.
 The first argument is the initial context.
 Using \AgdaFunction{<\$} it is possible to move an arbitrary value or
 computation into the context.
@@ -765,7 +765,7 @@ Both programs produce results of type \AgdaArgument{X}.
 The result types for the programs in scope are defined using the context
 \AgdaFunction{Excᶜ}.
 
-Next we define the positions for the effects continuation, i.e the programs
+Next we define the positions for the effect's continuation, i.e the programs
 producing values of type \AgdaArgument{A}.
 
 \begin{code}
@@ -796,7 +796,7 @@ extensions as $\lambda ()$.
 \AgdaFunction{catch} captures a program \AgdaArgument{p} as well as the
 exception handler in scope.
 Therefore, they are returned by \AgdaArgument{σ}.
-The effects continuation \AgdaArgument{κ} is initially given by
+The effect's continuation \AgdaArgument{κ} is initially given by
 \AgdaInductiveConstructor{pure}.
 It is later extended using \AgdaFunction{>>=}.
 This is analogous to the generic operations in the first order approach.
@@ -858,17 +858,17 @@ This is needed to thread the handlers current state through the computation.
 Moving the context correctly through the syntax is a semantic problem and
 therefore has to be defined on a case by case basis.
 Therefore, we have to consider how \AgdaFunction{catch} is evaluated.
-The \AgdaFunction{catch} operations is evaluated by evaluating the program in
+The \AgdaFunction{catch} operation is evaluated by evaluating the program in
 the \AgdaInductiveConstructor{mainᵖ} position first.
 In case of an exception we produce an alternative result using the program in
 the \AgdaInductiveConstructor{handleᵖ} position.
-At last we feed the result in the continuation.
+At last, we feed the result in the continuation.
 Handlers for other effects should traverse the effect similarly.
-Therefore, the intermediate result is lifted into the handlers context.
+Therefore, the intermediate result is lifted into the handler's context.
 
-The effects continuation \AgdaArgument{κ} now takes an argument of type
+The effect's continuation \AgdaArgument{κ} now takes an argument of type
 \AgdaArgument{C X}, i.e. the result of a program in scope inside the foreign
-handlers context.
+handler's context.
 By mapping the given \AgdaArgument{κ} over the given \AgdaArgument{cx} the
 continuation is applied to the argument of type \AgdaArgument{X} and lifted
 inside its context.
@@ -962,9 +962,9 @@ successful result of type \AgdaDatatype{⊤}.
 The handler has to evaluate \AgdaDatatype{Exc} syntax for a program in the
 context.
 We handle the two cases using \AgdaFunction{[\_,\_]}.
-If the argument is already an exception we simply produce a
+If the argument is already an exception, we simply produce a
 \AgdaInductiveConstructor{pure} program which produces the exception.
-Otherwise it is a program that we can evaluate using \AgdaFunction{runExc}.
+Otherwise, it is a program that we can evaluate using \AgdaFunction{runExc}.
 Notice that the initial context always leads to the second case.
 \begin{code}
 runExc (Other s κ σ) = impure (handle (inj₂ tt) [ (λ x → pure (inj₁ x)) , runExc ] (s , κ , σ))
@@ -1143,7 +1143,7 @@ combined with certain other effects.
 Interpreting \AgdaDatatype{Nondet} syntax yields the results in depth first
 ordering.
 
-If a part of a nondeterministic program is captured in a scope the order of
+If a part of a nondeterministic program is captured in a scope, the order of
 operations changes.
 The program in scope is evaluated, yielding its results in depth first ordering.
 Afterwards, using \AgdaFunction{hdl} the continuation is evaluated on each
@@ -1152,15 +1152,15 @@ The results are in the expected depth first order, but the operations not.
 The order of operations is introduced by \AgdaFunction{>>=}.
 A scoping operation is evaluated by first evaluating the part of the computation
 in scope and afterwards the continuations outside the scope.
-Therefore the unevaluated operations are now also in this order.
+Therefore, the unevaluated operations are now also in this order.
 The potential unexpected semantics of this implementation is that introducing a
 semantically irrelevant scoping operation (e.g. \texttt{local id}) influences
 the ordering of operations of other globally evaluated effects.
-This behavior is known, because it also occurs in some Haskell implementations
+This behaviour is known, because it also occurs in some Haskell implementations
 of scoped
 effects\footnote{https://github.com/polysemy-research/polysemy/issues/246}.
 
-Encountering the above behavior is quite uncommon, because the program has to
+Encountering the above behaviour is quite uncommon, because the program has to
 evaluate a scoping operation globally over a nondeterministic program, while
 simultaneously using global operations whose ordering can be observed.
 Most effects only provide one of the two.
@@ -1170,9 +1170,9 @@ Most effects only provide one of the two.
 The most common examples are global state to collect results, global writer to
 log and global partiality to stop all branches, which do not encounter the above
 behavior.
-When catching global exceptions over a nondeterministic program the above
-behavior seems more reasonable.
-More complex semantics (e.g. leaving and reentering the scoped computation) are
+When catching global exceptions over a nondeterministic program, the above
+behaviour seems more reasonable.
+More complex semantics (e.g. leaving and re-entering the scoped computation) are
 conceivable, but not captured by the standard representation of higher order
 syntax.
 
@@ -1181,7 +1181,7 @@ syntax.
 
 In the last to sections we presented effects in isolation.
 Similar to the combined semantics described in Section
-\ref{first-order:combined-effects} we can induced different semantics by
+\ref{first-order:combined-effects} we can induce different semantics by
 reordering the handlers.
 Consider the following program, which chooses between a
 \AgdaInductiveConstructor{pure} value and an exception.
@@ -1226,7 +1226,7 @@ globalExc = refl
 In this chapter, we tired to implement scoped effects a higher order
 syntax representation approach by \textcite{DBLP:conf/haskell/WuSH14}.
 We continued Bunkenburg's~\cite{bunkenburg2019modeling} investigation of this
-approach and uncovered a deep seated problem while implementing it in Agda,
+approach and uncovered a deep-seated problem while implementing it in Agda,
 which arises due to more restrictive requirements for programs compared to
 Haskell.
 The problem occurs because we have to work in a consistent hierarchy of

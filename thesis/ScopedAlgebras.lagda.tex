@@ -52,7 +52,7 @@ different implementation of the \AgdaFunction{fold} by
 To test our implementation, we implement the nondeterminism example by
 \textcite{DBLP:conf/lics/PirogSWJ18}, exceptions, state and sharing as defined
 by \textcite{bunkenburg2019modeling}.
-Furthermore, we presents a new implementation for naive modularisation of
+Furthermore, we present a new implementation for naive modularisation of
 handlers.
 
 
@@ -113,7 +113,7 @@ An operation without scopes, that is the functor $\Sigma$ applied to the monad
 itself.
 Notice that this case corresponds to the \AgdaInductiveConstructor{impure}
 constructor in the free monad.
-Or lastly, an operations with a local scope, represented by the second signature
+Or lastly, an operation with a local scope, represented by the second signature
 $\Gamma$.
 Operations with a local scope always quantifies over some type $X$, which is the
 type for the intermediate result.
@@ -158,7 +158,7 @@ to the rest of the whole program.
 In their paper, \textcite{DBLP:conf/lics/PirogSWJ18} develop a theory of
 \textit{scoped algebras} for a second equivalent monad and us them to define a
 sensible evaluation for this monad.
-In Section \ref{scoped-algebra:monad} we define a more practical version of the
+In Section \ref{scoped-algebra:monad}, we define a more practical version of the
 monad and translate part their practical results form Haskell to Agda. 
 
 
@@ -222,7 +222,7 @@ proving the monad laws\footnote{As in Chapter \ref{chapter:higher-order} the
   \AgdaDatatype{Prog}\AgdaSpace{}\AgdaArgument{effs} layers.
   This forces us to use our induction hypothesis on not obviously smaller
   terms.}.
-Instead we define a generic \AgdaFunction{fold}, which we reuse for all
+Instead, we define a generic \AgdaFunction{fold}, which we reuse for all
 functions traversing values of type
 \AgdaDatatype{Prog}\AgdaSpace{}\AgdaArgument{effs}\AgdaSpace{}\AgdaArgument{A}.
 
@@ -285,7 +285,7 @@ type
 $($\AgdaDatatype{Prog}\AgdaSpace{}\AgdaArgument{effs}\AgdaSpace{}\AgdaFunction{\textasciicircum}\AgdaSpace{}\AgdaArgument{n}$)$\AgdaSpace{}\AgdaArgument{A}.
 Furthermore, the \texttt{fold} takes functions for processing substructures.
 As usual, the arguments of these function correspond to those of the
-constructors they processes with recursive occurrences of the type itself already
+constructors they process with recursive occurrences of the type itself already
 processed.
 In contrast to a normal recursion scheme, these recursive occurrences respect
 the index.
@@ -318,7 +318,7 @@ which contain solutions for the corresponding $P\;n$.
 When implementing those two cases we cannot apply \AgdaFunction{fold} directly
 to recursive occurrences, because those depend on the choice of
 \AgdaDatatype{Container}.
-Because container extensions are functor we \AgdaFunction{map} over the given
+Because container extensions are functors, we \AgdaFunction{map} over the given
 value.
 
 The \AgdaFunction{fold}, based on the approach by
@@ -326,10 +326,10 @@ The \AgdaFunction{fold}, based on the approach by
 \textcite{DBLP:conf/lics/PirogSWJ18}.
 They derive their \AgdaFunction{fold} by constructing algebras for a
 second monad.
-en \citetitle{DBLP:conf/lics/PirogSWJ18} they show that the two monads are
+Then \citetitle{DBLP:conf/lics/PirogSWJ18} show that the two monads are
 equivalent and transfer the \AgdaFunction{fold} from the
 second monad to the one used in their Haskell implementation.
-Following \textcite{DBLP:journals/corr/abs-1806-05230} we derived essential the
+Following \textcite{DBLP:journals/corr/abs-1806-05230} we derived essentially the
 same \AgdaFunction{fold} and implemented it directly, without using
 \AgdaFunction{>>=}.
 
@@ -337,8 +337,8 @@ same \AgdaFunction{fold} and implemented it directly, without using
 Using \AgdaFunction{fold} we can implement \AgdaFunction{>>=} for
 \AgdaDatatype{Prog}\AgdaSpace{}\AgdaArgument{effs}\AgdaSpace{}\AgdaArgument{A}.
 The continuations \AgdaArgument{k} passed to \AgdaFunction{>>=} should just
-effect the inner most layer.
-Intuitively, when using bind an a value constructed with
+affect the innermost layer.
+Intuitively, when using bind a value constructed with
 \AgdaInductiveConstructor{scp} we traverse the outer layer and call bind on the
 inner one recursively.
 To implement \AgdaFunction{>>=} we fold over the given program.
@@ -386,7 +386,7 @@ Using \AgdaFunction{>>=} for a program with one layer and
 \AgdaInductiveConstructor{var} as \AgdaFunction{return} we can define a monad
 instance for \AgdaDatatype{Prog}\AgdaSpace{}\AgdaArgument{effs}.
 In contrast to Haskell this automatically defines a functor and an applicative
-instances, because these can be defined in terms of \AgdaFunction{>>=} and
+instance, because these can be defined in terms of \AgdaFunction{>>=} and
 \AgdaFunction{return}\footnote{We automatically obtain the functions
   \AgdaFunction{<\$>}, \AgdaFunction{<*>}, \AgdaFunction{pure} and
   \AgdaFunction{>>}. }.
@@ -408,11 +408,11 @@ a technique from Section \ref{scoped-algebra:ind}.
 
 Following the examples by \textcite{DBLP:journals/corr/abs-1806-05230} we
 generalize the \AgdaFunction{fold} from Section \ref{scoped-algebra:fold} to a
-dependently type version, an induction principle.
+dependently typed version, an induction principle.
 In the induction principle the proposition \AgdaDatatype{P} is generalized to a
 dependent type i.e. a relation on values of type 
 \AgdaDatatype{Prog}\AgdaSpace{}\AgdaArgument{effs}\AgdaSpace{}\AgdaArgument{A}.
-Therefore the induction principle allows for proofs of these predicates by
+Therefore, the induction principle allows for proofs of these predicates by
 induction without the use of explicit recursion.
 
 The types for the four functions, corresponding to the three constructors and
@@ -426,7 +426,7 @@ We bind it to \AgdaArgument{x} and pass it to the proposition.
 \begin{code}
   (                (x : A)                                        → P 0 x                     )  →
 \end{code}
-The \AgdaInductiveConstructor{var} can be handled similar to the examples by
+The \AgdaInductiveConstructor{var} case can be handled similar to the examples by
 \textcite{DBLP:journals/corr/abs-1806-05230}.
 We assume values for all constructor arguments, as well as proofs for the
 smaller cases.
@@ -436,7 +436,7 @@ For \AgdaInductiveConstructor{var} an additional, hidden argument
 type of the proof for the smaller case $P\;n\;x$.
 \AgdaArgument{x} is used to describe the currently handled value
 \AgdaInductiveConstructor{var}\AgdaSpace{}\AgdaArgument{x}.
-\AgdaInductiveConstructor{var}\AgdaSpace{}\AgdaArgument{x} therefore is part of
+Therefore, \AgdaInductiveConstructor{var}\AgdaSpace{}\AgdaArgument{x} is part of
 the functions result type.
 Under the Curry Howard corresponds this function (ignoring the index type) can
 be read as the proposition
@@ -453,7 +453,7 @@ Remember that a container's position function maps from a type of positions,
 which depends on the values shape, to the contained values.
 Hence, assuming the containers values corresponds to assuming a position
 function.
-Analogues to the \AgdaFunction{fold} the result for the recursively handled value
+Analogues to the \AgdaFunction{fold}, the result for the recursively handled value
 is a function from positions (for the assumed shape) to proofs for the
 proposition for the there contained values.
 The value for each position is obtained using the assumed position function
@@ -512,7 +512,7 @@ bind-identʳ : {A : Set} (ma : Prog effs A) → (ma >>= return) ≡ ma
 \AgdaFunction{>>=} is recursive in its first argument, therefore we prove the
 proposition by induction on \AgdaArgument{ma}.
 To use the induction principle we have to define a proposition for every layer.
-Since \AgdaFunction{>>=} does not change values we simply produce a value of
+Since \AgdaFunction{>>=} does not change values, we simply produce a value of
 type \AgdaDatatype{⊤} at layer zero.
 For all other we prove the proposition for the appropriate
 \AgdaFunction{bind} i.e. the one called by \AgdaFunction{fold} to handle a value
@@ -551,7 +551,7 @@ The new proposition is
 \AgdaInductiveConstructor{var}\AgdaSpace{}$($\AgdaFunction{bind}\AgdaSpace{}\AgdaArgument{n}$)$\AgdaSpace{}\AgdaDatatype{≡}\AgdaSpace{}\AgdaInductiveConstructor{var}\AgdaSpace{}\AgdaArgument{x}.
 This proposition is equal to the induction hypothesis with
 \AgdaInductiveConstructor{var} applied on both sides.
-Therefore we prove it using congruence.
+Therefore, we prove it using congruence.
 
 \begin{code}
   (λ{ {0} (tt) → refl ; {suc n} IH → cong var IH })
@@ -666,7 +666,7 @@ prj (there ⦃ p ⦄)  (inj₂ s , κ) = prj p (s , κ)
 \end{code}
 Due to the component wise combination of \AgdaDatatype{Effect}s, a proof that an
 \AgdaDatatype{Effect} is an element of an effect stack implies that an
-operations from one of the two signatures is part of the corresponding
+operation from one of the two signatures is part of the corresponding
 signature of the combined effect.
 
 \begin{code}
@@ -699,8 +699,8 @@ run (var x) = x
 
 \section{Nondeterministic Choice}
 
-As first example we implement the nondeterminism effect.
-In Section \ref{scoped-algebra:nondet:scoped-algebra} we implement the example
+As first example, we implement the nondeterminism effect.
+In Section \ref{scoped-algebra:nondet:scoped-algebra}, we implement the example
 by \textcite{DBLP:conf/lics/PirogSWJ18} to demonstrate that the
 \AgdaFunction{fold} definition from Section \ref{scoped-algebra:fold} is
 sufficient.
@@ -710,7 +710,7 @@ and handlers.
 \subsection{Implementation as Scoped Algebra}
 \label{scoped-algebra:nondet:scoped-algebra}
 The signature for the two algebraic operations is the same as before.
-Furthermore we define a signature for the scoped operation \AgdaFunction{once}.
+Furthermore, we define a signature for the scoped operation \AgdaFunction{once}.
 
 \begin{code}[hide]
 SID CID : Set
@@ -747,7 +747,7 @@ using
 The value is promoted by lifting it into a singleton list.
 The algebraic operations \textbf{fail} and \textbf{?} are handled using
 \AgdaField{a}.
-Notice that in the definition of \AgdaFunction{fold} they are guarantied an index
+Notice that in the definition of \AgdaFunction{fold} they are guaranteed an index
 $n\geqslant 1$ i.e. at least one list layer.
 They are implement identical to earlier versions of \AgdaDatatype{Nondet}.
 \textbf{?} concatenates the left and right list.
@@ -1037,7 +1037,7 @@ Values are now not only injected into the context, but also into the monad.
 \end{code}
 The algebraic operations are interpreted as before, except that all results are
 lifted into the monad.
-When an operation from a foreign effect is encountered the syntax is just
+When an operation from a foreign effect is encountered, the syntax is just
 reconstructed.
 The outer container coproduct is removed by interpreting the
 \AgdaDatatype{Nondet} syntax, therefore \AgdaArgument{s} already has the correct
@@ -1045,7 +1045,7 @@ type (note that \AgdaInductiveConstructor{Other} hides the
 \AgdaInductiveConstructor{inj₂}).
 \AgdaArgument{κ} produces the result for the positions of the given shape,
 because the recursion is handled by \AgdaFunction{fold}.
-Therefore the implementation is the same as in Chapter \ref{chapter:first-order}
+Therefore, the implementation is the same as in Chapter \ref{chapter:first-order}
 except that the recursion is hidden.
 
 \begin{code}
@@ -1087,7 +1087,7 @@ effects, which entails possible unexpected interaction semantics.
 In terms of Haskell type classes the above implementation generalizes if $C$ is
 a traversable monad, because \AgdaFunction{hdl} corresponds to
 \mintinline{haskell}{fmap join . sequence}.
-This is quite a strong condition, but it does not seems necessary, because we
+This is quite a strong condition, but it does not seem necessary, because we
 will see another example in Section \ref{scoped-algebra:state}, which does not
 follow this pattern.
 Furthermore, the carrier types of effects are often simple data structures like
@@ -1245,18 +1245,18 @@ pattern Put s₁ κ  = (inj₁ (putˢ s₁) , κ)
 In Chapter \ref{chapter:first-order} the state handler was defined recursively
 and the current state was passed as an additional parameter to the handler.
 When implementing the handler as a fold this is not an option.
-Instead we choose the usual carrier for state (transformer) as carrier for our handler i.e.
+Instead, we choose the usual carrier for state (transformer) as carrier for our handler i.e.
 function from the current state to a (lifted) pair, consisting of the final
 state and the result.
 Handler with a function as carrier type are called \textit{parameter passing
   handler}~\cite{DBLP:conf/esop/PlotkinP09}.
 When implementing the handler as a fold, the function argument appears as an
-additional parameter along side the currently handled operation and as
+additional parameter alongside the currently handled operation and as
 additional parameter to the continuation.
 Parameter passing handlers are a common pattern when implementing handler,
 because they allow threading a state through the handler.
 
-When traversing a foreign scope we have to eliminate the intermediate context.
+When traversing a foreign scope, we have to eliminate the intermediate context.
 \AgdaArgument{κ} produces a value of type
 \AgdaDatatype{Prog}\AgdaSpace{}\AgdaArgument{effs}\AgdaSpace{}$($%
 \AgdaArgument{S}\AgdaSpace{}\AgdaSymbol{×}\AgdaSpace{}$($%
@@ -1322,17 +1322,17 @@ around.
 \AgdaFunction{runShare} supplies initial parameters, hiding the parameters from
 the caller.
 
-When handling a sharing scope the captured program is handled with the id stored
+When handling a sharing scope, the captured program is handled with the id stored
 in the shape of the scoping operation.
 The continuation is accessed via \AgdaFunction{>>=} and continuous with the
 outside id.
-Scopes of foreign effects do not effect sharing.
+Scopes of foreign effects do not affect sharing.
 The foreign scope is a subscope of the current sharing scope.
-Therefore, the choices are labeled with the same scope id.
+Therefore, the choices are labelled with the same scope id.
 To guaranty the uniqueness of ids we have to thread the current choice id through
 the inner scope.
 We add the current choice id as an additional return value.
-After traversing a foreign scope we continue with the last id from the inner
+After traversing a foreign scope, we continue with the last id from the inner
 scope.
 In case of a sharing scope we number choices inside the scope using the scopes
 id and continue with the current outer id after the scope.

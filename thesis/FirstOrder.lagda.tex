@@ -54,7 +54,7 @@ The basic idea of operating on lists of effects is similar to the Idris effect
 library by \textcite{DBLP:conf/icfp/Brady13}.
 In section \ref{first-order:effects-and-handlers} we implement some of the
 examples by \textcite{DBLP:conf/haskell/WuSH14} to explain the general
-construction of effects and handlers uisng this approach.
+construction of effects and handlers using this approach.
 In section \ref{fist-order:scoped-effects} we implement scoped effects using
 explicit scoped delimiters as described by \textcite{DBLP:conf/haskell/WuSH14}.
 To define handlers for effects with and without scopes we use a general
@@ -297,7 +297,7 @@ The free monad is indexed over an argument of type \AgdaDatatype{Size}.
 We follow the pattern described in section \ref{preliminaries:sized-types}, to
 annotate the data type.
 \AgdaInductiveConstructor{pure} values have an arbitrary size.
-When constructing an \AgdaInductiveConstructor{impure} value the new value is
+When constructing an \AgdaInductiveConstructor{impure} value, the new value is
 strictly larger than the ones produced by the container's position function.
 Therefore, a calculation is larger than its continuations or a computation is
 finite.
@@ -308,11 +308,11 @@ terminate.
 Next we define utility functions for working with the free monad.
 \AgdaFunction{inj} and \AgdaFunction{prj} provide the same functionality as the
 ones used by \textcite{DBLP:conf/haskell/WuSH14}.
-\AgdaFunction{inj} allows to inject syntax into a program whose signature allows
+\AgdaFunction{inj} allows injecting syntax into a program whose signature allows
 the operation.
 \AgdaFunction{prj} allows to inspect the next operation of a
 program, restricted to the signature for a specific effect.
-Furthermore we add the functions \AgdaFunction{op} and \AgdaFunction{upcast}.
+Furthermore, we add the functions \AgdaFunction{op} and \AgdaFunction{upcast}.
 
 Writing operations with explicit continuations is unintuitive.
 Furthermore, \AgdaFunction{>>=} and \AgdaKeyword{do}-notation provide a more
@@ -443,7 +443,7 @@ This equivalence is exactly the induction hypothesis, which we obtain using a
 recursive call.
 
 Because all steps using \AgdaFunction{≡⟨⟩} are proven by
-\AgdaInductiveConstructor{refl} they can be omitted.
+\AgdaInductiveConstructor{refl}, they can be omitted.
 The other proofs follow the same pattern and therefore are written more concise.
 
 \begin{code}[number=fmap-id]
@@ -466,7 +466,7 @@ fmap-∘ f g (impure (s , pf))  = cong (impure ∘ (s ,_)) (extensionality (fmap
 Later we will need the interchange law for applicative functors.
 The law essentially allows us to swap the arguments of \AgdaFunction{<*>} if one
 of the is \AgdaInductiveConstructor{pure}.
-Because \AgdaFunction{<*>} is defined in terms of \AgdaFunction{<\$>} it allows
+Because \AgdaFunction{<*>} is defined in terms of \AgdaFunction{<\$>}, it allows
 us to reduce some \AgdaFunction{<*>} calls to \AgdaFunction{<\$>}.
 
 \begin{code}[number=ap-interchange]
@@ -481,7 +481,7 @@ Written using the Kleisli composition
 \AgdaArgument{g}\AgdaSpace{}\AgdaFunction{∘}\AgdaSpace{}$($\AgdaFunction{\_}\AgdaFunction{>>=}\AgdaSpace{}\AgdaArgument{f}$)$)
 they reduce to the laws for morphism composition in a category, i.e.
 \AgdaInductiveConstructor{pure} is the left and right identity for the
-associtative composition.
+associative composition.
 We are more interested in this formulation using \AgdaFunction{>>=}, because it
 is the one occurring more directly in programs.
 
@@ -519,7 +519,7 @@ Furthermore, they potentially modify the type \AgdaArgument{A} to one modelling
 the result of the effect.
 They transform an impure computation partially to a pure one.
 By interpreting the syntax of an effect (mapping to a model for the theory) the
-handler defines the semantics for the effects syntax.
+handler defines the semantics for the effect's syntax.
 For example, a handler for exceptions removes exception syntax and transforms a
 program producing a value of type \AgdaArgument{A} to one producing a value of
 type
@@ -550,7 +550,7 @@ run (pure x) = x
 The following two sections describe the implementation of handlers for
 \AgdaDatatype{State} and \AgdaDatatype{Nondeterminism}.
 By means of examples, they explain the construction of handlers as well as
-lay ground work for more complex handlers.
+lay groundwork for more complex handlers.
 
 
 \subsection{Nondeterministic Choice}
@@ -611,7 +611,7 @@ synonyms and view patterns to simplify their implementations.
 Agda also has \AgdaKeyword{pattern} synonyms, which we use to simplify at least
 simple effect handlers, i.e. those which do not rely on \AgdaFunction{prj}.
 Similar to Haskell, the left-hand side of a \AgdaKeyword{pattern} defines an
-abbreviate for the right-hand side, which can be used on the left- and
+abbreviation for the right-hand side, which can be used on the left- and
 right-hand side of function rules.
 We introduce \AgdaKeyword{pattern}s for each operation from the signature as
 well as for other operations, i.e. those who are not part of the currently
@@ -625,7 +625,7 @@ pattern Choice κ   = impure (inj₁ ⁇ˢ , κ)
 \begin{AgdaAlign}
   The handler interprets \AgdaDatatype{Nondet} syntax and removes it from the
   program.
-  Therefore \AgdaDatatype{Nondet} is removed from the front of the effect stack.
+  Therefore, \AgdaDatatype{Nondet} is removed from the front of the effect stack.
   For the handler different semantics are conceivable.
   For example, a handler could implement backtracking, that is, search for the
   first result that is not \AgdaFunction{fail}.
@@ -699,7 +699,7 @@ runNondet (Other s κ)  = impure (s , runNondet ∘ κ)
 As explained in section \ref{preliminaries:free-monad}, the free monad
 represents the free model for the theory without equations, i.e. some terms
 should be equal but are not.
-The handler for an algebraic effects syntax defines its semantics by removing
+The handler for an algebraic effect's syntax defines its semantics by removing
 and interpreting its syntax.
 The result of a handler should again be a model for the effect, i.e. the
 equations characterizing the effect should hold.
@@ -1120,7 +1120,7 @@ Internally, the handler calls the function \AgdaFunction{go}, which accumulates
 the unexplored alternatives in its second argument using \AgdaFunction{⁇}.
 \AgdaFunction{fail} is the neutral element for \AgdaFunction{⁇} and therefore
 the default argument.
-Since this handler is non-orthogonal (it interacts with another effects syntax)
+Since this handler is non-orthogonal (it interacts with another effect's syntax)
 \AgdaDatatype{Nondet} is required to be in the effect stack, but its position is
 irrelevant.
 We require a proof that \AgdaDatatype{Nondet} is in the effect stack.
@@ -1228,7 +1228,7 @@ handle the error.
 We could either correct the error and just continue or short circuit the
 calculation using some form of exceptions, for example the \AgdaDatatype{Maybe}
 monad.
-For simplicity we use the former approach.
+For simplicity, we use the former approach.
 In a real application it would be advisable to inform the programmer about the
 error, either using exceptions or at least trace the error.
 
@@ -1322,13 +1322,13 @@ In this case the effect should not occur.
 For example, in Haskell it is possible to calculate the length of a list, that
 stores \mintinline[breaklines]{haskell}{undefined}s.
 
-We want to simulate this behavior with algebraic effects.
+We want to simulate this behaviour with algebraic effects.
 The effects are modelled explicitly using the \AgdaDatatype{Free} type.
 We lift data types using a standard construction, which is commonly used
 to simulate ambient deep
 effects~\cite{DBLP:conf/haskell/AbelBBHN05, DBLP:journals/programming/DylusCT19,
 DBLP:conf/haskell/ChristiansenDB19}.
-The following example of an effectful \AgdaDatatype{List} demonstrates the
+The following example of an effectful \AgdaDatatype{List} demonstrates
 the general construction\footnote{In the following code effectful data
   structures and lifted versions of functions are marked with a suffix
   \textsuperscript{M}}.
@@ -1397,7 +1397,7 @@ open Normalform ⦃...⦄ public
 !_ : ⦃ Normalform ops A B ⦄ → Free ops A → Free ops B
 ! mx = mx >>= nf
 \end{code}
-The type class allows to normalize elements of type \AgdaArgument{A} (intuitively
+The type class allows normalizing elements of type \AgdaArgument{A} (intuitively
 containing effectful calculations) to computations producing of elements of type
 \AgdaArgument{B} (intuitively a version of \AgdaArgument{A} without the effects).
 Instead of the arbitrary types \AgdaArgument{A} and \AgdaArgument{B} we could
@@ -1503,7 +1503,7 @@ reinjected.
 Choice operations are modified to include the unique choice id.
 The id is generated from the scope id of the current sharing scope and a
 counter, that is managed by the handler.
-When ever a choice is tagged with an id the counter is increased.
+When ever a choice is tagged with an id, the counter is incremented.
 The uniqueness of the scope identifiers is not managed by the handler, but the
 share operator.
 
@@ -1564,7 +1564,7 @@ concrete identifier values for the sharing handler.
 Given a computation producing values of type \AgdaArgument{A} the operator
 returns a computation of computations of type \AgdaArgument{A}, i.e. the result
 has two \AgdaDatatype{Free}\AgdaSpace{}\AgdaArgument{ops} layers.
-The outer layer is usually execute immediately (i.e. injected into the larger
+The outer layer is usually executed immediately (i.e. injected into the larger
 program at the current position) using \AgdaFunction{>>=}.
 The outer computation generates a new identifier.
 The inner computation actually evaluates the shared program and manages its
@@ -1611,7 +1611,7 @@ instance
 
 Using the handler we can simulate call-time choice semantics using effects in
 Agda.
-Call-time choice can be simulated with the following effect stack
+Call-time choice can be simulated with the following effect stack.
 
 \begin{code}
 CTC : List Container
@@ -1624,7 +1624,7 @@ Sharing is evaluated next to tag all choices with their scopes identifier.
 At last nondeterminism is evaluated to collect the results of all possible
 branches into a tree.
 The tree is traversed using depth first search.
-When ever a choice with a choice id is encountered the decision is remembered.
+When ever a choice with a choice id is encountered its decision is remembered.
 
 \begin{code}
 dfs : {A : Set} → Map Bool → Tree A → List A
@@ -1760,7 +1760,7 @@ runInsertND = refl
   \label{first-order:sharing:properties:laws}
 \end{figure}
 
-\textcite{DBLP:conf/icfp/FischerKS09} introduced a set of equations
+\textcite{DBLP:conf/icfp/FischerKS09} introduce a set of equations
 characterizing call-time choice semantics.
 The equations can be found in figure \ref{first-order:sharing:properties:laws}.
 The first three laws are just the monad laws, which were proven in section

@@ -70,7 +70,7 @@ In Agda the universes are named \AgdaDatatype{Setₙ}, where \AgdaDatatype{Set�
 can be abbreviated as \AgdaDatatype{Set}.
 Usually, the universes are cumulative, i.e. if $\tau : \mathcal{U}_n$ then
 $\tau : \mathcal{U}_k$ for $k>n$.
-By default this is not the case in Agda.
+By default, this is not the case in Agda.
 Each type is member of a unique universe, but it is possible to lift a type to a
 higher universe manually.
 Since Agda 2.6.1 an experimental \texttt{--cumulativity} flag exists.
@@ -185,7 +185,7 @@ We can construct a $k<n$ of type
 \AgdaDatatype{Fin}\AgdaSpace{}$($\AgdaArgument{n - k}$)$ and applying
 \AgdaInductiveConstructor{suc} $k$ times.
 Using this definition of the bounded subsets of natural numbers we can define
-a non partial version of \AgdaFunction{\_!\_} for vectors.
+a non-partial version of \AgdaFunction{\_!\_} for vectors.
 
 \begin{AgdaAlign}
 \begin{code}
@@ -255,15 +255,15 @@ translated as easily to Haskell.
 
 \subsection{Propositions as Types}
 
-The idea of propositions as types, also know as Curry-Howard correspondence,
+The idea of propositions as types, also known as Curry-Howard correspondence,
 relates type theory to logic and is the basis for theorem proving in
 dependently typed languages, like Agda.
 In this section we give a short overview over the idea.
-An more in depth explanation and an overview over the history of the idea can be
+A more in depth explanation and an overview over the history of the idea can be
 found in Wadler's paper of the same name \cite{DBLP:journals/cacm/Wadler15}.
 
 As described by \textcite{DBLP:journals/cacm/Wadler15}, the idea of propositions
-as types is a deep correspondents, relating \textit{propositions to types},
+as types is a deep correspondence, relating \textit{propositions to types},
 \textit{proofs to programs} and \textit{simplification of proofs to evaluation
 of programs}.
 First we will consider the connection between the simple typed lambda calculus
@@ -466,7 +466,7 @@ This proof can now be used in larger Proofs.
 For example, using \AgdaFunction{cong} we can rewrite arbitrary terms containing
 the left- or right-hand of the equality.
 
-The above definition of propositional equality defines so called
+The above definition of propositional equality defines so-called
 \textit{intentional} propositional equality.
 Intentional equality respects how objects are defined.
 Extensional equality just observes how objects behave.
@@ -477,7 +477,7 @@ extensional but not intentional equal.
 In Agda one can use extensional equality be arguing in another setoid (i.e.
 using a different equivalence relation, which assumes that extensionality holds)
 or by adding an axiom to modify the underlying theory.
-For simplicity we will do the later and postulate the axiom of extensionality.
+For simplicity, we will do the latter and postulate the axiom of extensionality.
 
 \begin{code}
 postulate
@@ -568,7 +568,7 @@ with a value which represents an upper bound on the size of the types values.
 A set of builtin functions and types can be used to establish relations between
 different sizes and therefore assist the termination checker.
 The elements of \AgdaDatatype{Size} are well ordered.
-\AgdaFunction{↑\_} is the successor operation on \AgdaDatatype{Size}, i.e. 
+\AgdaFunction{↑\_} is the successor operation on \AgdaDatatype{Size}, i.e.
 \AgdaArgument{i}$\;<\;$\AgdaFunction{↑}\AgdaSpace{}\AgdaArgument{i}.
 \AgdaFunction{\_⊔ˢ\_} is the supremum with respect to the relation.
 \AgdaInductiveConstructor{∞} is the top element in \AgdaDatatype{Size}.
@@ -624,17 +624,17 @@ Therefore, the functions has to terminate.
 In this case inlining the call of \AgdaFunction{map} also solves the termination
 problem.
 When generalizing the definition of the tree from \AgdaDatatype{List} to an
-arbitrary functor this would not be possible.
+arbitrary functor, this would not be possible.
 In many cases inlining all helper functions is either not feasible or would lead
 to large and unreadable programs.
 
 
 \subsection{Strict Positivity}
 
-In a type system with arbitrary recursive types, it is possible to to implement a
+In a type system with arbitrary recursive types, it is possible to implement a
 fixpoint combinator and therefore non-terminating functions without explicit
 recursion.
-As explained in Section \ref{sec:termination-checking} this entails logical
+As explained in Section \ref{sec:termination-checking}, this entails logical
 inconsistency.
 Agda allows only strictly positive data types.
 A data type $D$ is strictly positive if all constructors are of the form
@@ -654,7 +654,7 @@ preserved~\cite{Wadler1991RecursiveTF}.
 \subsubsection{Container}
 \label{container}
 
-Because of the strict positivity requirement it is not allowed to apply generic
+Because of the strict positivity requirement, it is not allowed to apply generic
 type constructors to recursive occurrences of a data type in its definition.
 The reason for this restriction is that a type constructor is not required to
 use its argument only in strictly positive positions.
@@ -691,7 +691,7 @@ The functors action on functions is given by
 $$
   \lBrack S \rhd P \rBrack \;f\;\langle s , pf \rangle = \langle s , f \circ pf \rangle.
 $$
-We can translate these definition directly to Agda.
+We can translate these definitions directly to Agda.
 Instead of a \AgdaKeyword{data} declaration we can use \AgdaKeyword{record}
 declarations.
 Similar to other languages \AgdaKeyword{record}s are pure product types.
@@ -759,7 +759,7 @@ with a few additional concepts.
 
 Like in Haskell, functions are defined using equations, but Curry assigns
 different semantics to overlapping clauses.
-When calling a function all right-hand sides of matching left-hand sides are
+When calling a function, all right-hand sides of matching left-hand sides are
 executed.
 This introduces nondeterminism.
 Nondeterminism is integrated as an \textit{ambient effect}, i.e. the effect is
@@ -786,7 +786,7 @@ Using \texttt{?} we can define a simple nondeterministic program.
 \end{minted}
 \texttt{coin} chooses non-deterministically between $0$ and $1$.
 Executing \texttt{coin} therefore yields these two results.
-When executing \texttt{twoCoins} the two calls of \texttt{coin} are independent.
+When executing \texttt{twoCoins}, the two calls of \texttt{coin} are independent.
 Both choose between $0$ and $1$, therefore \texttt{twoCoins} yields the results
 $0$, $1$, $1$ and $2$.
 
@@ -802,7 +802,7 @@ calls.
      doubleCoin :: Int
      doubleCoin = double coin
 \end{minted}
-When calling \texttt{double} with a nondeterministic value two behaviors are
+When calling \texttt{double} with a nondeterministic value two behaviours are
 conceivable.
 The first possibility is that the choice is moved into the function, i.e. both
 \texttt{x} choose independent of each other, yielding the results $0$, $1$, $1$
@@ -818,9 +818,9 @@ can freely replace a term with its definition) and definiteness (each variable h
 exactly one value), but not unfoldability~\cite{DBLP:journals/acta/SondergaardS89}.
 That is, one cannot simply substitute in non-value function arguments, because
 they could contain choices.
-Instead one expects the above behavior of conceptually choosing before calling
+Instead, one expects the above behaviour of conceptually choosing before calling
 the function.}.
-The rational behind call-time choice is that deterministic functions behave the
+The rationale behind call-time choice is that deterministic functions behave the
 same for deterministic and non-deterministic inputs.
 A variable bound by a lambda or \texttt{let} always refers to just a single
 value.
@@ -831,8 +831,8 @@ expression is evaluated at most once.
 The later is important when expressions are named and reused via \texttt{let}
 bindings or lambda abstraction.
 The named expression is evaluated the first time it is needed.
-If the result is needed again the old value is reused.
-This behavior is called sharing.
+If the result is needed again, the old value is reused.
+This behaviour is called sharing.
 Usually function application is defined using the \texttt{let}
 primitive~\cite{DBLP:conf/popl/Launchbury93}.
 Applying a non-variable expression to a function introduces a new intermediate
@@ -847,7 +847,7 @@ Sharing allows delaying the evaluation of a function arguments as well as
 linking all their uses.
 Sharing a nondeterminism computations means making the same choices in all
 places the shared term is used.
-If the choice is demanded, the resulting behavior is identical to choosing
+If the choice is demanded, the resulting behaviour is identical to choosing
 before calling the function.
 Furthermore, because the \texttt{let} primitive introduces sharing, we expect a
 variable bound by a \texttt{let} to behave similar to one bound by a function.
@@ -982,7 +982,7 @@ An interpretation for $T$ is called $T$-model if it validates all equations in $
 
 \subsubsection{Free Model}
 
-For each algebraic theory $T$ we can generate a so called free model
+For each algebraic theory $T$ we can generate a so-called free model
 $\mathrm{Free}_T(\mathbb{X})$.
 The free model is the optimal model for the theory, i.e. it validates just
 equations from $\mathcal{E}_T$ and the ones directly following from them and no
@@ -1058,7 +1058,7 @@ Notice that the set $|\mathrm{Free}_{T'}(V')|$ is equipped with two models, the
 free $T'$ model it was generated by, as well as an additional (not necessarily
 free) $T$ model.
 
-Because a handler is a homomorphism from a free model it is uniquely determent
+Because a handler is a homomorphism from a free model it is uniquely determined
 by a map $f : V \rightarrow |\mathrm{Free}_{T'}(V')|$ for the underlying
 values and the interpretations $\lBrack op_i \rBrack : P_i \times
 |\mathrm{Free}_{T'}(V')|^{A_i} \rightarrow |\mathrm{Free}_{T'}(V')|$ for each
@@ -1092,7 +1092,7 @@ alternative result for $e$.
 
 If the source and target theory share operations it is possible to interpret an
 operations by itself, i.e. not handle it.
-This allow us to handle more complex, combined theories using multiple modular
+This allows us to handle more complex, combined theories using multiple modular
 handlers.
 It is also possible to interpret operations using other operations, i.e. to
 simulate an effect in the source theory using effects in the target theory.
@@ -1160,7 +1160,7 @@ These terms are just syntax without semantics\footnote{For some effects these
   For example, in case of exceptions the \texttt{throw} already has the correct
   semantics.
   Because it has no sub-computations, it aborts the program.}.
-Semantics are completely determent by the handler, that interprets the syntax
+Semantics are completely determined by the handler, that interprets the syntax
 by mapping it to an actual model.
 When interpreting the syntax using a handler falsely different values can again
 be equated, by treating them the identically.
@@ -1176,7 +1176,7 @@ semantics at a later point in time.
 \paragraph{Free Monads in Agda}
 When defining the free monad in Agda we cannot use an arbitrary functor as in
 Haskell, because it would violate the strict positivity requirement.
-Instead we will represent the functor as the extension of a container as
+Instead, we will represent the functor as the extension of a container as
 described in Section \ref{container}.
 Replacing arbitrary functors with container extension, especially to implement
 the free monad, is a well known
@@ -1197,7 +1197,7 @@ The definition of \AgdaDatatype{Container}s correspond closely to the one for
 signatures.
 The constructors for \AgdaField{Shape} correspond to the operation symbols
 $\mathrm{op}_i$ and the constructor arguments correspond to the parameter $P_i$.
-A constructor without extra arguments corresponds to the an operation with
+A constructor without extra arguments corresponds to an operation with
 parameter set $\mathbb{1}$.
 The type of positions for a shape corresponds to the arity set $A_i$.
 The \AgdaField{Pos} type depends on a value of type \AgdaField{Shape} i.e. it
@@ -1237,9 +1237,9 @@ but not all operations know from these monads are algebraic.
 The most common example is \texttt{catch}, as it was noted early by
 \textcite{DBLP:journals/acs/PlotkinP03}.
 \texttt{catch} takes two arguments, a computation \texttt{p} which maybe
-produces an exception and an handler \texttt{h}, which produces an alternate
+produces an exception and a handler \texttt{h}, which produces an alternate
 result for each exception.
-If \texttt{catch} were algebraic the following equation would hold.
+If \texttt{catch} were algebraic, the following equation would hold.
 \[
   \textbf{catch}\; p\; h \bind{k} = \textbf{catch}\;(p\bind{} k)\;(\lambda
   e.h\; e \bind{} k)
