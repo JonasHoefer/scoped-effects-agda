@@ -42,26 +42,26 @@ open Container public
 
 In this chapter we present our first implementation of algebraic effects in Agda.
 The implementation uses a traditional approach, i.e. it represents effects as
-functors and uses the free monad, as described in section
+functors and uses the free monad, as described in Section
 \ref{preliminaries:free-monad}.
 We focus on implementation details specific to Agda, for example termination and
 positivity checks.
 
-In section \ref{first-order:functor} we introduce our general infrastructure for
+In Section \ref{first-order:functor} we introduce our general infrastructure for
 modular effects, which provides a similar interface to the one by
 \textcite{DBLP:conf/haskell/WuSH14}.
 The basic idea of operating on lists of effects is similar to the Idris effect
 library by \textcite{DBLP:conf/icfp/Brady13}.
-In section \ref{first-order:effects-and-handlers} we implement some of the
+In Section \ref{first-order:effects-and-handlers} we implement some of the
 examples by \textcite{DBLP:conf/haskell/WuSH14} to explain the general
 construction of effects and handlers using this approach.
-In section \ref{fist-order:scoped-effects} we implement scoped effects using
+In Section \ref{fist-order:scoped-effects} we implement scoped effects using
 explicit scoped delimiters as described by \textcite{DBLP:conf/haskell/WuSH14}.
 To define handlers for effects with and without scopes we use a general
 construction using sized types to prove termination.
 This allows us to conveniently implement handlers in Agda, i.e. without changing
 the structure of handlers to prove termination.
-As a more complex example we implement the sharing handler by
+As a more complex example, we implement the sharing handler by
 \textcite{bunkenburg2019modeling}, providing a way of simulating call-time
 choice semantics in Agda.
 
@@ -79,7 +79,7 @@ The additional parameter of an operation is embedded in the shape.
 The free monad over a container describes a program using the effect's syntax,
 i.e. it is the free model for the algebraic theory without the equations.
 To combine the syntax of multiple effects we can combine the underlying
-functors, because the free monad preserves coproducts\footnote{This follows from
+functors because the free monad preserves coproducts\footnote{This follows from
 the facts that \texttt{Free} is the left half of a free-forgetful adjunction and
 that all left-adjoints preserve colimits.}.
 This method of modularization of syntax was presented by
@@ -92,7 +92,7 @@ The approach for modularization functors described by
 The functor coproduct is modelled as the data type
 \mintinline[breaklines]{haskell}{data (f :+: g) a = Inl (f a) | Inr (g a)},
 which is again a \texttt{Functor} in \texttt{a}.
-In section \ref{preliminaries:free-monad} we defined the free monad over
+In Section \ref{preliminaries:free-monad}, we defined the free monad over
 a strictly positive functor, which was represented by a
 \AgdaDatatype{Container}.
 We could use a similar data type to combine the extensions of two containers,
@@ -118,15 +118,15 @@ _⊕_ : Container → Container → Container
 \end{code}
 The functor represented by the coproduct of two containers is isomorphic to the
 functor coproduct of their representations.
-The container without shapes is the neutral element for the coproduct of
-containers.
+The container without shapes, usually called \AgdaDatatype{Void}, is the neutral
+element for the coproduct of containers.
 This allows us to define $n$-ary coproducts for containers.
 
 \begin{code}
 sum : List Container → Container
 sum = foldr _⊕_ (⊥ ▷ λ())
 \end{code}
-To generically work with arbitrary coproducts of functors we define two utility
+To generically work with arbitrary coproducts of functors, we define two utility
 functions.
 Given a value $x:A$ we want to be able to inject it into any coproduct
 mentioning $A$.

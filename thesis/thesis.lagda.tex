@@ -182,7 +182,7 @@
 
       \vskip 2cm
 
-      \textbf{Bachelor Thesis}
+      \textbf{Bachelor-Thesis}
 
       \vskip 2cm
 
@@ -210,11 +210,11 @@
 \thispagestyle{plain}
 \selectlanguage{english}
 \begin{abstract}
-  Computational effects are a central concept in functional programming as well
-  as formal verification.
+  Computational effects are a central concept in functional programming and
+  formal verification.
   Different representations for computational effects exist, notably monads and
   algebraic effects.
-  The composability of the representation is important, to allow the development
+  The composability of the representation is important to allow the development
   of modular programs and reasoning about them.
   Algebraic effects and handlers are generally a more modular approach than
   traditional monad transformers.
@@ -241,12 +241,12 @@
   \textcite{DBLP:conf/haskell/WuSH14,DBLP:conf/lics/PirogSWJ18} translate in the
   dependently typed, functional programming language Agda.
   We implement a library for scoped effects that allows the implementation of
-  effectful program as well as formal reasoning using Agda's theorem proving
+  effectful programs as well as formal reasoning using Agda's theorem proving
   capabilities.
   To test the applicability of our implementations, we implement effects related
   to modelling Curry's~\cite{Hanus95curry} ambient non-strict non-determinism.
-  Our main example for a scoped effect is sharing of nondeterminism as modelled
-  by \textcite{bunkenburg2019modeling} to simulating Curry's call-time choice
+  Our main example for a scoped effect is sharing of nondeterminism, as modelled
+  by \textcite{bunkenburg2019modeling}, to simulating Curry's call-time choice
   semantics.
   To model ambient effects in data structures, the implementation also supports
   deep effects.
@@ -288,7 +288,7 @@
   lassen.
   Wir implementieren eine Bibliothek für Wirkungen mit Sichtbarkeitsbereichen.
   Diese erlaubt sowohl die Implementierung von wirkungsbehafteten Programmen,
-  also auch deren Verifikation durch Agda als Beweisassistenten
+  also auch deren Verifikation durch Agda als Beweisassistenten.
   Um die Anwendbarkeit unserer Implementierung zu testen, implementieren wir
   Wirkungen, welche verwendet werden können um Currys~\cite{Hanus95curry}
   ambienten, nicht strikten Nichtdeterminismus zu modellieren.
@@ -319,9 +319,9 @@ They represent a large class of effects using a set of operations and an
 algebraic theory relating them.
 Furthermore, they provide ways of constructing, reasoning and combining
 effects~\cite{DBLP:journals/corr/PlotkinP13}.
-Although, they can represent a large set of effects, not all operations from the
+Although they can represent a large set of effects, not all operations from the
 corresponding monad for the effect fit in the algebraic effect framework.
-More precisely, they cannot represent non-algebraic operations, for example
+More precisely, they cannot represent non-algebraic operations, for example,
 operations with scopes, such as
 \texttt{catch}~\cite{DBLP:journals/acs/PlotkinP03}.
 
@@ -330,8 +330,8 @@ generalization of exception handlers.
 They allow modelling of non-algebraic operations and are used in conjunction
 with algebraic effects~\cite{DBLP:journals/corr/PlotkinP13}.
 Algebraic effects and handlers have a wide field of applications.
-In functional programming they are used as a less boiler plate intensive
-alternative to monad transformers.
+In functional programming they are used as a less boiler plate intensive and
+more composable alternative to monad transformers.
 % doppelt
 They can be used as a theoretical foundation for reasoning about computational
 effects.
@@ -386,10 +386,10 @@ correctness proofs for the implemented library.
 Alongside the implementation of scoped effects, the library contains proofs for
 common properties of these effects.
 Furthermore, the library itself can be used to simulate semantics of other
-programming languages such as Curry's~\cite{Hanus95curry} call-time choice and
+programming languages, such as Curry's~\cite{Hanus95curry} call-time choice, and
 allow verification of equivalent programs written in these languages in Agda.
 To model ambient effects in data structures correctly, the library has to be
-able to represent deep effects i.e. data structures with effectful components.
+able to represent deep effects, i.e. data structures with effectful components.
 
 
 \section{Structure}
@@ -405,13 +405,13 @@ The former of the two approaches was already partially explored by
 \textcite{bunkenburg2019modeling} in Coq and can also be implemented
 easily in Agda.
 The latter of the two approaches tries to fix some inherent problems of the
-first one, but sadly cannot fully be implemented in Agda due to some other
+first one, but sadly it cannot fully be implemented in Agda due to some other
 problems with universe consistency.
 
 Chapter \ref{chapter:scoped-algebras} describes an implementation of a novel
-representation for scoped effects by \textcite{DBLP:conf/lics/PirogSWJ18} which
-also fixes the problems of the first approach, while avoiding the universe
-inconsistencies of the second one.
+representation for scoped effects by \textcite{DBLP:conf/lics/PirogSWJ18}.
+This approach also fixes the problems of the first approach and avoids the
+universe inconsistencies of the second one.
 Furthermore, the implementation explores some ideas to modularize the exemplary
 Haskell implementation by \citeauthor{DBLP:conf/lics/PirogSWJ18}.
 
@@ -464,23 +464,25 @@ translate to Agda.
 In Chapter \ref{chapter:first-order}, we first implemented ordinary algebraic
 effects in Agda.
 The implementation only depends on the definition of the free monad, which
-we implemented using containers, a well known approach.
-To prove termination we used sized types, which proved effective because they
-allowed the definition of \textcite{DBLP:conf/haskell/WuSH14} handlers for
+we implemented using the well known approach of replacing functors with
+containers.
+To prove termination we used sized types.
+They proved effective because they allowed the definition of
+\textcite{DBLP:conf/haskell/WuSH14} handlers for
 explicit scope delimiters as well as avoided excessive inlining.
 Furthermore, it was possible to implement the sharing handler by
-\textcite{bunkenburg2019modeling} in Agda, making this approach a valid choice
+\textcite{bunkenburg2019modeling} in Agda, which makes this approach a valid choice
 for simulating call-time choice semantics.
 A problem with this approach is that it inherently allows mismatched scope
-delimiters, that is malformed syntax, which potentially complicates proofs.
+delimiters and therefore malformed syntax, which potentially complicates proofs.
 
 In Chapter \ref{chapter:higher-order}, we tried implementing effects using higher
-order syntax, as described by \textcite{DBLP:conf/haskell/WuSH14}.
-This approach turned out to be problematic, because it relies on existential
+order syntax as described by \textcite{DBLP:conf/haskell/WuSH14}.
+This approach turned out to be problematic because it relies on existential
 types to capture subcomputations.
 Holding onto the idea of storing types directly, we showed that it is not
 possible to implement deep effects in a setting with bounded universe levels.
-Furthermore, we discussed potential alternative approaches, although non of them
+Furthermore, we discussed potential alternative approaches although non of them
 seem promising.
 The repository contains a sketch of an implementation with variable universe
 levels, which showcases the practical difficulties.
@@ -491,7 +493,7 @@ effects using higher order syntax.
 
 Due to the deep-seated problem of the approach from Chapter
 \ref{chapter:higher-order} we experimented with an novel representation by
-\textcite{DBLP:conf/lics/PirogSWJ18}, which allowed us to remove the existential
+\textcite{DBLP:conf/lics/PirogSWJ18} which allowed us to remove the existential
 type.
 The naive Agda implementation of the monad \textcite{DBLP:conf/lics/PirogSWJ18}
 proved to be problematic in terms of theorem proving.
@@ -511,7 +513,8 @@ setting and shows parallels to the higher-order approach. % of course, the monad
 Different versions of effects and handlers are becoming more popular in the
 functional programming community.
 To still provide the usual structure and expressiveness of normal monad
-transformers, most Haskell implementations (e.g. [polysemy], [fused-effects])
+transformers, most Haskell implementations (e.g.
+polysemy~\cite{SOFTWARE:polysemy}, fused-effects~\cite{SOFTWARE:fused-effects})
 internally use higher order syntax to implement scoped effects.
 
 In dependently typed language much less work has been done.
@@ -521,18 +524,19 @@ Resource dependent effects are a version of algebraic effects in a dependently
 typed setting.
 An Agda version of the library by Norell exists.
 \textcite{baanen2019algebraic} also implement algebraic effects in Agda.
-His work focuses on program verification.
+His work focuses more on program verification.
 
 
 \subsection{Future Work}
 
 For each of the three approach, the basic infrastructure as well as some
 exemplary effects were presented.
-Based on them, the corresponding library could be extended with more effects.
+Based on them, the corresponding implementation could be extended with more
+effects.
 In case of the approaches from Chapter \ref{chapter:higher-order} and Chapter
 \ref{chapter:scoped-algebras} a simplified syntax was used.
 Some scoped operations, for example \texttt{pass} and \texttt{listen} for the
-\texttt{Writer} effect, have fundamentally different shape, which cannot be
+\texttt{Writer} effect, have fundamentally different shape which cannot be
 represented at the moment.
 Implementing these operations requires generalizing the syntax.
 For higher-order approach alternative container representations were mentioned.
@@ -554,21 +558,40 @@ handlers for the effect was called last.
 Most real program use multiple effects, which differ between functions.
 Properties of effects may not hold if a non-orthogonal handler is called first.
 Exploring this issue and defining structures for proving and using propositions
-about effects in a modular setting, could be a useful addition to the library.
+about effects in a modular setting could be a useful addition to the library.
 
 The approaches in this thesis are based on the work by
 \textcite{DBLP:conf/haskell/WuSH14} and \textcite{DBLP:conf/lics/PirogSWJ18}.
 Norell ported the Idris effect library by \textcite{DBLP:conf/icfp/Brady13} to
 Agda.
-The library does not allow scoped effects, but uses a fundamentally different
+The library does not allow scoped effects, but it uses a fundamentally different
 structure.
 Extending this approach with scoped effects could provide an alternative to the
-approaches described implemented in thesis.
+approaches implemented in this thesis.
 Vice versa, one could try extending one of the approaches presented here with
 recourse dependent effects.
 
 \emergencystretch=2em
 \printbibliography
+
+\newpage
+\pagestyle{plain}
+\section*{Eidesstattliche Erklärung}
+
+\vspace{2cm}
+Hiermit erkläre ich, dass ich die vorliegende Arbeit selbständig angefertigt, an
+noch keiner anderen Stelle zur Begutachtung eingereicht, keine anderen als   die
+angegebenen   Hilfsmittel   verwendet   und   alle   wörtlichen   oder
+sinngemäßen Übernahmen von Aussagen bzw. Ergebnissen Dritter an der jeweiligen
+Stelle   meiner   Ausführungen   kenntlich   gemacht   sowie   alle   benutzten
+Quellen in der Bibliografie aufgelistet habe. 
+\mbox{}
+\vfill
+\noindent
+\begin{tabular}{@{}p{2.5in}p{2.5in}@{}}
+  \hrulefill & \hrulefill \\
+  Ort, Datum & Unterschrift
+\end{tabular}
 
 \end{document}
 

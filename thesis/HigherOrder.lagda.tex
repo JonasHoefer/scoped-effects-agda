@@ -35,8 +35,8 @@ constructs.
 By changing the syntax, this approach moves away from the exact definition of
 algebraic effects, but the general concept of defining syntax and inducing
 semantics using a handler is still present.
-This approach is usually used in Haskell to implement scoped effects[polysemy,
-fused-effects].
+This approach is usually used in Haskell to implement scoped effects (e.g.
+polysemy~\cite{SOFTWARE:polysemy}, fused-effects~\cite{SOFTWARE:fused-effects}).
 \citeauthor{bunkenburg2019modeling} already tried to implement some scoped
 effects using this approach in Coq.
 His approach failed due to issues with Coq's positivity
@@ -50,8 +50,8 @@ We partially follow Bunkenburg's approach because the limitation of Coq
 described by him does not exist in Agda.
 In Section \ref{higher-order:container}, we discuss different
 representation for higher order syntax in Agda.
-We explain a size issue with all of these representations, which generally
-prohibits us from implementing deep effects, without making excessive changes.
+We explain a size issue with all of these representations that generally
+prohibits us from implementing deep effects without making excessive changes.
 In Section \ref{higher-order:fixes}, we discuss some potential changes to the
 representation and their consequences.
 Because deep effects are an uncommon requirement, in Section
@@ -194,7 +194,7 @@ record IndexedContainer (I O : Set₁) : Set₂ where
 \end{code}
 Similar to the Haskell data type \mintinline[breaklines]{haskell}{HExc e m a} we
 have to store an arbitrary type, when defining scoping operations.
-Therefore the higher-order functor has to produce elements of the larger
+Therefore, the higher-order functor has to produce elements of the larger
 universe \AgdaDatatype{Set₁}.
 Instantiating \AgdaArgument{I} and \AgdaArgument{O} with \AgdaDatatype{Set}
 gives rise to a container extension of the correct shape.
@@ -220,7 +220,7 @@ All stored elements are lifted by the given functor \AgdaArgument{F}.
 \AgdaArgument{F}'s argument is generated using \AgdaField{Ctx}.
 \AgdaField{Ctx} has access to the chosen shape, accessed position and the 
 argument type \AgdaArgument{A}.
-Conceptually, \AgdaField{Ctx} is used to choose between the stored
+Conceptually, \AgdaField{Ctx} is used to choose between the stored type
 \AgdaArgument{X} and the argument type \AgdaArgument{A} i.e. programs inside or
 outside the operations scope.
 
@@ -233,8 +233,9 @@ could define a type constructor class to implement
 -> sig m b)}
 for all valid higher order functors, which would allow the definition
 \AgdaFunction{>>=}.
-Both representations share another problem, the produced type constructor is not
-necessarily strictly positive.
+Both representations share another problem.
+The produced type constructor is not necessarily strictly positive, because
+\AgdaField{Ctx} can produce arbitrary types containing \AgdaArgument{A}.
 This is a necessary requirement to define recursive, effectful data structures.
 
 There are multiple ways to fix this problem.
@@ -245,10 +246,11 @@ Furthermore, for most effects this level of control over syntax is not needed.
 In most cases the argument \AgdaArgument{A} is only used directly, i.e. the
 Haskell functor contains \texttt{a} only as \texttt{m a}.
 
-Working under this assumption, it is possible to replace the returned functor
-with a value of type \AgdaDatatype{Maybe}\AgdaSpace{}\AgdaDatatype{Set} and
-replace \AgdaInductiveConstructor{nothing} with \AgdaArgument{A} in the
-container extension.
+Working under this assumption, it is possible to replace the type returned by
+\AgdaField{Ctx} with a value of type
+\AgdaDatatype{Maybe}\AgdaSpace{}\AgdaDatatype{Set} and replace
+\AgdaInductiveConstructor{nothing} with \AgdaArgument{A} in the container
+extension.
 This also guaranties strict positivity for \AgdaArgument{A}.
 Furthermore, it allows a generic definition of \AgdaFunction{>>=}, because it is
 possible to pattern match on the result of \AgdaFunction{Ctx} and therefore
@@ -260,7 +262,7 @@ differentiate between container extension which do or do not contain
 a bi-container.
 A bi-container has two position types for each shape.
 Its extension is a bifunctor, that is strictly positive in both arguments.
-Bunkenburg extended the usual bi-functor to an indexed bi-functor by adding a
+Bunkenburg extends the usual bi-functor to an indexed bi-functor by adding a
 context, similar to the above definition, to one of the positions.
 The definition of an indexed bi-container and its extension is given below.
 
@@ -302,7 +304,7 @@ they are easiest to work with and allow us to continue the approach.
 As a side note, some operations with more complex syntax, like
 \mintinline[breaklines]{haskell}{pass :: m (a, w -> w) -> m a} and
 \mintinline[breaklines]{haskell}{listen :: m a -> m (a, w)} for the 
-\mintinline[breaklines]{haskell}{Writer} monad cannot be implemented with this
+\mintinline[breaklines]{haskell}{Writer} monad, cannot be implemented with this
 representation.
  
 Using our choice of functor representation we can define the \AgdaDatatype{Prog}
@@ -361,7 +363,8 @@ which is an element of \AgdaDatatype{Set₁}.
 an element of \AgdaDatatype{Set₁} because it holds values of the container
 extension and therefore values of the \AgdaField{Shape} type.
 The \AgdaField{Shape} type is an element \AgdaDatatype{Set₁} because it has to
-store the result type of the subcomputation \AgdaArgument{X}.
+store the result type of the subcomputation
+\AgdaArgument{X}$\;:\;$\AgdaDatatype{Set}.
 Therefore,
 \AgdaDatatype{Listᴹ}\AgdaSpace{}\AgdaArgument{C}\AgdaSpace{}\AgdaArgument{A} is
 to large to be stored as result type of a subcomputation, i.e. it is not possible
@@ -414,7 +417,8 @@ Instead, we index the program over a data type storing all intermediate result
 types, that is, we introduce a typing context.
 The level of the index is independent of the level of the structure.
 Therefore, the chain of reasoning from Section
-\ref{higher-order:eff-data-ext-types} does not apply.
+\ref{higher-order:eff-data-ext-types} does not apply and we can decrease the
+universe level of \AgdaDatatype{Prog}.
 The typing context needs to have the same structure as the program.
 This is possible by reusing the arbitrary branching mechanism, which is known
 from the free monad.
@@ -486,10 +490,10 @@ We tried implementing this idea but failed when trying to represent generic,
 recursive structures.
 Furthermore, working with data described this way is unintuitive.
 
-Following the same idea, one could try to store either type variables or data
-type representation (e.g. polynomial functors) in the \AgdaField{Shape} of
-effects and build an effectful representation in the container extension.
-
+Following the same idea, i.e. storing just representations of effectful data,
+one could try to store either type variables or data type representation (e.g.
+polynomial functors) in the \AgdaField{Shape} of effects and build an effectful
+representation in the container extension.
 
 \section{Limited Implementation}
 \label{higher-order:limited-impl}
@@ -1233,7 +1237,7 @@ The problem occurs because we have to work in a consistent hierarchy of
 universes to preserve Agda's consistency.
 When using higher order syntax, computations potentially have to store the type
 of data they produce and therefore are larger than the data.
-This prevents scoping operations from capturing other computations, without
+This prevents scoping operations from capturing other computations without
 switching to a larger type of computations.
 This specifically includes effectful data structures, which are needed for the
 implementation of deep effects.
@@ -1242,7 +1246,7 @@ the depth of data structures.
 We discussed two general approaches to avoid increasing universe levels when
 working with effectful data.
 However, both of them require a more complex representation for either types or
-data, probably leading to a more complex implementations, which is harder to
+data, probably leading to a more complex implementations that is harder to
 work with in real programs.
 
 Because deep effects are an uncommon requirement, we still presented key points
@@ -1253,4 +1257,5 @@ instances.
 This lead to manual lifting between universes and structures involving
 \AgdaDatatype{Setω}, which should generally be avoided.
 A level polymorphic implementation, needed for increasing the size of the
-computation types, uses both constructs more frequently.
+computation types, uses both constructs more frequently, but can be used to work
+with effectful data to a limited extend.

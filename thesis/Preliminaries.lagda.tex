@@ -935,11 +935,14 @@ operations together with a set of equations.
 A signature is a set of operation symbols together with an arity set and an
 additional parameter.
 Operations of this form are usually denoted with a colon and $\leadsto$
-between the three sets, suggesting that they describe special functions.
+between the symbol and the two sets, suggesting that they describe special
+functions.
 \[
   \Sigma = \{ \mathrm{op}_i : P_i \leadsto A_i  \}
 \]
 Given a signature $\Sigma$ we can build terms over a set of variables $\mathbb{X}$.
+When describing operations of computational effect, the set of variables
+corresponds to the set of values produced by the computation.
 \[
   x \in \mathrm{Term}_\Sigma(\mathbb{X}) \quad\text{for}\quad x\in\mathbb{X} \qquad
   \mathrm{op}_i(p, \kappa) \in \mathrm{Term}_\Sigma(\mathbb{X}) \quad\text{for}\quad
@@ -988,8 +991,8 @@ The free model is the optimal model for the theory, i.e. it validates just
 equations from $\mathcal{E}_T$ and the ones directly following from them and no
 more.
 
-The set $\mathrm{Tree}_T(\mathbb{X})$ contains term trees, built from the
-variables in $\mathbb{X}$ and the operations of the signature $\Sigma_T$.
+The set $\mathrm{Tree}_T(\mathbb{X})$ contains term trees that are built from
+the variables in $\mathbb{X}$ and the operations of the signature $\Sigma_T$.
 \[
   \mathrm{pure}\;x \in \mathrm{Tree}_T(\mathbb{X}) \qquad \mathrm{op}_i(p,\kappa)
   \in \mathrm{Tree}_T(\mathbb{X}) \quad\text{for}\quad p\in P_i \quad \kappa :
@@ -1000,9 +1003,9 @@ The free model for $T$ is given by
 \[
   \mathrm{Free}_T(\mathbb{X}) = \mathrm{Tree}_T(\mathbb{X})\; /\;\sim_T
 \]
-where $\sim_T$ is the least equivalence relation, such that for all equations
+where $\sim_T$ is the least equivalence relation such that for all equations
 $x\;|\;l=r\in\mathcal{E}_T$, $l\sim_T r$.
-Furthermore $\sim_T$ is required to be a congruence relation for the operations
+Furthermore, $\sim_T$ is required to be a congruence relation for the operations
 of the signature, i.e.
 \[
   \forall i\in\{1,\dots ,n\}. x_i\sim_T y_i \Rightarrow \mathrm{op}(x_1,\dots , x_n)
@@ -1016,16 +1019,16 @@ The signature for a monoid contains two operations, the binary multiplication $\
 and the nullary operation defining the neutral element $e$.
 For a given set of values $A$ the set $\mathrm{Tree}_{\mathrm{Mon}}(A)$ describes term trees
 build using values from $A$, the constant $e$ and the operation $\cdot$.
-The laws for a monoid state that the binary operations is associative, therefore
-the equivalence relation $\sim_{\mathrm{Mon}}$ equates all trees, which are
-equal up to rotation.
-The constant $e$ is the left and right identity for $\cdot$, therefore
+The laws for a monoid state that the binary operations is associative,
+therefore, the equivalence relation $\sim_{\mathrm{Mon}}$ equates all trees that
+are equal up to rotation.
+The constant $e$ is the left and right identity for $\cdot$, therefore,
 $\sim_{\mathrm{Mon}}$ also equates (sub)trees describing the terms $e\cdot t = t
 = t \cdot e$.
 
 Because trees can be rotated freely, the only important information is the order
 of elements.
-Because identities can be freely omitted, the only important term involving
+Identities can be freely omitted, since the only important term involving
 identity is $e$.
 It is easy to show that $\mathrm{Tree}_{\mathrm{Mon}}(A)
 \;/\sim_{\mathrm{Mon}} = \mathrm{Free}_{\mathrm{Mon}}(A) \cong A^*$, i.e. the
@@ -1068,7 +1071,7 @@ The handler is then given by the following equations.
   h([\mathrm{pure}\;x]_{\sim_T}) &= f(x) \\
   h([\mathrm{op}_i(p,\kappa)]_{\sim_T}) &= h_i(p, h\circ\kappa )
 \end{align*}
-Usually when defining a handler the operations of the theory of the right-hand
+Usually, when defining a handler, the operations of the theory of the right-hand
 side are a subset of the ones from the left-hand side.
 The operations are interpreted by extending the structure on the values, i.e.
 mapping the impure model, given by $\mathrm{Free}_T(V)$, to a pure one.
@@ -1085,14 +1088,14 @@ The model for the theory of exceptions on the right-hand side is given by the
 extended set of values, which corresponds to the usual monad modelling the
 effect.
 Another handler for the theory of exceptions is the $\mathrm{catch}$ operation.
-The handler is parameterized of the function mapping exceptions to alternative
+The handler is parameterized over a function mapping exceptions to alternative
 results.
-The handler simply maps occurrences of $\mathrm{throw}\;i$ to the $\mathrm{pure}$
-alternative result for $e$.
+The handler simply maps occurrences of $\mathrm{throw}\;e$ to the alternative
+result for $e$.
 
-If the source and target theory share operations it is possible to interpret an
+If the source and target theory share operations, it is possible to interpret an
 operations by itself, i.e. not handle it.
-This allows us to handle more complex, combined theories using multiple modular
+This allows us to handle more complex combined theories using multiple modular
 handlers.
 It is also possible to interpret operations using other operations, i.e. to
 simulate an effect in the source theory using effects in the target theory.
@@ -1105,7 +1108,7 @@ For example, one could simulate a logging effect (in Haskell \texttt{Writer Stri
 
 The syntax of an algebraic effect is described using the \textit{free
 monad}~\cite{DBLP:journals/jfp/Swierstra08}.
-Given any functor \texttt{f} the data type \texttt{Free f a} is a monad.
+Given any functor \texttt{f}, the data type \texttt{Free f a} is a monad.
 Furthermore, the natural transformations from any functor $f$ to any monad $m$
 (in Haskell functions of type \texttt{forall a. f a -> m a}) are in bijective
 correspondence with monad homomorphisms from \texttt{Free f a} to \texttt{m}.
@@ -1125,7 +1128,7 @@ The usual definition of the free monad in Haskell is given below.
 The free monad essential represents computation trees.
 Computations are either \texttt{pure}, they yield a value without calling
 other operations, or \texttt{impure}.
-An \texttt{impure} computation is given by a value of the free monad, which was
+An \texttt{impure} computation is given by a value of the free monad that was
 lifted using the functor.
 The constructors for \texttt{f a} correspond to operations and arguments of type
 \texttt{a} correspond to subcomputations or arguments for the operation.
@@ -1136,7 +1139,7 @@ of type \texttt{a}, the constant \texttt{E} and the binary operation
 \texttt{Mul}.
 
 \mintinline{haskell}{return} lifts a value to a computation by creating a
-\mintinline{haskell}{Pure} computation which returns the value.
+\mintinline{haskell}{Pure} computation that returns the value.
 The \bind{} operation for the free monad corresponds to variable substitution.
 When calling \bind{} on an \mintinline{haskell}{Impure} value, \bind{} is called
 recursively on all subcomputations using \mintinline{haskell}{fmap} for the
@@ -1153,20 +1156,19 @@ When implementing algebraic effect one simply uses theories without equations,
 that is, just the signatures.
 By moving from free models to term trees we obtain a uniform representation of
 syntax as free monad over a functor.
-As a result, for theories with equation some trees which should be equal are
+As a result, for theories with equation some trees that should be equal are
 not.
 These terms are just syntax without semantics\footnote{For some effects these
   two are the same, i.e. their corresponding monad is free.
   For example, in case of exceptions the \texttt{throw} already has the correct
   semantics.
   Because it has no sub-computations, it aborts the program.}.
-Semantics are completely determined by the handler, that interprets the syntax
+Semantics are completely determined by the handler that interprets the syntax
 by mapping it to an actual model.
 When interpreting the syntax using a handler falsely different values can again
-be equated, by treating them the identically.
+be equated by treating them the identically.
 Therefore, if syntax is interpreted by a correct handler the equations should
-hold again.
-Therefore, working directly on trees and not equivalence classes of trees is
+hold again and working directly on trees, not equivalence classes of trees, is
 correct as long as the handlers are correct.
 Furthermore, by representing effectful programs as computations trees one delays
 the actual evaluation.
@@ -1174,7 +1176,7 @@ This allows a clear separation into syntax and semantics and allows choosing the
 semantics at a later point in time.
 
 \paragraph{Free Monads in Agda}
-When defining the free monad in Agda we cannot use an arbitrary functor as in
+When defining the free monad in Agda we cannot use an arbitrary functor, as in
 Haskell, because it would violate the strict positivity requirement.
 Instead, we will represent the functor as the extension of a container as
 described in Section \ref{container}.
@@ -1200,7 +1202,7 @@ $\mathrm{op}_i$ and the constructor arguments correspond to the parameter $P_i$.
 A constructor without extra arguments corresponds to an operation with
 parameter set $\mathbb{1}$.
 The type of positions for a shape corresponds to the arity set $A_i$.
-The \AgdaField{Pos} type depends on a value of type \AgdaField{Shape} i.e. it
+The \AgdaField{Pos} type depends on a value of type \AgdaField{Shape}, i.e. it
 assigns an arity to each operation.
 In the free model the parameters/child trees are given by the function $\kappa$,
 which maps from the arity set to the carrier set.
@@ -1211,7 +1213,7 @@ In this case the stored values are exactly the subcomputations of type
 \AgdaDatatype{Free}\AgdaSpace{}\AgdaArgument{C}\AgdaSpace{}\AgdaArgument{A}.
 
 \paragraph{Algebraicity}
-In there categorical formulation by \textcite{DBLP:conf/fossacs/PlotkinP02}
+In there categorical formulation by \textcite{DBLP:conf/fossacs/PlotkinP02},
 algebraic operations are required to have a certain natural condition.
 In the earlier definition this requirement is captured by restricting the shape
 of equations.
@@ -1225,7 +1227,8 @@ holds~\cite{DBLP:conf/lics/PirogSWJ18}.
 \]
 For common operations with scopes, such as \texttt{once}, \texttt{catch} or
 \texttt{fork}, this does not hold.
-Dealing with this limitation leads to the general notion of scoped effects.
+Dealing with this limitation in a modular way leads to the general notion of
+scoped effects.
 
 
 \subsection{Scoped Effects}
@@ -1244,11 +1247,11 @@ If \texttt{catch} were algebraic, the following equation would hold.
   \textbf{catch}\; p\; h \bind{k} = \textbf{catch}\;(p\bind{} k)\;(\lambda
   e.h\; e \bind{} k)
 \]
-The equations obviously does not hold, because if it would hold, \texttt{catch}
+The equations obviously does not hold because if it would hold, \texttt{catch}
 could not differentiate between an exception thrown inside or outside its scope.
 The same pattern can be observed with other operations that delimit scopes.
 
-As noted in Section \ref{preliminaries:handler} non-algebraic and in particular
+As noted in Section \ref{preliminaries:handler}, non-algebraic and in particular
 operations with scopes can be implemented as a handler.
 As noted by \textcite{DBLP:conf/lics/PirogSWJ18}, this means that non-algebraic
 operations always have associated semantics, while algebraic operations are just
@@ -1272,7 +1275,7 @@ interpreting syntax.
 To fix this problem \textcite{DBLP:conf/haskell/WuSH14} introduced two solutions
 for syntactically delimiting scopes.
 Using this new syntax, the handlers are freed from delimiting scopes and are
-again purely semantics constructs and can be moved freely to the outside of the
+again purely semantics constructs, which can be moved freely to the outside of the
 program.
 By expanding the syntax, the handling of effects becomes more difficult.
 In Chapter \ref{chapter:first-order} and Chapter \ref{chapter:higher-order} we
