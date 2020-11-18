@@ -20,6 +20,13 @@ open import Effect.Nondet                         using (Nondet; solutions; sele
 
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
+-----------------------------------
+-- Knapsack example by Wu et al. --
+-----------------------------------
+
+-- The function terminates because the weight of the knapsack increases.
+-- To convince Agda we have to define a type of non-zero weights.
+
 data ℕ₀ : Size → Set where
   zero : ∀ {i} → ℕ₀ i
   suc₀ : {i : Size} → ℕ₀ i → ℕ₀ (↑ i)

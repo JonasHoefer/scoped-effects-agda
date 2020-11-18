@@ -1,6 +1,6 @@
-{-# OPTIONS --type-in-type #-}
+{-# OPTIONS --type-in-type #-} -- UNSAFE!
 
-module Effect.HigherOrder.SizedContainerHack where
+module Effect.HigherOrder.HOTypeInType where
 
 open import Size
 open import Function using (_∘_; _$_; id)
@@ -19,6 +19,11 @@ open import Data.Sum using (_⊎_; [_,_]; inj₁; inj₂; map₂)
 
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong)
 
+--------------------------------------------------------
+-- First sketch of higher order scoped effect in Agda --
+--------------------------------------------------------
+
+-- Uses type-in-type -> UNSAFE
 
 infix 3 _∈_
 _∈_ : ∀ {a} {A : Set a} → A → List A → Set a

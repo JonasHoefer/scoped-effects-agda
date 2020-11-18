@@ -15,6 +15,9 @@ open import Data.Unit    using (⊤; tt)
 
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
+-- Sketch of level-polymorphic version higher order effects by Wu et al.
+-- see https://lists.chalmers.se/pipermail/agda/2020/012248.html for short discussion
+
 record Container : Setω where
   constructor _◁_/_
   field

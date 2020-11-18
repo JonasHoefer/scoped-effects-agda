@@ -20,6 +20,13 @@ open import Data.Unit using (⊤; tt)
 
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong)
 
+--------------------------------------------------
+-- Second sketch of higher order scoped effects --
+--------------------------------------------------
+
+-- This second sketch corresponds to the one form the thesis.
+-- It demostrates the size issues.
+
 instance
   -⊎_-RawFunctor : ∀ {ℓ} {E : Set} → RawFunctor {ℓ} {ℓ} (E ⊎_)
   -⊎_-RawFunctor = record { _<$>_ = map₂ }

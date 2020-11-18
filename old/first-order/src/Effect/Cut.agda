@@ -23,6 +23,13 @@ open import Effect.Nondet  using (Nondet; fail; _⁇_; choiceˢ; failˢ)
 open import Tactic.Assumption
 open import Tactic.FindIndex
 
+-----------------------
+-- Cut scoped effect --
+-----------------------
+
+-- This effect allows pruning of nondeterministic computations.
+-- The implementation follows Wu et al.
+
 data Shape : Set where
   cutfailˢ : Shape
 

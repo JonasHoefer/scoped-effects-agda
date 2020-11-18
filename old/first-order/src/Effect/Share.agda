@@ -25,6 +25,9 @@ open import Effect.State       using (State; get; put; evalState)
 
 open import Tactic.Assumption
 
+----------------------------------------------------
+-- Sharing of Nondeterminism following Bunkenburg --
+----------------------------------------------------
 
 data Shape : Set where
   BShareˢ : ℕ × ℕ → Shape

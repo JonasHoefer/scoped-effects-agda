@@ -19,6 +19,12 @@ open import Free
 open import Free.Instances
 open import Effect.Exc     using (Exc; runExc)
 
+-------------------------
+-- Catch scoped effect --
+-------------------------
+
+-- The implementation follows Wu et al.
+
 data Catchˢ : Set where
   bcatchˢ ecatchˢ : Catchˢ
 

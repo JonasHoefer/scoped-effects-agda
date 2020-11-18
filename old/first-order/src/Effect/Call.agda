@@ -21,6 +21,13 @@ open import Free.Instances
 open import Effect.Nondet  using (Nondet; fail; _⁇_; choiceˢ; failˢ)
 open import Effect.Cut     using (Cut) renaming (call to callᶜ)
 
+------------------------
+-- Call scoped effect --
+------------------------
+
+-- This effect provides flexible scopes for the Cut effect.
+-- The implementation follows Wu et al.
+
 data Shape : Set where
   bcallˢ : Shape
   ecallˢ : Shape

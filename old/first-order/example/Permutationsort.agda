@@ -26,6 +26,8 @@ open import Effect.Nondet                         using (Nondet; select; _⁇_; 
 open import Effect.State                          using (State)
 open import Effect.Share                          using (Share; share; runCTC)
 
+-- Permutationsort is a good test because it makes heavy use of nondeterminism and sharing.
+
 insert : ∀ {F i} →
   {@(tactic eff) _ : Share         ∈ F }
   {@(tactic eff) _ : State (ℕ × ℕ) ∈ F }

@@ -13,6 +13,15 @@ open import Data.Product using (Σ-syntax; _×_; _,_) renaming (proj₁ to π₁
 open import Data.Sum using (_⊎_; inj₁; inj₂; [_,_])
 open import Data.Unit using (⊤; tt)
 
+----------------------------------------------------
+-- (unfinished) Sketch of typing environment idea --
+----------------------------------------------------
+
+-- By storing the captured types not directly, but indexing over an environment, it is possible to avoid the size issues.
+-- Sadly, the resulting implementation is rather unusable because type cannot be infered automatically and writing helper
+-- functions to infer environemnts is not feasable.
+-- Furthermore, storing the whole structure of a programs in its type is not optimal because programs producing values of the
+-- same type using different oeprations have different types.
 
 variable
   ℓ : Level

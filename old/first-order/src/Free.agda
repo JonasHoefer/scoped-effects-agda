@@ -47,6 +47,8 @@ private
   map f (pure x)          = pure (f x)
   map f (impure (s , pf)) = impure (s , map f ∘ pf)
 
+-- We define separate monad and functor instances because >>= is not size preserving.
+
 monad : {ops : List Container} → RawMonad λ A → Free ops A
 monad = record { return = pure ; _>>=_ = bind }
 

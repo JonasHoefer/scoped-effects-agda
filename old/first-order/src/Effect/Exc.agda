@@ -12,6 +12,10 @@ open import Data.Sum     using (_⊎_; inj₁; inj₂)
 open import Container    using (Container; _▷_)
 open import Free
 
+----------------
+-- Exceptions --
+----------------
+
 private
   variable
     A : Set

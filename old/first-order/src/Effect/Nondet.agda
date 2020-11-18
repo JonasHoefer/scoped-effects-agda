@@ -18,6 +18,9 @@ open import Container      using (Container; _▷_; _⊕_)
 open import Free
 open import Free.Instances
 
+--------------------
+-- Nondeterminism --
+--------------------
 
 data Shape : Set where
   failˢ   : Shape
@@ -47,6 +50,7 @@ solutions p = dfs empty <$> runNondet p
 fail : {@(tactic eff) _ : Nondet ∈ F} → Free F A
 fail = op (failˢ , λ())
 
+-- smart constructor for the choice operator
 infixr 0 _⁇_
 _⁇_ : {@(tactic eff) _ : Nondet ∈ F} → Free F A → Free F A → Free F A
 p ⁇ q = op (choiceˢ nothing , λ{ true → p ; false → q})

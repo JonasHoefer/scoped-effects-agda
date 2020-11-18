@@ -24,6 +24,7 @@ open import Effect.Share                          using (Share; share; runCTC; n
 
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
+-- Test for the sharing effect, i.e. simulation of Curry's call-time choice semantics.
 
 private
   variable

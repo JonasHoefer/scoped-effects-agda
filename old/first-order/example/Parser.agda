@@ -28,6 +28,13 @@ private
   variable
     F : List Container
 
+----------------------------------
+-- Parser examples by Wu et al. --
+----------------------------------
+
+-- The design of the parser effect inherently complicates termination checking.
+-- Because this is just an example for an effect, we use the TERMINATING pragma to test the effect's semantics.
+
 module Unscoped where
   {-# TERMINATING #-}
   expr   : {@(tactic eff) _ : Nondet ∈ F} {@(tactic eff) _ : Symbol ∈ F} → Free F ℕ

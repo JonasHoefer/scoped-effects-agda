@@ -22,6 +22,15 @@ open import Free.Instances
 
 open import Effect.Nondet  using (Nondet; _⁇_; fail)
 
+--------------------------------
+-- Symbol following Wu et al. --
+--------------------------------
+
+-- The usual definitions of some and many are problematic because they allow iterating arbitrary operations.
+-- Technically they produce arbitrarily large programs.
+-- The effect can be implemented analogously to Haskell and is still a usefull test.
+-- Implementing a (usefull) version of this effect without inherent termination problems is outside the scope for this thesis.
+
 data Shape : Set where
   symbolˢ : Char → Shape
 
@@ -49,6 +58,5 @@ digitᵖ : {@(tactic eff) _ : Symbol ∈ F} → {@(tactic eff) _ : Nondet ∈ F}
 digitᵖ = foldr _⁇_ fail -- shortest solutions with the current std lib ...
   (Data.List.map symbolᴾ ('9' ∷ '8' ∷ '7' ∷ '6' ∷ '5' ∷ '4' ∷ '3' ∷ '2' ∷ '1' ∷ '0' ∷ []))
 
--- TODO: `some` and `many`
 numberᴾ : {@(tactic eff) _ : Symbol ∈ F} → {@(tactic eff) _ : Nondet ∈ F} → Free F ℕ
 numberᴾ = (λ c → toℕ c ∸ toℕ '0') <$> digitᵖ

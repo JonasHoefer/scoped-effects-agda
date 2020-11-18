@@ -24,6 +24,10 @@ open import Effect.State   using (State; runState; get; put)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 open import Tactic.FindIndex
 
+----------------------------------------------------------------------
+-- Tests for combination of State and Exception effect by Wu et al. --
+----------------------------------------------------------------------
+
 decr : ∀ {F} → {@(tactic eff) _ : State ℕ ∈ F} → {@(tactic eff) _ : Exc ⊤ ∈ F} → Free F ⊤
 decr = get >>= λ where
     0       → throw tt

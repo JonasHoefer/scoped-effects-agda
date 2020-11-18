@@ -14,6 +14,10 @@ open import Container        using (Container; _▷_)
 open import Free.Instances
 open import Free
 
+-----------
+-- State --
+-----------
+
 data Shape (S : Set) : Set where
   putˢ : S → Shape S
   getˢ : Shape S
