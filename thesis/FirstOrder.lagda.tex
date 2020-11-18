@@ -280,7 +280,7 @@ because it is impossible to prove that the empty list has a member.
 
 Using the coproduct machinery we can now define a version of the free monad,
 suitable for working with effects.
-In contrast to our first definition in section \ref{preliminaries:free-monad},
+In contrast to our first definition in Section \ref{preliminaries:free-monad},
 this version is parameterized over a list of containers.
 In the \AgdaInductiveConstructor{impure} constructor the containers are combined
 using \AgdaFunction{sum}.
@@ -297,7 +297,7 @@ data Free (ops : List Container) (A : Set) : {Size} → Set where
   impure  : ∀ {i} → ⟦ sum ops ⟧ (Free ops A {i}) → Free ops A {↑ i}
 \end{code}
 The free monad is indexed over an argument of type \AgdaDatatype{Size}.
-We follow the pattern described in section \ref{preliminaries:sized-types}, to
+We follow the pattern described in Section \ref{preliminaries:sized-types}, to
 annotate the data type.
 \AgdaInductiveConstructor{pure} values have an arbitrary size.
 When constructing an \AgdaInductiveConstructor{impure} value, the new value is
@@ -420,7 +420,7 @@ impure (s , pf)  <*> ma = impure (s , (_<*> ma) ∘ pf)
 \subsection{Properties}
 \label{first-order:free-monad:properties}
 
-The definition of the free monad from section \ref{first-order:free-monad} is a
+The definition of the free monad from Section \ref{first-order:free-monad} is a
 functor because it satisfies the two functor laws.
 The two laws state that the lifting of functions via \AgdaFunction{fmap}
 preserves the identity and the composition of functions.
@@ -508,7 +508,7 @@ bind-assoc f g (impure (s , pf))  = cong (impure ∘ (s ,_)) (extensionality (bi
 \section{Implementing Algebraic Effects and Handlers}
 \label{first-order:effects-and-handlers}
 
-In section \ref{preliminaries:handler} we introduced effect handlers more
+In Section \ref{preliminaries:handler} we introduced effect handlers more
 formally.
 In this section we implement algebraic effect and their handlers in Agda.
 
@@ -680,7 +680,7 @@ runNondet (Choice κ)   = ⦇ runNondet (κ true) ++ runNondet (κ false) ⦈
   type
   \AgdaDatatype{Free}\AgdaSpace{}\AgdaArgument{ops}\AgdaSpace{}$($\AgdaDatatype{List}\AgdaSpace{}\AgdaArgument{A}$)$.
   Furthermore, notice that this function rule corresponds to one of the equations
-  for handlers, given in section \ref{preliminaries:handler}.
+  for handlers, given in Section \ref{preliminaries:handler}.
   \begin{code}
 runNondet (Other s κ)  = impure (s , runNondet ∘ κ)
   \end{code}
@@ -699,7 +699,7 @@ runNondet (Other s κ)  = impure (s , runNondet ∘ κ)
 \subsubsection{Properties}
 \label{first-order:nondet:properties}
 
-As explained in section \ref{preliminaries:free-monad}, the free monad
+As explained in Section \ref{preliminaries:free-monad}, the free monad
 represents the free model for the theory without equations, i.e. some terms
 should be equal but are not.
 The handler for an algebraic effect's syntax defines its semantics by removing
@@ -761,7 +761,7 @@ To eliminate \AgdaFunction{<\$>} a functor law is required.
 \end{code}
 Proving the right identity is more complicated, because \AgdaFunction{fail} is
 on the right-hand side of \AgdaFunction{⁇}.
-All monad functions from section \ref{first-order:free-monad} are recursive in
+All monad functions from Section \ref{first-order:free-monad} are recursive in
 their left argument, therefore most propositions involving right arguments do
 not follow trivially from the definition and need own proofs.
 
@@ -773,7 +773,7 @@ Notice that partially applying \AgdaFunction{++} with
 \AgdaInductiveConstructor{[]} is only equal to \AgdaFunction{id} on the left
 without invoking \AgdaFunction{extensionality}.
 
-Using the proofs from section \ref{first-order:free-monad:properties} we
+Using the proofs from Section \ref{first-order:free-monad:properties} we
 can simplify the equations and reduce them to a problem for a normal
 \AgdaDatatype{List}.
 The proof for associativity is longer, but follows the same patterns.
@@ -959,7 +959,7 @@ state monad.
 \subsection{Handling Combined Effects}
 \label{first-order:combined-effects}
 
-As described in section \ref{first-order:functor}, signatures can be combined by
+As described in Section \ref{first-order:functor}, signatures can be combined by
 combining the underlying functors.
 Handlers can be used to partially evaluate programs over a combined signature.
 Consider the following program using nondeterminism and state.
@@ -1276,7 +1276,7 @@ scoped algebraic effects~\cite{bunkenburg2019modeling}.
 In this section we extend the nondeterminism effect from section
 \ref{nondeterminism} to one modelling call-time choice.
 
-As explained in section \ref{call-time-choice}, in Curry call-time choice
+As explained in Section \ref{call-time-choice}, in Curry call-time choice
 semantics are realized using sharing of nondeterministic choices.
 The current implementation of \AgdaDatatype{Nondet} does not support sharing,
 i.e. it is not possible for two choice to be linked.
