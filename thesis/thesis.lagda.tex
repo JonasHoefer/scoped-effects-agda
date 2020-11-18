@@ -221,34 +221,39 @@
   Furthermore, algebraic effects are convenient representation of computational
   effects in total, dependently typed languages.
   For example,
-  \textcite{DBLP:journals/programming/DylusCT19,DBLP:conf/haskell/ChristiansenDB19}
+  \citeauthor{DBLP:journals/programming/DylusCT19} (\citeyear{DBLP:journals/programming/DylusCT19})
+  and
+  \citeauthor{DBLP:conf/haskell/ChristiansenDB19} (\citeyear{DBLP:conf/haskell/ChristiansenDB19})
   used them to explicitly represent some ambient effects, such as Haskell's
   partiality, in the proof assistant Coq.
 
   In the traditional approach, operations with scopes can only be implemented as
   an effect handler.
-  \textcite{DBLP:conf/haskell/WuSH14} noted a lack of modularity, compared to
+  \citeauthor{DBLP:conf/haskell/WuSH14} (\citeyear{DBLP:conf/haskell/WuSH14}) noted a lack of modularity, compared to
   monad transformers, when multiple effect with scoping operations are used.
   This is an important limitation because most commonly used effects have
   associated operations with scopes.
-  To fix this limitation \textcite{DBLP:conf/haskell/WuSH14} introduced scoped
+  To fix this limitation \citeauthor{DBLP:conf/haskell/WuSH14} introduced scoped
   effects.
   Regarding verification, scoped effects are needed to model more
   complex ambient effects, such as sharing.
 
   In this thesis we explore how well three different Haskell implementations of
   scoped effects by
-  \textcite{DBLP:conf/haskell/WuSH14,DBLP:conf/lics/PirogSWJ18} translate in the
+  \citeauthor{DBLP:conf/haskell/WuSH14} (\citeyear{DBLP:conf/haskell/WuSH14})
+  and 
+  \citeauthor{DBLP:conf/lics/PirogSWJ18} (\citeyear{DBLP:conf/lics/PirogSWJ18})
+  translate in the
   dependently typed, functional programming language Agda.
   We implement a library for scoped effects that allows the implementation of
   effectful programs as well as formal reasoning using Agda's theorem proving
   capabilities.
   To test the applicability of our implementations, we implement effects related
-  to modelling Curry's~\cite{Hanus95curry} ambient non-strict non-determinism.
+  to modelling Curry's~(\citeauthor{Hanus95curry}, \citeyear{Hanus95curry}) ambient non-strict non-determinism.
   Our main example for a scoped effect is sharing of nondeterminism, as modelled
-  by \textcite{bunkenburg2019modeling}, to simulating Curry's call-time choice
-  semantics.
-  To model ambient effects in data structures, the implementation also supports
+  by \citeauthor{bunkenburg2019modeling} (\citeyear{bunkenburg2019modeling}), to
+  simulating Curry's call-time choice semantics.
+  To model ambient effects in data structures, our implementation also supports
   deep effects.
 \end{abstract}
 \selectlanguage{ngerman} 
@@ -261,41 +266,47 @@
   die Modularität der Repräsentation entscheidend.
   Algebraische Wirkungen und Wirkungs-Behandler sind generell ein modularerer
   Ansatz als traditionelle Monaden-Transformer.
-  Des weiteren sind algebraische Wirkungen eine bequeme Repräsentation für
+  Des Weiteren sind algebraische Wirkungen eine bequeme Repräsentation für
   Nebenwirkungen in totalen Sprachen mit Dependent-Types.
-  Zum Beispiel haben
-  \textcite{DBLP:journals/programming/DylusCT19,DBLP:conf/haskell/ChristiansenDB19}
-  diese Verwendet um ambiente Wirkungen, wie Haskells Parzialität, im
+  Beispielsweise haben
+  \citeauthor{DBLP:journals/programming/DylusCT19} (\citeyear{DBLP:journals/programming/DylusCT19})
+  und
+  \citeauthor{DBLP:conf/haskell/ChristiansenDB19} (\citeyear{DBLP:conf/haskell/ChristiansenDB19})
+  diese verwendet, um ambiente Wirkungen, wie Haskells Parzialität, im
   Beweisassistenten Coq zu modellieren.
 
   Im traditionellen Ansatz können Operationen mit Sichtbarkeitsbereichen nur
   als Wirkungs-Behandler implementiert werden.
-  \textcite{DBLP:conf/haskell/WuSH14} bemerkten fehlende Modularität im
+  \citeauthor{DBLP:conf/haskell/WuSH14} (\citeyear{DBLP:conf/haskell/WuSH14})
+  bemerkten fehlende Modularität im 
   Vergleich zu Monaden-Transformern, wenn mehrere Wirkungen mit
   Sichtbarkeitsbereichen verwendet werden.
   Dies ist eine wichtige Einschränkung, da die meisten Wirkungen zugehörige
   Operationen mit Sichtbarkeitsbereichen haben.
-  Um diese Limitation zu beheben, haben \textcite{DBLP:conf/haskell/WuSH14}
+  Um diese Limitation zu beheben, haben \citeauthor{DBLP:conf/haskell/WuSH14}
+  (\citeyear{DBLP:conf/haskell/WuSH14}) 
   Wirkungen mit Sichtbarkeitsbereichen vorgestellt.
-  In Bezug auf Verifikation sind Wirkungen mit Sichtbarkeitsbereichen wichtig,
-  da diese nötig sind, um komplexere ambiente Nebenwirkungen wie Sharing zu
-  modellieren.
+  In Bezug auf Verifikation sind Wirkungen mit Sichtbarkeitsbereichen nötig, um
+  komplexere ambiente Nebenwirkungen wie Sharing zu modellieren.
 
   In dieser Arbeit erkunden wir, wie gut sich drei Haskell-Implementierungen von
   Wirkungen mit Sichtbarkeitsbereichen durch
-  \textcite{DBLP:conf/haskell/WuSH14,DBLP:conf/lics/PirogSWJ18}
-  in die funktionale Programmiersprache mit Dependent-Types Agda übertragen
+  \citeauthor{DBLP:conf/haskell/WuSH14} (\citeyear{DBLP:conf/haskell/WuSH14})
+  und
+  \citeauthor{DBLP:conf/lics/PirogSWJ18} (\citeyear{DBLP:conf/lics/PirogSWJ18})
+  nach Agda, eine funktionale Programmiersprache mit Dependent-Types, übertragen
   lassen.
   Wir implementieren eine Bibliothek für Wirkungen mit Sichtbarkeitsbereichen.
   Diese erlaubt sowohl die Implementierung von wirkungsbehafteten Programmen,
-  also auch deren Verifikation durch Agda als Beweisassistenten.
+  als auch deren Verifikation durch Agda als Beweisassistenten.
   Um die Anwendbarkeit unserer Implementierung zu testen, implementieren wir
-  Wirkungen, welche verwendet werden können um Currys~\cite{Hanus95curry}
+  Wirkungen, welche verwendet werden können um Currys~(\citeauthor{Hanus95curry},
+  \citeyear{Hanus95curry})
   ambienten, nicht strikten Nichtdeterminismus zu modellieren.
   Unser Hauptbeispiel für eine Wirkung mit Sichtbarkeitsbereich ist Sharing von
-  Nichtdeterminismus, nach \citeauthor{bunkenburg2019modeling}s Modellierung, um
-  Currys Call-Time Choice Semantik zu simulieren.
-  Um ambiente Wirkungen in Datenstrukturen zu modellieren, unterstützt die
+  Nichtdeterminismus nach \citeauthor{bunkenburg2019modeling}s (\citeyear{bunkenburg2019modeling})
+  Modellierung, um Currys Call-Time Choice Semantik zu simulieren.
+  Um ambiente Wirkungen in Datenstrukturen zu modellieren, unterstützt unsere
   Implementierung tiefe Wirkungen.
 \end{abstract}
 \selectlanguage{english}

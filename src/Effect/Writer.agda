@@ -25,7 +25,7 @@ private
 -- It seems that listen and pass cannot be implemented directly with this approach.
 -- See last paragraph of "Syntax and Semantics for Operations with Scopes"
 --
--- Similar to the HO approach with index bi-container representation the syntax is not expressive enough.
+-- Similar to the HO approach with indexed bi-container representation the syntax is not expressive enough.
 -- It is possible to generalize the syntax (Future Work) or to simulate the writer effect using state.
 
 data Tellˢ   (M : Set) : Set where tellˢ   : M → Tellˢ M

@@ -22,7 +22,18 @@ open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong; sym;
 
 open import Tactic.Eff
 
--- Examples of how to adapt this implementation to tactics to avoid overlapping instances.
+-----------------------------------
+-- Second set of share examples. --
+-----------------------------------
+
+-- This file contains a second collection of share examples.
+-- Furthermore, it demonstrates how this implementation can avoid the --overlapping-instances
+-- flag by using tactics.
+-- For simplicity, we did not adapt all files because in this (simple) version tactics are quite verbose.
+--
+-- Future Work
+--   It should be possible to hide the @(tactic eff) annotation in a record type.
+--   Furthermore, the tactics should be addapted to generate lists of _∈_ proofs to avoid multiple arguments.
 
 share :
   { @(tactic eff) state : State SID ∈ effs } →
@@ -61,6 +72,8 @@ runAddShareCoinTwice = refl
 
 
 open import Effect.Reader renaming (local to local′)
+
+-- This example demonstrates how the reader effect can be lifted through a foreign scope.
 
 local :
   { @(tactic eff) reader : Reader B ∈ effs } →

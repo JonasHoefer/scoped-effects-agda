@@ -68,11 +68,15 @@ RawFunctor._<$>_ functor = mapⁿ 1
 monad : RawMonad (Prog effs)
 monad = record { return = var ; _>>=_ = >>=ₙ 0 }
 
+-- Smart constructors for operations with and without scopes
+
 Op : ⦃ E ∈ effs ⦄ → ⟦ Ops E ⟧ (Prog effs A) → Prog effs A
 Op ⦃ p ⦄ = op ∘ inj (ops-inj p)
 
 Scp : ⦃ E ∈ effs ⦄ → ⟦ Scps E ⟧ (Prog effs (Prog effs A)) → Prog effs A
 Scp ⦃ p ⦄ = scp ∘ inj (scps-inj p)
+
+-- Utility functions for handling effects
 
 pattern Other s κ = (inj₂ s , κ)
 

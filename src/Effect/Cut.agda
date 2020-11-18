@@ -17,6 +17,18 @@ open import Effect.Nondet
 open import Prog
 open import Prog.Instances
 
+------------------------------
+-- Handler for Cut and Call --
+------------------------------
+
+-- cut and call can be used to implement once in the scoped algebrac approach.
+-- This version of cut allows the pruning of operations from other effect.
+-- Handling cut syntax in isolation yields wrong semantcis (first handler).
+-- The second handler handlers cut and nodnet syntax simultaneously.
+-- This should not be a problem because handling other effect between cut and nondet
+-- (e.g. in the first orger approach) also yields unexpected smenatics (because handling
+-- cut in isolation means moving operations).
+
 data Cutˢ : Set where cutfailˢ : Cutˢ
 data Callˢ : Set where callˢ : Callˢ
 
