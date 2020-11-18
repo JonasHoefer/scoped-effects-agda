@@ -123,8 +123,11 @@ element for the coproduct of containers.
 This allows us to define $n$-ary coproducts for containers.
 
 \begin{code}
+Void : Container
+Void = ⊥ ▷ λ()
+
 sum : List Container → Container
-sum = foldr _⊕_ (⊥ ▷ λ())
+sum = foldr _⊕_ Void
 \end{code}
 To generically work with arbitrary coproducts of functors, we define two utility
 functions.
