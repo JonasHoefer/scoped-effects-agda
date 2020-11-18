@@ -15,6 +15,12 @@ open import Effect
 open import Prog
 open import Prog.Instances
 
+----------------------
+-- Exception effect --
+----------------------
+
+-- An in depth explanation can be found in the thesis.
+
 data Excˢ (E : Set) : Set where throwˢ : (e : E) → Excˢ E
 data Catchˢ         : Set where catchˢ : Catchˢ
 data Catchᵖ (E : Set) : Set where

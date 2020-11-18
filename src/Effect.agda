@@ -46,6 +46,10 @@ map : (A → B) → ⟦ C ⟧ A → ⟦ C ⟧ B
 map f c = π₁ c , f ∘ π₂ c
 {-# INLINE map #-}
 
+---------------------------------------------------------------
+-- Utilities for combining and working with combined effects --
+---------------------------------------------------------------
+
 _⊕_ : Container → Container → Container
 (S₁ ▷ P₁) ⊕ (S₂ ▷ P₂) = (S₁ ⊎ S₂) ▷ [ P₁ , P₂ ]
 
@@ -76,8 +80,6 @@ prj (here refl) (inj₁ s , pf) = just (s , pf)
 prj (here refl) (inj₂ s , pf) = nothing
 prj (there p)   (inj₁ s , pf) = nothing
 prj (there p)   (inj₂ s , pf) = prj p (s , pf)
-
--- std lib!
 
 ops-inj : ∀ {E effs} → (E ∈ effs) → Ops E ∈ Data.List.map Ops effs
 ops-inj (here px) = here (cong Ops px)

@@ -13,6 +13,8 @@ open import Variables
 open import Effect
 
 
+-- Monad from "Syntax and Semantics for Operations with Scoeps" by Piróg et al.
+
 data Prog (effs : List Effect) (A : Set) : Set where
   var : A                                       → Prog effs A
   op  : ⟦ ops  effs ⟧ (Prog effs A)             → Prog effs A
@@ -25,6 +27,8 @@ infixl 10 _^_
 _^_ : ∀ {ℓ} {C : Set ℓ} → (C → C) → ℕ → C → C
 (f ^ 0)       x = x
 (f ^ suc n) x = f ((f ^ n) x)
+
+-- fold and induction scheme for nested data type following Fu and Selinger
 
 foldP : (P : ℕ → Set) → ∀ n →
   (A                                       → P 0      ) →

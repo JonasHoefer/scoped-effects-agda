@@ -2,6 +2,8 @@
 
 module Effect.Properties where
 
+-- Collection of imports for  */properties.agda files
+
 open import Function using (_$_; _∘_; id)
 
 open import Category.Monad using (RawMonad)
