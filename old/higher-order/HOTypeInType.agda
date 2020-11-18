@@ -1,6 +1,6 @@
 {-# OPTIONS --type-in-type #-} -- UNSAFE!
 
-module Effect.HigherOrder.HOTypeInType where
+module HOTypeInType where
 
 open import Size
 open import Function using (_∘_; _$_; id)

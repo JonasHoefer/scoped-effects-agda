@@ -1,6 +1,6 @@
 {-# OPTIONS --cumulativity #-}
 
-module Effect.HigherOrder.HOContainerMaybeLevel where
+module HOContainerMaybeLevel where
 
 open import Function using (_∘_; _$_)
 open import Level using (Level; suc; _⊔_; 0ℓ; Setω)
