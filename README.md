@@ -8,6 +8,10 @@ The `old` directory contains an implementation using explicit scope delimiters a
 These two implementations closely follow ["Effect Handlers in Scope"][paper/WuSH14].
 They are kept for historical/documentation purposes.
 
+Versions
+- [Agda][software/agda], versions 2.6.1
+- [Agda Standard Library][software/agda-stdlib], version 1.4
+
 
 ## Bibliography
 
@@ -31,3 +35,11 @@ They are kept for historical/documentation purposes.
 [paper/FuSelinger18]:
   https://arxiv.org/pdf/1806.05230.pdf
   "Dependently Typed Folds for Nested Data Types"
+
+[software/agda]:
+  https://wiki.portal.chalmers.se/agda/Main/Download
+  "The Agda Wiki — Downloads"
+
+[software/agda-stdlib]:
+  https://wiki.portal.chalmers.se/agda/Libraries/StandardLibrary
+  "The Agda Wiki — Standard Library"
