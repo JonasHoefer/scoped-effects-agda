@@ -117,7 +117,7 @@ i.e. just substitutes the variables in terms of type \texttt{m a}.
 Figure \ref{higher-order:syntax:bind} demonstrates the action of
 \AgdaFunction{>>=} on \AgdaFunction{catch}.
 The program in scope and the $e$ indexed subprogram (the exception handler) both
-produce values of the captured type $X$, therefore \AgdaFunction{>>=} does not
+produce values of the captured type $X$, therefore, \AgdaFunction{>>=} does not
 affect them.
 Only the third computation produces values of type \AgdaArgument{A} and
 therefore is affected by \AgdaFunction{>>=}.
@@ -373,7 +373,7 @@ structure.
 
 More generally speaking, let us fix the universe level of the result type $X$ of
 the subcomputation $\ell_X = l$.
-The type is stored in the \AgdaField{Shape}, therefore the universe level of the
+The type is stored in the \AgdaField{Shape}, therefore, the universe level of the
 \AgdaField{Shape} type is given by $\ell_S = l + 1$.
 Because the \AgdaDatatype{Prog} stores an element of the \AgdaField{Shape} its
 level is given by $\ell_P = \ell_S$.
@@ -1173,7 +1173,7 @@ Most effects only provide one of the two.
 % abstracts away.
 The most common examples are global state to collect results, global writer to
 log and global partiality to stop all branches, which do not encounter the above
-behavior.
+behaviour.
 When catching global exceptions over a nondeterministic program, the above
 behaviour seems more reasonable.
 More complex semantics (e.g. leaving and re-entering the scoped computation) are

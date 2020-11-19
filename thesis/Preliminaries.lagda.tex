@@ -227,7 +227,7 @@ Notice that the types for the recursive call change.
 The tail of the vector \AgdaArgument{xs} and the smaller index \AgdaArgument{i}
 are indexed over the predecessor of \AgdaArgument{n}.
 
-As last example we implement the function \AgdaFunction{replicate}.
+As last example, we implement the function \AgdaFunction{replicate}.
 \begin{code}
 replicate : ∀ {A} → A → (n : ℕ) → Vec A n
 replicate a 0        = []
@@ -273,7 +273,7 @@ classical propositional logic.
 For example, the law of the excluded middle and double negation elimination do
 not hold in general.
 Intuitively speaking, in intuitionistic logic every proof has to be witnessed.
-When proving a disjunction one has to state which of the alternatives holds i.e.
+When proving a disjunction, one has to state which of the alternatives holds, i.e.
 one cannot just prove existence.
 With this view point in mind it should be clear why intuitionists refute the law
 of the excluded middle, if $A \vee \neg A$ were true in general one would
@@ -314,7 +314,7 @@ Therefore, dependent types correspond to predicates.
 $\Sigma$ and $\Pi$ types correspond to existential and universal quantification.
 To prove an existential one has to provide a value and a proof that the
 proposition holds for this value.
-These two correspond to the two elements of a the $\Sigma$ type.
+These two correspond to the two elements of a $\Sigma$ type.
 The type of the second element depends on the first one, i.e. it is a proof for a
 predicate on the first value.
 To prove a universal quantified proposition one has to prove that it holds for
@@ -353,7 +353,7 @@ well as the corresponding syntax in Agda can be found in Table
 
 In the last section we saw how we can encode propositions from propositional and
 predicate logic as types.
-One of the most important proposition is equality, i.e. the proposition that
+One of the most important propositions is equality, i.e. the proposition that
 given two terms $a, b : A$ that $a$ and $b$ are equal.
 When using Agda for theorem proving we have to express propositions like $a + b
 = b + a$ and $2 = 1$, which could be true or false, to be able to prove or
@@ -366,7 +366,7 @@ When defining a program rule like
 we are making an \textit{equality judgement}.
 The symbol \AgdaFunction{truth} is \textit{definitionally equal} to
 \AgdaNumber{42}.
-A judgment is always true.
+A judgement is always true.
 We define one term to be equal to another one and as result allow Agda to reduce
 the left-hand side of the equality to the right-hand side.
 
@@ -450,7 +450,7 @@ for which we can simply construct evidence using
 \AgdaInductiveConstructor{refl}.
 
 The second case is more complex.
-The left hand side still contains the free variable $m$, but reduces to
+The left-hand side still contains the free variable $m$, but reduces to
 \AgdaInductiveConstructor{suc}\AgdaSpace{}$($\AgdaArgument{m}\AgdaSpace{}\AgdaFunction{+}\AgdaSpace{}\AgdaNumber{0}$)$
 using the second rule for \AgdaFunction{\_+\_}.
 Using a recursive call we obtain evidence for
@@ -461,7 +461,7 @@ By applying \AgdaInductiveConstructor{suc} on both sides of the equality we
 obtain a proof for the correct proposition.
 
 We obtained a non-obvious equality by using just definitional and computational
-equality together with the analogs of proofs by exhaustion and induction.
+equality together with the analogues of proofs by exhaustion and induction.
 This proof can now be used in larger Proofs.
 For example, using \AgdaFunction{cong} we can rewrite arbitrary terms containing
 the left- or right-hand of the equality.
@@ -1094,7 +1094,7 @@ The handler simply maps occurrences of $\mathrm{throw}\;e$ to the alternative
 result for $e$.
 
 If the source and target theory share operations, it is possible to interpret an
-operations by itself, i.e. not handle it.
+operation by itself, i.e. not handle it.
 This allows us to handle more complex combined theories using multiple modular
 handlers.
 It is also possible to interpret operations using other operations, i.e. to
@@ -1165,7 +1165,7 @@ These terms are just syntax without semantics\footnote{For some effects these
   Because it has no sub-computations, it aborts the program.}.
 Semantics are completely determined by the handler that interprets the syntax
 by mapping it to an actual model.
-When interpreting the syntax using a handler falsely different values can again
+When interpreting the syntax using a handler, falsely different values can again
 be equated by treating them the identically.
 Therefore, if syntax is interpreted by a correct handler the equations should
 hold again and working directly on trees, not equivalence classes of trees, is

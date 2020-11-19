@@ -47,15 +47,15 @@ functors and uses the free monad, as described in Section
 We focus on implementation details specific to Agda, for example termination and
 positivity checks.
 
-In Section \ref{first-order:functor} we introduce our general infrastructure for
+In Section \ref{first-order:functor}, we introduce our general infrastructure for
 modular effects, which provides a similar interface to the one by
 \textcite{DBLP:conf/haskell/WuSH14}.
 The basic idea of operating on lists of effects is similar to the Idris effect
 library by \textcite{DBLP:conf/icfp/Brady13}.
-In Section \ref{first-order:effects-and-handlers} we implement some of the
+In Section \ref{first-order:effects-and-handlers}, we implement some
 examples by \textcite{DBLP:conf/haskell/WuSH14} to explain the general
 construction of effects and handlers using this approach.
-In Section \ref{fist-order:scoped-effects} we implement scoped effects using
+In Section \ref{fist-order:scoped-effects}, we implement scoped effects using
 explicit scoped delimiters as described by \textcite{DBLP:conf/haskell/WuSH14}.
 To define handlers for effects with and without scopes we use a general
 construction using sized types to prove termination.
@@ -181,7 +181,7 @@ slow\footnote{We encountered cases where type checking of overlapping instances
 
 Instead, we used an similar approach similar to the Idris effect library
 by \textcite{DBLP:conf/icfp/Brady13}.
-The free monad is not parameterised over a single container, but a list
+The free monad is not parametrized over a single container, but a list
 \AgdaArgument{ops} of containers.
 This has the benefit that we cannot associate coproducts to the left by
 accident.
@@ -269,7 +269,7 @@ correct type.
 
 \AgdaFunction{project} functions similarly.
 By pattern matching on the proof we either know that the value we found has
-the correct type or we obtain a proof for the tail of the list, allowing us to
+the correct type, or we obtain a proof for the tail of the list, allowing us to
 either make a recursive call or stop the search.
 Notice that in both cases we do not handle cases related to the empty list,
 because it is impossible to prove that the empty list has a member.
@@ -508,7 +508,7 @@ bind-assoc f g (impure (s , pf))  = cong (impure ∘ (s ,_)) (extensionality (bi
 \section{Implementing Algebraic Effects and Handlers}
 \label{first-order:effects-and-handlers}
 
-In Section \ref{preliminaries:handler} we introduced effect handlers more
+In Section \ref{preliminaries:handler}, we introduced effect handlers more
 formally.
 In this section we implement algebraic effect and their handlers in Agda.
 

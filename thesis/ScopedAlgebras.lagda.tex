@@ -79,9 +79,6 @@ record Container : Set₁ where
     Pos : Shape → Set
 open Container public
 
-_↝_ : Set → Set → Container
-S ↝ P = S ▷ const P
-
 ⟦_⟧ : ∀ {ℓ} → Container → Set ℓ → Set ℓ
 ⟦ S ▷ P ⟧ A = Σ[ s ∈ S ] (P s → A)
 
@@ -434,7 +431,7 @@ We assume values for all constructor arguments, as well as proofs for the
 smaller cases.
 For \AgdaInductiveConstructor{var} an additional, hidden argument
 \AgdaArgument{x} is introduced.
-\AgdaArgument{x} represents a recursive occurrence, therefore it is part of the
+\AgdaArgument{x} represents a recursive occurrence, therefore, it is part of the
 type of the proof for the smaller case $P\;n\;x$.
 \AgdaArgument{x} is used to describe the currently handled value
 \AgdaInductiveConstructor{var}\AgdaSpace{}\AgdaArgument{x}.
@@ -511,7 +508,7 @@ Therefore, the proposition is not ``obvious'' as it was the case with
 \begin{code}
 bind-identʳ : {A : Set} (ma : Prog effs A) → (ma >>= return) ≡ ma
 \end{code}
-\AgdaFunction{>>=} is recursive in its first argument, therefore we prove the
+\AgdaFunction{>>=} is recursive in its first argument, therefore, we prove the
 proposition by induction on \AgdaArgument{ma}.
 To use the induction principle we have to define a proposition for every layer.
 Since \AgdaFunction{>>=} does not change values, we simply produce a value of
@@ -523,7 +520,7 @@ for the given \AgdaArgument{n}.
 \begin{code}
 bind-identʳ {effs} {A} = ind (λ{ 0 _ → ⊤ ; (suc n) p → bind n p var ≡ p })
 \end{code}
-We call the induction principle with the given value with one layer, therefore
+We call the induction principle with the given value with one layer, therefore,
 the initial \AgdaArgument{n} is \AgdaNumber{1}.
 The ``proof'' for values can be inferred because for each value it's just a
 value of the unit type.
@@ -728,6 +725,9 @@ The effect has the unary, scoped operation \AgdaFunction{once} and the nullary
 and binary, algebraic operations \AgdaFunction{⁇} and \AgdaFunction{fail}.
 
 \begin{code}
+_↝_ : Set → Set → Container
+S ↝ P = S ▷ const P
+
 Nondetᵖ : Effect
 Ops   Nondetᵖ = Choiceˢ  ▷ λ{ (⁇ˢ _) → Bool ; failˢ → ⊥ }
 Scps  Nondetᵖ = Onceˢ    ↝ ⊤
@@ -1045,7 +1045,7 @@ lifted into the monad.
 When an operation from a foreign effect is encountered, the syntax is just
 reconstructed.
 The outer container coproduct is removed by interpreting the
-\AgdaDatatype{Nondet} syntax, therefore \AgdaArgument{s} already has the correct
+\AgdaDatatype{Nondet} syntax, therefore, \AgdaArgument{s} already has the correct
 type (note that \AgdaInductiveConstructor{Other} hides the
 \AgdaInductiveConstructor{inj₂}).
 \AgdaArgument{κ} produces the result for the positions of the given shape,
